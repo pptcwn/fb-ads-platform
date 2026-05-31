@@ -1,0 +1,51 @@
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { HealthController } from './health.controller';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { FacebookModule } from './facebook/facebook.module';
+import { SyncModule } from './sync/sync.module';
+import { AdAccountModule } from './adaccount/adaccount.module';
+import { InsightsModule } from './insights/insights.module';
+import { RulesModule } from './rules/rules.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { WarmupModule } from './warmup/warmup.module';
+import { ReportsModule } from './reports/reports.module';
+import { AbtestModule } from './abtest/abtest.module';
+import { AutoSyncModule } from './sync/auto-sync.module';
+import { BudgetModule } from './budget/budget.module';
+import { AlertsModule } from './alerts/alerts.module';
+import { CreativesModule } from './creatives/creatives.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { AdsetsModule } from './adsets/adsets.module';
+import { AudiencesModule } from './audiences/audiences.module';
+import { SchedulesModule } from './schedules/schedules.module';
+import { TemplatesModule } from './templates/templates.module';
+
+@Module({
+  imports: [
+    ScheduleModule.forRoot(),
+    PrismaModule,
+    AuthModule,
+    FacebookModule,
+    SyncModule,
+    AdAccountModule,
+    InsightsModule,
+    RulesModule,
+    CampaignsModule,
+    WarmupModule,
+    ReportsModule,
+    AbtestModule,
+    AutoSyncModule,
+    BudgetModule,
+    AlertsModule,
+    CreativesModule,
+    AnalyticsModule,
+    AdsetsModule,
+    AudiencesModule,
+    SchedulesModule,
+    TemplatesModule,
+  ],
+  controllers: [HealthController],
+})
+export class AppModule {}

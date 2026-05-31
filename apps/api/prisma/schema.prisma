@@ -1,0 +1,690 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  ACTIVE
+  DISABLED
+  LIMITED
+  BANNED
+}
+
+enum CampaignObjective {
+  OUTCOME_AWARENESS
+  OUTCOME_ENGAGEMENT
+  OUTCOME_TRAFFIC
+  OUTCOME_LEADS
+  OUTCOME_SALES
+  OUTCOME_APP_PROMOTION
+}
+
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  DELETED
+  ARCHIVED
+  IN_REVIEW
+  REJECTED
+  COMPLETED
+}
+
+enum RuleCondition {
+  CTR_BELOW
+  CTR_ABOVE
+  CPC_ABOVE
+  CPA_ABOVE
+  SPEND_ABOVE
+  SPEND_BELOW
+  IMPRESSIONS_BELOW
+  FREQUENCY_ABOVE
+  ROAS_BELOW
+  CONVERSIONS_BELOW
+  CPM_ABOVE
+  REACH_BELOW
+}
+
+enum RuleAction {
+  PAUSE_CAMPAIGN
+  PAUSE_ADSET
+  INCREASE_BUDGET_10
+  INCREASE_BUDGET_20
+  INCREASE_BUDGET_50
+  DECREASE_BUDGET_10
+  DECREASE_BUDGET_20
+  DUPLICATE_CAMPAIGN
+  NOTIFY
+}
+
+enum RuleScope {
+  CAMPAIGN
+  ADSET
+  AD
+  ACCOUNT
+}
+
+// ========================
+// Core Tables
+// ========================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  telegramBotToken String? @map("telegram_bot_token")
+  telegramChatId   String? @map("telegram_chat_id")
+
+  fbUsers         FbUser[]
+  rules           Rule[]
+  abTests         AbTest[]
+  budgetSchedules BudgetSchedule[]
+  alertConfigs    AlertConfig[]
+  alertHistory    AlertHistory[]
+  creatives       Creative[]
+  templates       CampaignTemplate[]
+
+  @@map("users")
+}
+
+model FbUser {
+  id             String        @id @default(uuid())
+  userId         String        @map("user_id")
+  user           User          @relation(fields: [userId], references: [id])
+
+  facebookUserId String        @unique @map("facebook_user_id")
+  facebookName   String        @map("facebook_name")
+  facebookEmail  String?       @map("facebook_email")
+
+  accessToken    String        @map("access_token")
+  tokenExpiresAt DateTime      @map("token_expires_at")
+  tokenType      String        @default("bearer") @map("token_type")
+
+  status         AccountStatus @default(ACTIVE)
+
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  adAccounts     AdAccount[]
+  fbPages        FbPage[]
+
+  @@map("fb_users")
+}
+
+model FbPage {
+  id             String   @id @default(uuid())
+  fbUserId       String   @map("fb_user_id")
+  fbUser         FbUser   @relation(fields: [fbUserId], references: [id])
+
+  pageId         String   @unique @map("page_id")
+  name           String
+  category       String?
+  accessToken    String   @map("access_token")
+  tasks          String?  // comma-separated tasks the token grants
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("fb_pages")
+}
+
+model AdAccount {
+  id              String         @id @default(uuid())
+  fbUserId        String         @map("fb_user_id")
+  fbUser          FbUser         @relation(fields: [fbUserId], references: [id])
+
+  accountId       String         @unique @map("account_id")
+  name            String
+  currency        String         @default("THB")
+  timezone        String         @default("Asia/Bangkok")
+
+  status          AccountStatus  @default(ACTIVE)
+  spendCap        Decimal?       @map("spend_cap")
+  dailyBudget     Decimal?       @map("daily_budget")
+
+  balance         Decimal        @default(0)
+  spentToday      Decimal        @default(0) @map("spent_today")
+
+  isWarmingUp     Boolean        @default(false) @map("is_warming_up")
+  warmupDay       Int            @default(0) @map("warmup_day")
+  warmupBaseBudget Decimal?      @map("warmup_base_budget")
+
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  campaigns       Campaign[]
+  rules           Rule[]
+  insights        AccountInsight[]
+  audiences       Audience[]
+
+  @@map("ad_accounts")
+}
+
+model Campaign {
+  id              String          @id @default(uuid())
+  adAccountId     String          @map("ad_account_id")
+  adAccount       AdAccount       @relation(fields: [adAccountId], references: [id])
+
+  campaignId      String          @unique @map("campaign_id")
+  name            String
+  objective       CampaignObjective
+  status          CampaignStatus  @default(ACTIVE)
+
+  dailyBudget     Decimal?        @map("daily_budget")
+  lifetimeBudget  Decimal?        @map("lifetime_budget")
+  spent           Decimal         @default(0)
+
+  impressions     Int             @default(0)
+  clicks          Int             @default(0)
+  ctr             Decimal         @default(0)
+  cpc             Decimal         @default(0)
+  cpm             Decimal         @default(0)
+  spend           Decimal         @default(0)
+  conversions     Int             @default(0)
+  cpa             Decimal         @default(0)
+  reach           Int             @default(0)
+  frequency       Decimal         @default(0)
+  roas            Decimal         @default(0)
+
+  lastSyncedAt    DateTime?       @map("last_synced_at")
+
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  adsets          AdSet[]
+  rules           Rule[]
+  insights        CampaignInsight[]
+  abTests         AbTest[]
+  creativeCampaigns CreativeCampaign[]
+  schedules       CampaignSchedule[]
+
+  @@map("campaigns")
+}
+
+model CampaignSchedule {
+  id            String            @id @default(uuid())
+  campaignId    String            @map("campaign_id")
+  campaign      Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  action        ScheduleAction    @default(STOP)
+  scheduleType  ScheduleType      @default(ONCE)
+
+  // Time config
+  executeAt     DateTime          @map("execute_at")     // When to run (for ONCE/DATE)
+  endTime       DateTime?         @map("end_time")       // Optional end of schedule window
+  daysOfWeek    String?           @map("days_of_week")   // JSON array [1,2,3,4,5,6,0] for weekly
+  timeOfDay     String?           @map("time_of_day")    // HH:mm format for recurring
+
+  enabled       Boolean           @default(true)
+  lastRunAt     DateTime?         @map("last_run_at")
+  lastError     String?           @map("last_error")     @db.Text
+  runCount      Int               @default(0)
+
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  @@index([campaignId])
+  @@map("campaign_schedules")
+}
+
+enum ScheduleAction {
+  START
+  STOP
+}
+
+enum ScheduleType {
+  ONCE     // Single date/time
+  DAILY    // Every day at timeOfDay
+  WEEKLY   // Specific days at timeOfDay
+  HOURLY   // Every N hours
+}
+
+model AdSet {
+  id              String         @id @default(uuid())
+  campaignId      String         @map("campaign_id")
+  campaign        Campaign       @relation(fields: [campaignId], references: [id])
+
+  adsetId         String         @unique @map("adset_id")
+  name            String
+  status          CampaignStatus @default(ACTIVE)
+
+  targeting       Json
+  optimizationGoal String?       @map("optimization_goal")
+  bidStrategy     String?        @map("bid_strategy")
+  bidAmount       Decimal?       @map("bid_amount")
+
+  dailyBudget     Decimal?       @map("daily_budget")
+  lifetimeBudget  Decimal?       @map("lifetime_budget")
+
+  impressions     Int            @default(0)
+  clicks          Int            @default(0)
+  ctr             Decimal        @default(0)
+  spend           Decimal        @default(0)
+  conversions     Int            @default(0)
+
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  ads             Ad[]
+
+  @@map("adsets")
+}
+
+model Ad {
+  id              String    @id @default(uuid())
+  adsetId         String    @map("adset_id")
+  adset           AdSet     @relation(fields: [adsetId], references: [id])
+
+  adId            String    @unique @map("ad_id")
+  name            String
+  status          CampaignStatus @default(ACTIVE)
+
+  creativeId      String?   @map("creative_id")
+  creative        Json?
+
+  impressions     Int       @default(0)
+  clicks          Int       @default(0)
+  ctr             Decimal   @default(0)
+  spend           Decimal   @default(0)
+  conversions     Int       @default(0)
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("ads")
+}
+
+// ========================
+// Rule Engine
+// ========================
+
+model Rule {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  user            User          @relation(fields: [userId], references: [id])
+
+  name            String
+  description     String?
+
+  scope           RuleScope     @default(CAMPAIGN)
+  campaignId      String?       @map("campaign_id")
+  campaign        Campaign?     @relation(fields: [campaignId], references: [id])
+  adAccountId     String?       @map("ad_account_id")
+  adAccount       AdAccount?    @relation(fields: [adAccountId], references: [id])
+
+  conditions      Json
+  logic           String        @default("ALL")
+  actions         Json
+
+  cooldownMinutes Int           @default(60) @map("cooldown_minutes")
+  lastTriggeredAt DateTime?     @map("last_triggered_at")
+  triggerCount    Int           @default(0) @map("trigger_count")
+
+  isEnabled       Boolean       @default(true) @map("is_enabled")
+
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  logs            RuleLog[]
+
+  @@map("rules")
+}
+
+model RuleLog {
+  id              String    @id @default(uuid())
+  ruleId          String    @map("rule_id")
+  rule            Rule      @relation(fields: [ruleId], references: [id])
+
+  triggeredAt     DateTime  @default(now()) @map("triggered_at")
+
+  condition       Json
+  action          Json
+  actionResult    Json?
+  success         Boolean
+  campaignState   Json?
+  errorMessage    String?   @map("error_message")
+
+  @@map("rule_logs")
+}
+
+// ========================
+// Insights / Historical
+// ========================
+
+model CampaignInsight {
+  id              String    @id @default(uuid())
+  campaignId      String    @map("campaign_id")
+  campaign        Campaign  @relation(fields: [campaignId], references: [id])
+
+  date            DateTime
+  impressions     Int
+  clicks          Int
+  ctr             Decimal
+  cpc             Decimal
+  cpm             Decimal
+  spend           Decimal
+  conversions     Int
+  cpa             Decimal?
+  reach           Int
+  frequency       Decimal
+  roas            Decimal?
+
+  @@unique([campaignId, date])
+  @@map("campaign_insights")
+}
+
+model AccountInsight {
+  id              String    @id @default(uuid())
+  adAccountId     String    @map("ad_account_id")
+  adAccount       AdAccount @relation(fields: [adAccountId], references: [id])
+
+  date            DateTime
+  impressions     Int
+  clicks          Int
+  spend           Decimal
+  conversions     Int
+  ctr             Decimal
+  cpc             Decimal
+
+  @@unique([adAccountId, date])
+  @@map("account_insights")
+}
+
+// ========================
+// Audit / Activity Log
+// ========================
+
+model ActivityLog {
+  id              String    @id @default(uuid())
+  userId          String?   @map("user_id")
+  fbUserId        String?   @map("fb_user_id")
+
+  action          String
+  entityType      String    @map("entity_type")
+  entityId        String    @map("entity_id")
+
+  metadata        Json?
+  ipAddress       String?   @map("ip_address")
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// ========================
+// A/B Testing
+// ========================
+
+model AbTest {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  user            User      @relation(fields: [userId], references: [id])
+
+  name            String
+  sourceCampaignId String   @map("source_campaign_id")
+  sourceCampaign  Campaign  @relation(fields: [sourceCampaignId], references: [id], onDelete: Cascade)
+
+  variantCount    Int       @default(0) @map("variant_count")
+  status          String    @default("ACTIVE") // ACTIVE | COMPLETED | FAILED
+
+  variants        AbTestVariant[]
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("ab_tests")
+}
+
+model AbTestVariant {
+  id              String    @id @default(uuid())
+  abTestId        String    @map("ab_test_id")
+  abTest          AbTest    @relation(fields: [abTestId], references: [id], onDelete: Cascade)
+
+  campaignId      String    @unique @map("campaign_id")
+  name            String
+  dailyBudget     Decimal   @map("daily_budget")
+  objective       String
+  status          String    @default("ACTIVE")
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("ab_test_variants")
+}
+
+// ========================
+// Notification / Alerts
+// ========================
+
+enum AlertMetric {
+  BUDGET_USAGE
+  INSIGHT_IMPRESSIONS
+  INSIGHT_CLICKS
+  INSIGHT_SPEND
+  INSIGHT_CTR
+  INSIGHT_CPC
+  INSIGHT_CPA
+  INSIGHT_ROAS
+  CAMPAIGN_REJECTED
+  CAMPAIGN_COMPLETED
+  TOKEN_EXPIRING
+  A_B_TEST_DONE
+  SYNC_FAILED
+}
+
+model AlertConfig {
+  id              String       @id @default(uuid())
+  userId          String       @map("user_id")
+  user            User         @relation(fields: [userId], references: [id])
+
+  name            String
+  metric          AlertMetric
+  condition       String       @default("ABOVE") // ABOVE | BELOW | EQUALS
+  threshold       Decimal?
+  unit            String?      // percent, number, days
+  enabled         Boolean      @default(true)
+
+  // Optional scope
+  campaignId      String?      @map("campaign_id")
+  adAccountId     String?      @map("ad_account_id")
+
+  notifyInApp     Boolean      @default(true) @map("notify_in_app")
+  notifyTelegram  Boolean      @default(false) @map("notify_telegram")
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  @@map("alert_configs")
+}
+
+model AlertHistory {
+  id              String       @id @default(uuid())
+  userId          String       @map("user_id")
+  user            User         @relation(fields: [userId], references: [id])
+
+  configId        String?      @map("config_id")
+  title           String
+  message         String
+  severity        String       @default("INFO") // INFO | WARNING | CRITICAL
+  category        String       @default("SYSTEM") // SYSTEM | BUDGET | PERFORMANCE | CAMPAIGN | TOKEN | AB_TEST | SYNC
+
+  metadata        Json?        // extra data like campaign name, budget %, etc.
+  isRead          Boolean      @default(false) @map("is_read")
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
+  @@map("alert_history")
+}
+
+// ========================
+// Ad Creatives
+// ========================
+
+enum CreativeType {
+  IMAGE
+  VIDEO
+  TEXT
+}
+
+enum CreativeStatus {
+  DRAFT
+  READY
+  USED
+  ARCHIVED
+}
+
+model Creative {
+  id              String         @id @default(uuid())
+  userId          String         @map("user_id")
+  user            User           @relation(fields: [userId], references: [id])
+
+  name            String
+  type            CreativeType   @default(IMAGE)
+  status          CreativeStatus @default(DRAFT)
+
+  // Ad copy
+  primaryText     String?        @map("primary_text") @db.Text
+  headline        String?        @db.Text
+  description     String?        @db.Text
+  callToAction    String?        @map("call_to_action")
+
+  // Image / Video
+  imageUrl        String?        @map("image_url") @db.Text
+  imageFbHash     String?        @map("image_fb_hash")
+  imageWidth      Int?           @map("image_width")
+  imageHeight     Int?           @map("image_height")
+
+  // For link ads
+  linkUrl         String?        @map("link_url") @db.Text
+  pageId          String?        @map("page_id")
+
+  // FB creative reference
+  fbCreativeId    String?        @unique @map("fb_creative_id")
+
+  // Usage stats
+  usedCount       Int            @default(0) @map("used_count")
+
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  campaigns       CreativeCampaign[]
+
+  @@map("creatives")
+}
+
+model CreativeCampaign {
+  id              String    @id @default(uuid())
+  creativeId      String    @map("creative_id")
+  creative        Creative  @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  campaignId      String    @map("campaign_id")
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@unique([creativeId, campaignId])
+  @@map("creative_campaigns")
+}
+
+// ========================
+// Budget Automation
+// ========================
+
+model BudgetSchedule {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+
+  name        String
+  campaignId  String?   @map("campaign_id")
+  adAccountId String?   @map("ad_account_id")
+  action      String    // PAUSE | RESUME | SET_BUDGET | ADJUST_PERCENT
+  value       Decimal?  // new budget or % adjustment
+  cronExpr    String    @map("cron_expr") // cron expression
+  timezone    String    @default("Asia/Bangkok") @map("timezone")
+  isEnabled   Boolean   @default(true) @map("is_enabled")
+  lastRunAt   DateTime? @map("last_run_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("budget_schedules")
+}
+
+// ========================
+// Audience Management
+// ========================
+
+enum AudienceType {
+  CUSTOM
+  LOOKALIKE
+  SAVED
+}
+
+model Audience {
+  id             String      @id @default(uuid())
+  adAccountId    String      @map("ad_account_id")
+  adAccount      AdAccount   @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+
+  fbAudienceId   String      @unique @map("fb_audience_id")
+  name           String
+  type           AudienceType @default(CUSTOM)
+  subtype        String?     // CUSTOM, WEBSITE, VALUE, ENGAGEMENT, etc.
+  description    String?     @db.Text
+
+  approximateCount Int?      @map("approximate_count")
+  status         String      @default("READY") // READY, IS_EXCLUDED, IS_HOUSEHOLD, etc.
+
+  // For lookalikes
+  sourceAudienceId String?   @map("source_audience_id")
+  lookalikeRatio  Float?     @map("lookalike_ratio") // e.g., 1.0, 2.0, 5.0
+
+  targeting      Json?       // raw targeting spec
+
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  @@index([adAccountId])
+  @@map("audiences")
+}
+
+// ========================
+// Campaign Templates
+// ========================
+
+model CampaignTemplate {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+
+  name      String
+  notes     String?  @db.Text
+  objective String   @default("OUTCOME_TRAFFIC")
+
+  // Saved config (JSON) — campaign config + ad_set + creative
+  dailyBudget  Decimal?  @map("daily_budget")
+  targetSpec   Json?     @map("target_spec")    // targeting config
+  adSetName    String?   @map("ad_set_name")
+  optimizationGoal String?  @map("optimization_goal")
+  billingEvent String?  @map("billing_event")
+  adName       String?   @map("ad_name")
+  creativeConfig Json?   @map("creative_config") // creative message, link, etc.
+
+  useCount    Int      @default(0) @map("use_count")
+  lastUsedAt  DateTime? @map("last_used_at")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("campaign_templates")
+}
