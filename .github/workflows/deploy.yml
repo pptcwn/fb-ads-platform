@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout Repository Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Executing Remote SSH Commands via Passwordless Key
         uses: appleboy/ssh-action@v1.0.3
