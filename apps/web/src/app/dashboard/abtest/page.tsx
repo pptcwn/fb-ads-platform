@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import Shell from '@/components/Shell';
+import PageHeader from '@/components/PageHeader';
+import Modal from '@/components/Modal';
+import { ConfirmModal } from '@/components/Modal';
+import { fmtCurr, fmtNum } from '@/lib/utils';
 
 interface AbTestVariant {
   id: string; name: string; fbCampaignId: string; status: string; dailyBudget: number;
@@ -18,11 +23,9 @@ interface CampaignOption {
   id: string; name: string; campaignId: string; objective: string; dailyBudget: number | null;
 }
 
-const fmtNum = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString();
-const fmtCurr = (v: number) => new Intl.NumberFormat('en', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(v);
 const winColor = (vals: number[], idx: number) => {
   const max = Math.max(...vals);
-  return max > 0 && vals[idx] === max ? 'text-green-600 font-bold' : 'text-gray-600';
+  return max > 0 && vals[idx] === max ? 'text-success font-bold' : 'text-ink-200';
 };
 
 export default function AbTestPage() {
@@ -181,77 +184,66 @@ export default function AbTestPage() {
     } catch { setError('Failed to load variant data'); }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="text-gray-500">Loading...</p></div>;
+  if (loading) return (
+    <Shell>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-ink-300 animate-pulse">Loading A/B tests...</p>
+      </div>
+    </Shell>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold">FB Ads Platform</h1>
-            <nav className="flex gap-4 text-sm">
-              <a href="/dashboard" className="text-gray-500 hover:text-gray-800">Dashboard</a>
-              <a href="/dashboard/all-campaigns" className="text-gray-500 hover:text-gray-800">📋 All Campaigns</a>
-              <a href="/dashboard/campaigns/new" className="text-gray-500 hover:text-gray-800">🎯 New Campaign</a>
-              <a href="/dashboard/rules" className="text-gray-500 hover:text-gray-800">⚡ Rules</a>
-              <a href="/dashboard/analytics" className="text-gray-500 hover:text-gray-800">📊 Analytics</a>
-              <a href="/dashboard/audiences" className="text-gray-500 hover:text-gray-800">🎯 Audiences</a>
-              <a href="/dashboard/abtest" className="text-blue-600 font-medium hover:text-blue-800">🔁 A/B Test</a>
-              <a href="/dashboard/budget" className="text-gray-500 hover:text-gray-800">💰 Budget</a>
-              <a href="/dashboard/notifications" className="text-gray-500 hover:text-gray-800">🔔 Alerts</a>
-              <a href="/dashboard/creatives" className="text-gray-500 hover:text-gray-800">🎨 Creatives</a>
-            </nav>
-          </div>
-          <button onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
-            className="text-sm text-gray-500 hover:text-red-600">Sign Out</button>
-        </div>
-      </header>
+    <Shell>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="🔁 A/B Testing"
+          subtitle={tests.length > 0 ? `${tests.length} tests` : undefined}
+          actions={
+            <button onClick={openCreate}
+              className="btn-primary btn-sm">
+              + New A/B Test
+            </button>
+          }
+        />
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">🔁 A/B Testing</h2>
-          <button onClick={openCreate}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
-            + New A/B Test
-          </button>
-        </div>
-
-        {syncMsg && <div className="mb-4 px-4 py-3 rounded-lg text-sm bg-green-50 text-green-700 border border-green-200">{syncMsg}</div>}
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>}
+        {syncMsg && <div className="msg-success">{syncMsg}</div>}
+        {error && <div className="msg-error">{error}</div>}
 
         {tests.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-400">
+          <div className="card p-12 text-center">
             <p className="text-4xl mb-4">🔁</p>
-            <p className="text-lg font-medium mb-1">No A/B tests yet</p>
-            <p className="text-sm">Create an A/B test to compare campaign variants side by side</p>
+            <p className="text-lg font-medium text-ink mb-1">No A/B tests yet</p>
+            <p className="text-sm text-ink-300">Create an A/B test to compare campaign variants side by side</p>
           </div>
         ) : (
           <div className="space-y-6">
             {tests.map((test) => (
-              <div key={test.id} className="bg-white rounded-xl shadow-sm border">
-                <div className="px-6 py-4 border-b flex items-center justify-between">
+              <div key={test.id} className="card">
+                <div className="px-6 py-4 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
                   <div>
-                    <h3 className="font-semibold">{test.name}</h3>
-                    <p className="text-xs text-gray-500">Source: {test.sourceCampaign} · {new Date(test.startedAt).toLocaleDateString('th')} · {test.variantCount} variants</p>
+                    <h3 className="font-semibold text-ink">{test.name}</h3>
+                    <p className="text-xs text-ink-300 mt-0.5">
+                      Source: {test.sourceCampaign} · {new Date(test.startedAt).toLocaleDateString('th')} · {test.variantCount} variants
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1 text-xs rounded-full ${test.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{test.status}</span>
+                    <span className={`badge-${test.status === 'ACTIVE' ? 'success' : 'ink'} text-xs`}>{test.status}</span>
                     {test.status === 'ACTIVE' && (
                       <>
                         <button onClick={() => pauseTest(test.id)}
-                          className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200 font-medium">⏸️ Pause</button>
+                          className="btn-xs bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 font-medium">⏸️ Pause</button>
                         <button onClick={() => stopTest(test.id)}
-                          className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200 font-medium">⏹️ Stop</button>
+                          className="btn-xs badge-danger hover:bg-danger font-medium">⏹️ Stop</button>
                       </>
                     )}
-                    {test.status === 'ACTIVE' && (
+                    {test.status === 'PAUSED' && (
                       <button onClick={() => resumeTest(test.id)}
-                        className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 font-medium">▶️ Resume All</button>
+                        className="btn-xs bg-success-muted text-success border border-success-border hover:bg-success/20 font-medium">▶️ Resume All</button>
                     )}
                     <button onClick={() => loadVariants(test.id)}
-                      className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 font-medium">🔄 Refresh</button>
+                      className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">🔄 Refresh</button>
                     <button onClick={() => setDeleteConfirm({ type: 'test', id: test.id, name: test.name })}
-                      className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-red-100 hover:text-red-600 font-medium">🗑️</button>
+                      className="btn-xs bg-surface-100 text-ink-300 hover:bg-danger-muted hover:text-danger font-medium">🗑️</button>
                   </div>
                 </div>
 
@@ -259,15 +251,15 @@ export default function AbTestPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-slate-50">
-                          <th className="text-left px-4 py-3 font-medium text-gray-500">Variant</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500">Spend</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500">Impressions</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500">Clicks</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500">CTR</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500">CPC</th>
-                          <th className="text-right px-4 py-3 font-medium text-gray-500">Conversions</th>
-                          <th className="text-center px-4 py-3 font-medium text-gray-500">Actions</th>
+                        <tr className="bg-surface-50">
+                          <th className="text-left px-4 py-3 font-medium text-ink-300">Variant</th>
+                          <th className="text-right px-4 py-3 font-medium text-ink-300">Spend</th>
+                          <th className="text-right px-4 py-3 font-medium text-ink-300">Impressions</th>
+                          <th className="text-right px-4 py-3 font-medium text-ink-300">Clicks</th>
+                          <th className="text-right px-4 py-3 font-medium text-ink-300">CTR</th>
+                          <th className="text-right px-4 py-3 font-medium text-ink-300">CPC</th>
+                          <th className="text-right px-4 py-3 font-medium text-ink-300">Conversions</th>
+                          <th className="text-center px-4 py-3 font-medium text-ink-300">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -277,27 +269,27 @@ export default function AbTestPage() {
                           const cps = test.variants.map(x => x.cpc);
                           const convs = test.variants.map(x => x.conversions);
                           return (
-                            <tr key={v.id} className="border-t hover:bg-slate-50">
+                            <tr key={v.id} className="hover:bg-surface-100" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
                               <td className="px-4 py-3">
-                                <span className="font-medium">{v.name}</span>
-                                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${v.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{v.status}</span>
+                                <span className="font-medium text-ink">{v.name}</span>
+                                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${v.status === 'ACTIVE' ? 'bg-success-muted text-success border border-success-border' : 'bg-warning-muted text-warning border border-warning-border'}`}>{v.status}</span>
                               </td>
                               <td className={`px-4 py-3 text-right ${winColor(spends, idx)}`}>{fmtCurr(v.spend)}</td>
-                              <td className="px-4 py-3 text-right">{fmtNum(v.impressions)}</td>
-                              <td className="px-4 py-3 text-right">{fmtNum(v.clicks)}</td>
+                              <td className="px-4 py-3 text-right text-ink-200">{fmtNum(v.impressions)}</td>
+                              <td className="px-4 py-3 text-right text-ink-200">{fmtNum(v.clicks)}</td>
                               <td className={`px-4 py-3 text-right ${winColor(ctrs, idx)}`}>{v.ctr.toFixed(2)}%</td>
                               <td className={`px-4 py-3 text-right ${winColor(cps, idx)}`}>{fmtCurr(v.cpc)}</td>
                               <td className={`px-4 py-3 text-right ${winColor(convs, idx)}`}>{v.conversions}</td>
                               <td className="px-4 py-3 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <button onClick={() => toggleVariant(v.id)}
-                                    className={`text-xs px-2 py-1 rounded font-medium ${v.status === 'ACTIVE' ? 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                                    className={`btn-xs ${v.status === 'ACTIVE' ? 'bg-warning-muted text-warning border border-warning-border hover:bg-warning/20' : 'bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
                                     {v.status === 'ACTIVE' ? '⏸️' : '▶️'}
                                   </button>
                                   <button onClick={() => openEdit(v)}
-                                    className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 font-medium">✏️</button>
+                                    className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">✏️</button>
                                   <button onClick={() => setDeleteConfirm({ type: 'variant', id: v.id, name: v.name })}
-                                    className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100 font-medium">🗑️</button>
+                                    className="btn-xs bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 font-medium">🗑️</button>
                                 </div>
                               </td>
                             </tr>
@@ -309,120 +301,99 @@ export default function AbTestPage() {
                 )}
 
                 {(!test.variants || test.variants.length === 0) && (
-                  <div className="px-6 py-4 text-sm text-gray-400 text-center">
-                    Click "Refresh" to load performance data
+                  <div className="px-6 py-4 text-sm text-ink-300 text-center">
+                    Click &quot;Refresh&quot; to load performance data
                   </div>
                 )}
               </div>
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Create Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowCreate(false)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">🔁 New A/B Test</h3>
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="🔁 New A/B Test" maxWidth="max-w-2xl">
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-ink mb-1">Source Campaign</label>
+          <select value={selectedCamp} onChange={e => setSelectedCamp(e.target.value)}
+            className="w-full px-3 py-2 text-sm bg-surface-100 text-ink">
+            <option value="">Select campaign...</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>{c.name} ({c.objective})</option>
+            ))}
+          </select>
+        </div>
 
-            <div className="mb-4">
-              <label className="block text-xs font-medium mb-1">Source Campaign</label>
-              <select value={selectedCamp} onChange={e => setSelectedCamp(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm">
-                <option value="">Select campaign...</option>
-                {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.objective})</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium">Variants (at least 2)</label>
-                {variants.length < 5 && (
-                  <button onClick={addVariant} className="text-xs text-blue-600 hover:text-blue-800">+ Add Variant</button>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-ink">Variants (at least 2)</label>
+            {variants.length < 5 && (
+              <button onClick={addVariant} className="text-xs text-accent hover:text-accent/80">+ Add Variant</button>
+            )}
+          </div>
+          <div className="space-y-2">
+            {variants.map((v, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <span className="text-xs text-ink-300 w-5">#{idx + 1}</span>
+                <input placeholder="Variant name" value={v.name}
+                  onChange={e => {
+                    const next = [...variants];
+                    next[idx] = { ...next[idx], name: e.target.value };
+                    setVariants(next);
+                  }}
+                  className="flex-1 px-3 py-2 text-sm bg-surface-100 text-ink" />
+                {variants.length > 2 && (
+                  <button onClick={() => removeVariant(idx)}
+                    className="text-xs text-danger hover:text-danger/80">✕</button>
                 )}
               </div>
-              <div className="space-y-2">
-                {variants.map((v, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <span className="text-xs text-gray-400 w-5">#{idx + 1}</span>
-                    <input placeholder="Variant name" value={v.name}
-                      onChange={e => {
-                        const next = [...variants];
-                        next[idx] = { ...next[idx], name: e.target.value };
-                        setVariants(next);
-                      }}
-                      className="flex-1 border rounded-lg px-3 py-2 text-sm" />
-                    {variants.length > 2 && (
-                      <button onClick={() => removeVariant(idx)}
-                        className="text-xs text-red-500 hover:text-red-700">✕</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={createTest} disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
-                {saving ? 'Creating...' : 'Create A/B Test'}
-              </button>
-            </div>
+            ))}
           </div>
         </div>
-      )}
+
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+          <button onClick={() => setShowCreate(false)} className="btn-secondary btn-sm">Cancel</button>
+          <button onClick={createTest} disabled={saving}
+            className="btn-primary btn-sm">
+            {saving ? 'Creating...' : 'Create A/B Test'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Edit Variant Modal */}
-      {editVariant && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setEditVariant(null)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">✏️ Edit Variant</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">Name</label>
-                <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Daily Budget ($)</label>
-                <input type="number" value={editForm.dailyBudget} onChange={e => setEditForm({...editForm, dailyBudget: Number(e.target.value) || 0})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" min={1} />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setEditVariant(null)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={saveEdit} disabled={editSaving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
-                {editSaving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
+      <Modal open={!!editVariant} onClose={() => setEditVariant(null)} title="✏️ Edit Variant" maxWidth="max-w-sm">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-ink mb-1">Name</label>
+            <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})}
+              className="w-full px-3 py-2 text-sm bg-surface-100 text-ink" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-ink mb-1">Daily Budget ($)</label>
+            <input type="number" value={editForm.dailyBudget} onChange={e => setEditForm({...editForm, dailyBudget: Number(e.target.value) || 0})}
+              className="w-full px-3 py-2 text-sm bg-surface-100 text-ink" min={1} />
           </div>
         </div>
-      )}
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+          <button onClick={() => setEditVariant(null)} className="btn-secondary btn-sm">Cancel</button>
+          <button onClick={saveEdit} disabled={editSaving}
+            className="btn-primary btn-sm">
+            {editSaving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-2">🗑️ Delete {deleteConfirm.type === 'test' ? 'A/B Test' : 'Variant'}</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to delete <strong>{deleteConfirm.name}</strong>?
-              {deleteConfirm.type === 'test'
-                ? ' All variants will also be deleted from Facebook.'
-                : ' This variant campaign will be deleted from Facebook.'}
-            </p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={confirmDelete} disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 disabled:opacity-50">
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <ConfirmModal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={confirmDelete}
+        title={deleteConfirm?.type === 'test' ? '🗑️ Delete A/B Test' : '🗑️ Delete Variant'}
+        message={deleteConfirm ? `Are you sure you want to delete ${deleteConfirm.name}? ${deleteConfirm.type === 'test' ? 'All variants will also be deleted from Facebook.' : 'This variant campaign will be deleted from Facebook.'}` : ''}
+        busy={deleting}
+        icon="🗑️"
+        danger
+      />
+    </Shell>
   );
 }

@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import axios from 'axios';
+import Shell from '@/components/Shell';
+import PageHeader from '@/components/PageHeader';
+import Modal from '@/components/Modal';
 
 interface Creative {
   id: string;
@@ -42,6 +45,11 @@ const CTA_OPTIONS = [
   'LEARN_MORE', 'SHOP_NOW', 'SIGN_UP', 'BOOK_NOW',
   'GET_OFFER', 'CONTACT_US', 'SUBSCRIBE', 'WATCH_MORE',
 ];
+
+const STATUS_BADGE: Record<string, string> = {
+  READY: 'badge-success',
+  USED: 'badge-warning',
+};
 
 export default function CreativesPage() {
   const [creatives, setCreatives] = useState<Creative[]>([]);
@@ -253,59 +261,43 @@ export default function CreativesPage() {
   // ─── Post to Page Modal ───
   const [showPostModal, setShowPostModal] = useState<string | null>(null);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="text-gray-500">Loading...</p></div>;
+  if (loading) return (
+    <Shell>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-ink-300 animate-pulse">Loading...</p>
+      </div>
+    </Shell>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold">FB Ads Platform</h1>
-            <nav className="flex gap-4 text-sm">
-              <a href="/dashboard" className="text-gray-500 hover:text-gray-800">Dashboard</a>
-              <a href="/dashboard/all-campaigns" className="text-gray-500 hover:text-gray-800">📋 All Campaigns</a>
-              <a href="/dashboard/campaigns/new" className="text-gray-500 hover:text-gray-800">🎯 New Campaign</a>
-              <a href="/dashboard/rules" className="text-gray-500 hover:text-gray-800">⚡ Rules</a>
-              <a href="/dashboard/analytics" className="text-gray-500 hover:text-gray-800">📊 Analytics</a>
-              <a href="/dashboard/audiences" className="text-gray-500 hover:text-gray-800">🎯 Audiences</a>
-              <a href="/dashboard/abtest" className="text-gray-500 hover:text-gray-800">🔁 A/B Test</a>
-              <a href="/dashboard/budget" className="text-gray-500 hover:text-gray-800">💰 Budget</a>
-              <a href="/dashboard/notifications" className="text-gray-500 hover:text-gray-800">🔔 Alerts</a>
-              <a href="/dashboard/creatives" className="text-blue-600 font-medium hover:text-blue-800">🎨 Creatives</a>
-            </nav>
-          </div>
-          <button onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
-            className="text-sm text-gray-500 hover:text-red-600">Sign Out</button>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
+    <Shell>
+      <div className="p-6">
         {/* Tabs */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-1 bg-white rounded-lg border p-1">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex gap-1 bg-surface-50 rounded-lg border border-surface-200/50 p-1">
             <button onClick={() => setTab('creatives')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                tab === 'creatives' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-800'
+                tab === 'creatives' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
               }`}>
               ✨ My Creatives
             </button>
             <button onClick={() => setTab('import')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                tab === 'import' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-gray-800'
+                tab === 'import' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
               }`}>
               📥 Import from Page
             </button>
           </div>
           {tab === 'creatives' && (
             <button onClick={() => { resetForm(); setShowForm(true); }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
+              className="btn-primary btn-sm">
               + New Creative
             </button>
           )}
         </div>
 
         {msg && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.includes('✅') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.includes('✅') ? 'msg-success' : 'msg-error'}`}>
             {msg}
           </div>
         )}
@@ -316,23 +308,23 @@ export default function CreativesPage() {
         {tab === 'import' && (
           <div>
             {loadingPages ? (
-              <div className="text-center py-12 text-gray-400">Loading pages...</div>
+              <div className="text-center py-12 text-ink-300">Loading pages...</div>
             ) : pages.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border px-6 py-12 text-center">
-                <p className="text-gray-400 mb-3">No Facebook pages found.</p>
-                <p className="text-sm text-gray-400">Make sure your Facebook App has page permissions and you manage at least one page.</p>
+              <div className="card px-6 py-12 text-center">
+                <p className="text-ink-300 mb-3">No Facebook pages found.</p>
+                <p className="text-sm text-ink-300">Make sure your Facebook App has page permissions and you manage at least one page.</p>
                 <a href="/dashboard"
-                  className="inline-block mt-4 text-sm text-blue-600 hover:text-blue-800 underline">
+                  className="inline-block mt-4 text-sm text-accent hover:text-accent underline">
                   Re-connect Facebook account →
                 </a>
               </div>
             ) : (
               <div>
                 {/* Page Selector */}
-                <div className="bg-white rounded-xl shadow-sm border p-4 mb-4">
-                  <label className="block text-sm font-medium mb-2">Select Page</label>
+                <div className="card p-4 mb-4">
+                  <label className="block text-sm font-medium text-ink mb-2">Select Page</label>
                   <select value={selectedPage} onChange={e => setSelectedPage(e.target.value)}
-                    className="w-full max-w-md border rounded-lg px-3 py-2 text-sm">
+                    className="w-full max-w-md px-3 py-2 text-sm text-ink bg-surface-50">
                     {pages.map(p => (
                       <option key={p.pageId} value={p.pageId}>{p.name} {p.category ? `(${p.category})` : ''}</option>
                     ))}
@@ -341,36 +333,36 @@ export default function CreativesPage() {
 
                 {/* Posts List */}
                 {loadingPosts ? (
-                  <div className="text-center py-12 text-gray-400">Loading posts...</div>
+                  <div className="text-center py-12 text-ink-300">Loading posts...</div>
                 ) : pagePosts.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow-sm border px-6 py-12 text-center text-gray-400">
+                  <div className="card px-6 py-12 text-center text-ink-300">
                     No posts found on this page.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {pagePosts.map((post) => (
-                      <div key={post.postId} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
+                      <div key={post.postId} className="card overflow-hidden hover:shadow-md transition-shadow">
                         {post.imageUrl && (
-                          <div className="h-40 bg-gray-100 overflow-hidden">
+                          <div className="h-40 bg-surface-100 overflow-hidden">
                             <img src={post.imageUrl} alt="" className="w-full h-full object-cover"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           </div>
                         )}
                         <div className="p-4">
-                          <p className="text-sm text-gray-700 line-clamp-3 mb-2">
-                            {post.message || <span className="text-gray-400 italic">(no text)</span>}
+                          <p className="text-sm text-ink line-clamp-3 mb-2">
+                            {post.message || <span className="text-ink-300 italic">(no text)</span>}
                           </p>
-                          <p className="text-[11px] text-gray-400 mb-3">
+                          <p className="text-[11px] text-ink-300 mb-3">
                             {new Date(post.createdTime).toLocaleDateString('th-TH', {
                               year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                             })}
                             {' · '}
                             <a href={post.permalinkUrl} target="_blank" rel="noopener noreferrer"
-                              className="text-blue-500 hover:underline">View on FB</a>
+                              className="text-accent hover:underline">View on FB</a>
                           </p>
                           <button onClick={() => importPost(selectedPage, post)}
                             disabled={importing === post.postId}
-                            className="w-full text-sm bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                            className="w-full text-sm bg-accent text-white px-3 py-2 rounded-lg hover:bg-accent/90 disabled:opacity-50">
                             {importing === post.postId ? 'Importing...' : '📥 Import as Creative'}
                           </button>
                         </div>
@@ -389,57 +381,56 @@ export default function CreativesPage() {
         {tab === 'creatives' && (
           <>
             {creatives.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border px-6 py-12 text-center text-gray-400">
-                No creatives yet. Click "+ New Creative" to get started, or switch to "Import from Page" tab.
+              <div className="card px-6 py-12 text-center text-ink-300">
+                No creatives yet. Click &quot;+ New Creative&quot; to get started, or switch to &quot;Import from Page&quot; tab.
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {creatives.map((c) => (
-                  <div key={c.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
+                  <div key={c.id} className="card overflow-hidden hover:shadow-md transition-shadow">
                     {/* Image preview */}
-                    <div className="h-40 bg-gray-100 relative overflow-hidden flex items-center justify-center">
+                    <div className="h-40 bg-surface-100 relative overflow-hidden flex items-center justify-center">
                       {c.imageUrl ? (
                         <img src={c.imageUrl.startsWith('http') ? c.imageUrl : c.imageUrl}
                           alt={c.name} className="w-full h-full object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
-                        <div className={`text-4xl ${c.type === 'TEXT' ? '' : 'text-gray-300'}`}>
+                        <div className={`text-4xl ${c.type === 'TEXT' ? '' : 'text-ink-400'}`}>
                           {c.type === 'IMAGE' ? '🖼️' : c.type === 'VIDEO' ? '🎬' : '📝'}
                         </div>
                       )}
                       <span className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        c.status === 'READY' ? 'bg-green-100 text-green-700' :
-                        c.status === 'USED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                        STATUS_BADGE[c.status] || 'badge-ink'
                       }`}>{c.status}</span>
                     </div>
 
                     {/* Info */}
                     <div className="p-4">
-                      <p className="font-medium text-sm truncate">{c.name}</p>
-                      <p className="text-xs text-gray-400 mt-1">{c.type} · Used {c.usedCount}x</p>
-                      {c.primaryText && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{c.primaryText}</p>}
-                      {c.headline && <p className="text-xs font-medium text-gray-600 mt-1">{c.headline}</p>}
+                      <p className="font-medium text-sm text-ink truncate">{c.name}</p>
+                      <p className="text-xs text-ink-300 mt-1">{c.type} · Used {c.usedCount}x</p>
+                      {c.primaryText && <p className="text-xs text-ink-200 mt-1 line-clamp-2">{c.primaryText}</p>}
+                      {c.headline && <p className="text-xs font-medium text-ink mt-1">{c.headline}</p>}
 
                       {/* Campaign tags */}
                       {c.campaigns.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {c.campaigns.slice(0, 3).map((cc, i) => (
-                            <span key={i} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                            <span key={i} className="text-[10px] bg-surface-50 text-ink-200 px-1.5 py-0.5 rounded">
                               {cc.campaign.name}
                             </span>
                           ))}
-                          {c.campaigns.length > 3 && <span className="text-[10px] text-gray-400">+{c.campaigns.length - 3}</span>}
+                          {c.campaigns.length > 3 && <span className="text-[10px] text-ink-400">+{c.campaigns.length - 3}</span>}
                         </div>
                       )}
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1 mt-3 pt-3 border-t flex-wrap">
+                      <div className="flex items-center gap-1 mt-3 pt-3 flex-wrap" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
                         <button onClick={() => openEdit(c)}
-                          className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1">Edit</button>
+                          className="text-xs text-accent hover:text-accent/80 px-2 py-1 font-medium">Edit</button>
                         <button onClick={() => deleteCreative(c.id, c.name)}
-                          className="text-xs text-red-500 hover:text-red-700 px-2 py-1">Del</button>
+                          className="text-xs text-danger hover:text-danger/80 px-2 py-1 font-medium">Del</button>
                         <button onClick={() => cloneCreative(c.id, c.name)}
-                          className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1">🔀 Clone</button>
+                          className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 font-medium">🔀 Clone</button>
                         {c.type !== 'TEXT' && (
                           <>
                             <input type="file" ref={fileRef} accept="image/*" className="hidden"
@@ -451,12 +442,12 @@ export default function CreativesPage() {
                           </>
                         )}
                         <button onClick={() => createFbCreative(c.id)}
-                          className="text-xs text-green-600 hover:text-green-800 px-2 py-1">
+                          className="text-xs text-success hover:text-success/80 px-2 py-1 font-medium">
                           FB Publish
                         </button>
                         {pages.length > 0 && (
                           <button onClick={() => setShowPostModal(c.id)}
-                            className="text-xs text-orange-600 hover:text-orange-800 px-2 py-1">
+                            className="text-xs text-orange-600 hover:text-orange-800 px-2 py-1 font-medium">
                             📢 Post to Page
                           </button>
                         )}
@@ -470,121 +461,116 @@ export default function CreativesPage() {
         )}
 
         {/* Create/Edit Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={resetForm}>
-            <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold mb-4">{editId ? '✏️ Edit Creative' : '🎨 New Creative'}</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium mb-1">Name *</label>
-                  <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                    placeholder="Creative name" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Type</label>
-                  <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
-                    className="w-full border rounded-lg px-3 py-2 text-sm">
-                    <option value="IMAGE">Image</option>
-                    <option value="VIDEO">Video</option>
-                    <option value="TEXT">Text Only</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Call to Action</label>
-                  <select value={form.callToAction} onChange={e => setForm({...form, callToAction: e.target.value})}
-                    className="w-full border rounded-lg px-3 py-2 text-sm">
-                    {CTA_OPTIONS.map(cta => <option key={cta} value={cta}>{cta.replace(/_/g, ' ')}</option>)}
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium mb-1">Primary Text</label>
-                  <textarea value={form.primaryText} onChange={e => setForm({...form, primaryText: e.target.value})}
-                    placeholder="Main ad copy..." className="w-full border rounded-lg px-3 py-2 text-sm" rows={2} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Headline</label>
-                  <input value={form.headline} onChange={e => setForm({...form, headline: e.target.value})}
-                    placeholder="Headline" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Description</label>
-                  <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-                    placeholder="Description" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Link URL</label>
-                  <input value={form.linkUrl} onChange={e => setForm({...form, linkUrl: e.target.value})}
-                    placeholder="https://..." className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Page ID</label>
-                  <input value={form.pageId} onChange={e => setForm({...form, pageId: e.target.value})}
-                    placeholder="Facebook Page ID" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium mb-1">Image URL (public URL)</label>
-                  <input value={form.imageUrl} onChange={e => setForm({...form, imageUrl: e.target.value})}
-                    placeholder="https://example.com/image.jpg" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 mt-4">
-                <button onClick={resetForm} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-                <button onClick={saveCreative} disabled={saving}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
-                  {saving ? 'Saving...' : editId ? 'Update' : 'Create'}
-                </button>
-              </div>
+        <Modal open={showForm} onClose={resetForm} title={editId ? '✏️ Edit Creative' : '🎨 New Creative'} maxWidth="max-w-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-ink-200 mb-1">Name *</label>
+              <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                placeholder="Creative name"
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink placeholder-ink-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-200 mb-1">Type</label>
+              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink">
+                <option value="IMAGE">Image</option>
+                <option value="VIDEO">Video</option>
+                <option value="TEXT">Text Only</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-200 mb-1">Call to Action</label>
+              <select value={form.callToAction} onChange={e => setForm({...form, callToAction: e.target.value})}
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink">
+                {CTA_OPTIONS.map(cta => <option key={cta} value={cta}>{cta.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-ink-200 mb-1">Primary Text</label>
+              <textarea value={form.primaryText} onChange={e => setForm({...form, primaryText: e.target.value})}
+                placeholder="Main ad copy..."
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink placeholder-ink-400" rows={2} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-200 mb-1">Headline</label>
+              <input value={form.headline} onChange={e => setForm({...form, headline: e.target.value})}
+                placeholder="Headline"
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink placeholder-ink-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-200 mb-1">Description</label>
+              <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
+                placeholder="Description"
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink placeholder-ink-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-200 mb-1">Link URL</label>
+              <input value={form.linkUrl} onChange={e => setForm({...form, linkUrl: e.target.value})}
+                placeholder="https://..."
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink placeholder-ink-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink-200 mb-1">Page ID</label>
+              <input value={form.pageId} onChange={e => setForm({...form, pageId: e.target.value})}
+                placeholder="Facebook Page ID"
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink placeholder-ink-400" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-ink-200 mb-1">Image URL (public URL)</label>
+              <input value={form.imageUrl} onChange={e => setForm({...form, imageUrl: e.target.value})}
+                placeholder="https://example.com/image.jpg"
+                className="w-full bg-surface-50 px-3 py-2 text-sm text-ink placeholder-ink-400" />
             </div>
           </div>
-        )}
+          <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+            <button onClick={resetForm} className="btn-secondary btn-sm">Cancel</button>
+            <button onClick={saveCreative} disabled={saving}
+              className="btn-primary btn-sm">
+              {saving ? 'Saving...' : editId ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </Modal>
 
         {/* Post to Page Modal */}
-        {showPostModal && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setShowPostModal(null)}>
-            <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold mb-4">📢 Post Creative to Page</h3>
-              {pages.length === 0 ? (
-                <div>
-                  <p className="text-sm text-gray-500 mb-4">No pages found. Sync your pages first.</p>
-                  <button onClick={() => { syncAndLoadPages(); setShowPostModal(null); }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-                    🔄 Sync Pages
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Choose a page to post to:</label>
-                  {pages.map(p => (
-                    <button key={p.pageId}
-                      disabled={postingToPage === showPostModal}
-                      onClick={() => {
-                        postToPage(showPostModal, p.pageId);
-                        setShowPostModal(null);
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-lg border hover:bg-gray-50 mb-2 text-sm disabled:opacity-50 transition-colors">
-                      <span className="font-medium">{p.name}</span>
-                      {p.category && <span className="text-gray-400 ml-2">{p.category}</span>}
-                      {p.tasks.length > 0 && (
-                        <div className="flex gap-1 mt-1">
-                          {p.tasks.slice(0, 4).map(t => (
-                            <span key={t} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{t}</span>
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className="flex justify-end mt-4">
-                <button onClick={() => setShowPostModal(null)}
-                  className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              </div>
+        <Modal open={!!showPostModal} onClose={() => setShowPostModal(null)} title="Post Creative to Page" icon="📢">
+          {pages.length === 0 ? (
+            <div>
+              <p className="text-sm text-ink-300 mb-4">No pages found. Sync your pages first.</p>
+              <button onClick={() => { syncAndLoadPages(); setShowPostModal(null); }}
+                className="btn-primary btn-sm">
+                🔄 Sync Pages
+              </button>
             </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-ink mb-2">Choose a page to post to:</label>
+              {pages.map(p => (
+                <button key={p.pageId}
+                  disabled={postingToPage === showPostModal}
+                  onClick={() => {
+                    postToPage(showPostModal!, p.pageId);
+                    setShowPostModal(null);
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-surface-200/50 hover:bg-surface-100 mb-2 text-sm disabled:opacity-50 transition-colors">
+                  <span className="font-medium text-ink">{p.name}</span>
+                  {p.category && <span className="text-ink-300 ml-2">{p.category}</span>}
+                  {p.tasks.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {p.tasks.slice(0, 4).map(t => (
+                        <span key={t} className="text-[10px] bg-surface-50 text-ink-300 px-1.5 py-0.5 rounded">{t}</span>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-end mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+            <button onClick={() => setShowPostModal(null)}
+              className="btn-secondary btn-sm">Cancel</button>
           </div>
-        )}
-      </main>
-    </div>
+        </Modal>
+      </div>
+    </Shell>
   );
 }

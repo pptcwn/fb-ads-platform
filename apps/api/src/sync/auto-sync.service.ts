@@ -3,10 +3,39 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { SyncService } from './sync.service';
+import { CampaignObjective } from '@prisma/client';
 
 @Injectable()
 export class AutoSyncService {
   private readonly logger = new Logger(AutoSyncService.name);
+
+  private mapCampaignObjective(obj: string | null | undefined): CampaignObjective {
+    const map: Record<string, CampaignObjective> = {
+      OUTCOME_AWARENESS: 'OUTCOME_AWARENESS',
+      OUTCOME_ENGAGEMENT: 'OUTCOME_ENGAGEMENT',
+      OUTCOME_TRAFFIC: 'OUTCOME_TRAFFIC',
+      OUTCOME_LEADS: 'OUTCOME_LEADS',
+      OUTCOME_SALES: 'OUTCOME_SALES',
+      OUTCOME_APP_PROMOTION: 'OUTCOME_APP_PROMOTION',
+      BRAND_AWARENESS: 'OUTCOME_AWARENESS',
+      REACH: 'OUTCOME_AWARENESS',
+      PAGE_LIKES: 'OUTCOME_ENGAGEMENT',
+      POST_ENGAGEMENT: 'OUTCOME_ENGAGEMENT',
+      VIDEO_VIEWS: 'OUTCOME_ENGAGEMENT',
+      EVENT_RESPONSES: 'OUTCOME_ENGAGEMENT',
+      MESSAGES: 'OUTCOME_ENGAGEMENT',
+      LINK_CLICKS: 'OUTCOME_TRAFFIC',
+      TRAFFIC: 'OUTCOME_TRAFFIC',
+      STORE_VISITS: 'OUTCOME_TRAFFIC',
+      LEAD_GENERATION: 'OUTCOME_LEADS',
+      CONVERSIONS: 'OUTCOME_SALES',
+      VALUE: 'OUTCOME_SALES',
+      PRODUCT_CATALOG_SALES: 'OUTCOME_SALES',
+      APP_INSTALLS: 'OUTCOME_APP_PROMOTION',
+    };
+    const key = (obj || '').replace(/-/g, '_').toUpperCase();
+    return map[key] || 'OUTCOME_TRAFFIC';
+  }
 
   constructor(
     private readonly prisma: PrismaService,
@@ -37,7 +66,7 @@ export class AutoSyncService {
                 create: {
                   campaignId: camp.id,
                   name: camp.name || '',
-                  objective: (camp.objective || 'OUTCOME_TRAFFIC').replace(/-/g, '_').toUpperCase() as any,
+                  objective: this.mapCampaignObjective(camp.objective),
                   status: (camp.status || 'PAUSED') as any,
                   dailyBudget: camp.daily_budget ? parseFloat(camp.daily_budget) / 100 : null,
                   adAccountId: account.id,

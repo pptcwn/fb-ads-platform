@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import Shell from '@/components/Shell';
+import PageHeader from '@/components/PageHeader';
+import { objLabel, fmtCurr, fmtNum } from '@/lib/utils';
 
 // ─── Types ───
 
@@ -14,10 +17,6 @@ interface Campaign { id: string; campaignId: string; name: string; objective: st
 interface InsightRow { id: string; date: string; impressions: number; clicks: number; spend: number; conversions: number; ctr: number; cpc: number; cpm?: number; reach?: number; frequency?: number; cpa?: number; roas?: number }
 interface ChartData { date: string; spend: number; impressions: number; clicks: number; ctr: number }
 interface WarmupStatus { id: string; name: string; day: number; totalDays: number; progress: number; targetBudget: number; currentBudget: number }
-
-const objLabel = (o: string) => ({ OUTCOME_AWARENESS: 'Awareness', OUTCOME_ENGAGEMENT: 'Engagement', OUTCOME_TRAFFIC: 'Traffic', OUTCOME_LEADS: 'Leads', OUTCOME_SALES: 'Sales', OUTCOME_APP_PROMOTION: 'App Promotion' })[o] || o;
-const fmtCurr = (val: number, cur: string) => new Intl.NumberFormat('en', { style: 'currency', currency: cur, minimumFractionDigits: 0 }).format(val);
-const fmtNum = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString();
 
 export default function DashboardPage() {
   const [fbStatus, setFbStatus] = useState<FbStatus | null>(null);
@@ -246,63 +245,68 @@ export default function DashboardPage() {
     ctr: chartData.length > 0 ? chartData.reduce((s, d) => s + d.ctr, 0) / chartData.length : 0,
   }), { spend: 0, impressions: 0, clicks: 0, ctr: 0 });
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="text-gray-500">Loading...</p></div>;
+  if (loading) return (
+    <Shell>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <p className="text-ink-200">Loading...</p>
+      </div>
+    </Shell>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold">FB Ads Platform</h1>
-            <nav className="flex gap-4 text-sm">
-              <a href="/dashboard" className="text-blue-600 font-medium hover:text-blue-800">Dashboard</a>
-              <a href="/dashboard/all-campaigns" className="text-gray-500 hover:text-gray-800">📋 All Campaigns</a>
-              <a href="/dashboard/campaigns/new" className="text-gray-500 hover:text-gray-800">🎯 New Campaign</a>
-              <a href="/dashboard/rules" className="text-gray-500 hover:text-gray-800">⚡ Rules</a>
-              <a href="/dashboard/schedules" className="text-gray-500 hover:text-gray-800">📅 Schedules</a>
-              <a href="/dashboard/templates" className="text-gray-500 hover:text-gray-800">📦 Templates</a>
-              <a href="/dashboard/analytics" className="text-gray-500 hover:text-gray-800">📊 Analytics</a>
-              <a href="/dashboard/audiences" className="text-gray-500 hover:text-gray-800">🎯 Audiences</a>
-              <a href="/dashboard/abtest" className="text-gray-500 hover:text-gray-800">🔁 A/B Test</a>
-              <a href="/dashboard/budget" className="text-gray-500 hover:text-gray-800">💰 Budget</a>
-              <a href="/dashboard/notifications" className="text-gray-500 hover:text-gray-800">🔔 Alerts</a>
-              <a href="/dashboard/creatives" className="text-gray-500 hover:text-gray-800">🎨 Creatives</a>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
-              className="text-sm text-gray-500 hover:text-red-600">Sign Out</button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-8">
+    <Shell>
+      <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Dashboard</h2>
+          <PageHeader title="Dashboard" />
           {fbStatus?.connected && (
             <div className="flex gap-2">
               <button onClick={triggerSync} disabled={syncing}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium">
+                className="btn-primary btn-sm">
                 {syncing ? 'Syncing...' : '🔄 Sync Now'}
               </button>
               <button onClick={syncInsights} disabled={insightSyncing}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm font-medium">
+                className="btn-primary btn-sm" style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', boxShadow: '0px 0px 0px 1px rgba(124,58,237,0.3)' }}>
                 {insightSyncing ? 'Loading...' : '📊 Get Insights'}
               </button>
             </div>
           )}
         </div>
-        {syncMsg && <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${syncMsg.includes('✅') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{syncMsg}</div>}
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>}
+        {syncMsg && (
+          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
+            syncMsg.includes('✅') || syncMsg.includes('ℹ️')
+              ? 'text-success' + (syncMsg.includes('ℹ️') ? ' text-ink-200' : '')
+              : 'text-danger'
+          }`}
+            style={{
+              background: syncMsg.includes('✅') || syncMsg.includes('ℹ️')
+                ? 'rgba(34,197,94,0.08)'
+                : syncMsg.includes('❌')
+                  ? 'rgba(239,68,68,0.08)'
+                  : 'rgba(255,255,255,0.05)',
+              boxShadow: syncMsg.includes('✅')
+                ? '0px 0px 0px 1px rgba(34,197,94,0.2)'
+                : syncMsg.includes('❌')
+                  ? '0px 0px 0px 1px rgba(239,68,68,0.2)'
+                  : '0px 0px 0px 1px rgba(255,255,255,0.06)',
+            }}
+          >{syncMsg}</div>
+        )}
+        {error && <div className="mb-4 px-4 py-3 rounded-lg text-sm text-danger" style={{ background: 'rgba(239,68,68,0.08)', boxShadow: '0px 0px 0px 1px rgba(239,68,68,0.2)' }}>{error}</div>}
 
         {/* FB Connection */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Facebook Connection</h3>
+        <div className="card p-5 mb-6">
+          <h3 className="text-sm font-semibold mb-4 text-ink">Facebook Connection</h3>
           {fbStatus?.connected ? (
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">{fbStatus.data?.facebookName?.charAt(0) || '?'}</div>
-              <div className="flex-1"><p className="font-medium">{fbStatus.data?.facebookName}</p><p className="text-sm text-gray-500">{fbStatus.data?.facebookEmail || 'No email'}</p></div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">Connected</span>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                style={{ background: 'rgba(0,112,243,0.15)', color: '#0070f3' }}>
+                {fbStatus.data?.facebookName?.charAt(0) || '?'}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-ink">{fbStatus.data?.facebookName}</p>
+                <p className="text-xs text-ink-200">{fbStatus.data?.facebookEmail || 'No email'}</p>
+              </div>
+              <span className="badge-success">Connected</span>
               <button onClick={async () => {
                 if (!confirm('Disconnect Facebook account? This will remove all synced accounts and pages.')) return;
                 try {
@@ -312,15 +316,15 @@ export default function DashboardPage() {
                 } catch (err: any) {
                   setSyncMsg('❌ Disconnect failed: ' + (err?.response?.data?.message || err.message));
                 }
-              }} className="text-xs text-red-500 hover:text-red-700 font-medium border border-red-200 px-3 py-1 rounded-lg hover:bg-red-50 ml-2">
+              }} className="text-xs text-danger font-medium hover:opacity-80 border-none bg-transparent cursor-pointer ml-2"
+                style={{ letterSpacing: '-0.01em' }}>
                 Disconnect
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <p className="text-gray-500">Connect Facebook to manage ad accounts.</p>
-              <button onClick={connectFacebook}
-                className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
+              <p className="text-sm text-ink-200">Connect Facebook to manage ad accounts.</p>
+              <button onClick={connectFacebook} className="btn-primary btn-sm">
                 🔗 Connect Facebook
               </button>
             </div>
@@ -332,53 +336,77 @@ export default function DashboardPage() {
             {/* Summary Stats */}
             {summary && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl shadow-sm border p-5"><p className="text-xs text-gray-500 uppercase">Ad Accounts</p><p className="text-2xl font-bold">{summary.accounts}</p></div>
-                <div className="bg-white rounded-xl shadow-sm border p-5"><p className="text-xs text-gray-500 uppercase">Campaigns</p><p className="text-2xl font-bold">{summary.totalCampaigns}</p></div>
-                <div className="bg-white rounded-xl shadow-sm border p-5"><p className="text-xs text-gray-500 uppercase">Active</p><p className="text-2xl font-bold">{summary.activeCampaigns}</p></div>
-                <div className="bg-white rounded-xl shadow-sm border p-5"><p className="text-xs text-gray-500 uppercase">Total Spend</p><p className="text-2xl font-bold">${fmtNum(summary.totalSpend)}</p></div>
+                {[
+                  { label: 'Ad Accounts', value: summary.accounts.toString() },
+                  { label: 'Campaigns', value: summary.totalCampaigns.toString() },
+                  { label: 'Active', value: summary.activeCampaigns.toString() },
+                  { label: 'Total Spend', value: `$${fmtNum(summary.totalSpend)}` },
+                ].map(s => (
+                  <div key={s.label} className="card p-5">
+                    <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>{s.label}</p>
+                    <p className="text-2xl font-bold mt-1 text-ink">{s.value}</p>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* Sync Status */}
             {syncStatus && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl shadow-sm border p-5"><p className="text-xs text-gray-500 uppercase">Ad Sets</p><p className="text-3xl font-bold">{syncStatus.adsets}</p></div>
-                <div className="bg-white rounded-xl shadow-sm border p-5"><p className="text-xs text-gray-500 uppercase">Ads</p><p className="text-3xl font-bold">{syncStatus.ads}</p></div>
-                {syncStatus.lastSync && <div className="bg-white rounded-xl shadow-sm border p-5 col-span-2"><p className="text-xs text-gray-500 uppercase">Last Sync</p><p className="text-lg font-bold text-gray-600">{new Date(syncStatus.lastSync).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}</p></div>}
+                <div className="card p-5">
+                  <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>Ad Sets</p>
+                  <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.adsets}</p>
+                </div>
+                <div className="card p-5">
+                  <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>Ads</p>
+                  <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.ads}</p>
+                </div>
+                {syncStatus.lastSync && (
+                  <div className="card p-5 col-span-2">
+                    <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>Last Sync</p>
+                    <p className="text-lg font-bold mt-1 text-ink">
+                      {new Date(syncStatus.lastSync).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Charts — visible when insights loaded */}
+            {/* Charts */}
             {insights.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+              <div className="card p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">📈 Performance (last {insightDays} days)</h3>
-                  <div className="grid grid-cols-4 gap-4 text-center text-sm">
-                    <div><p className="text-gray-500 text-xs">Spend</p><p className="font-semibold">${fmtNum(totals.spend)}</p></div>
-                    <div><p className="text-gray-500 text-xs">Impressions</p><p className="font-semibold">{fmtNum(totals.impressions)}</p></div>
-                    <div><p className="text-gray-500 text-xs">Clicks</p><p className="font-semibold">{fmtNum(totals.clicks)}</p></div>
-                    <div><p className="text-gray-500 text-xs">CTR</p><p className="font-semibold">{totals.ctr.toFixed(2)}%</p></div>
+                  <h3 className="text-sm font-semibold text-ink">📈 Performance (last {insightDays} days)</h3>
+                  <div className="grid grid-cols-4 gap-6 text-center text-sm">
+                    <div><p className="text-ink-200 text-xs">Spend</p><p className="font-semibold text-ink">${fmtNum(totals.spend)}</p></div>
+                    <div><p className="text-ink-200 text-xs">Impressions</p><p className="font-semibold text-ink">{fmtNum(totals.impressions)}</p></div>
+                    <div><p className="text-ink-200 text-xs">Clicks</p><p className="font-semibold text-ink">{fmtNum(totals.clicks)}</p></div>
+                    <div><p className="text-ink-200 text-xs">CTR</p><p className="font-semibold text-ink">{totals.ctr.toFixed(2)}%</p></div>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#888888' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#888888' }} />
+                    <Tooltip
+                      contentStyle={{ background: '#111111', border: '1px solid #222222', borderRadius: '8px', color: '#ededed' }}
+                    />
+                    <Legend formatter={(value) => <span style={{ color: '#ededed' }}>{value}</span>} />
                     <Line type="monotone" dataKey="spend" stroke="#3b82f6" strokeWidth={2} name="Spend" dot={false} />
-                    <Line type="monotone" dataKey="impressions" stroke="#8b5cf6" strokeWidth={2} name="Impressions" dot={false} yAxisId={0} />
+                    <Line type="monotone" dataKey="impressions" stroke="#8b5cf6" strokeWidth={2} name="Impressions" dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
                 <div className="mt-4">
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                      <YAxis tick={{ fontSize: 11 }} />
-                      <Tooltip />
-                      <Legend />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#888888' }} />
+                      <YAxis tick={{ fontSize: 11, fill: '#888888' }} />
+                      <Tooltip
+                        contentStyle={{ background: '#111111', border: '1px solid #222222', borderRadius: '8px', color: '#ededed' }}
+                      />
+                      <Legend formatter={(value) => <span style={{ color: '#ededed' }}>{value}</span>} />
                       <Bar dataKey="clicks" fill="#10b981" name="Clicks" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="ctr" fill="#f59e0b" name="CTR %" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -388,56 +416,66 @@ export default function DashboardPage() {
             )}
 
             {/* Ad Accounts + Campaigns */}
-            <div className="bg-white rounded-xl shadow-sm border mb-6">
-              <div className="px-6 py-4 border-b"><h3 className="text-lg font-semibold">Ad Accounts</h3></div>
+            <div className="card mb-6">
+              <div className="px-5 py-3.5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                <h3 className="text-sm font-semibold text-ink">Ad Accounts</h3>
+              </div>
               {accounts.length === 0 ? (
-                <div className="px-6 py-8 text-center text-gray-400">No ad accounts yet. Click &quot;Sync Now&quot; to import.</div>
+                <div className="px-5 py-8 text-center text-ink-300 text-sm">No ad accounts yet. Click "Sync Now" to import.</div>
               ) : (
-                <div className="divide-y">
+                <div>
                   {accounts.map((acct) => (
                     <div key={acct.id}>
-                      <div className="px-6 py-4 hover:bg-slate-50 cursor-pointer" onClick={() => loadCampaigns(acct.id)}>
+                      <div
+                        className="px-5 py-3.5 cursor-pointer transition-colors hover:bg-surface-100"
+                        onClick={() => loadCampaigns(acct.id)}
+                        style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}
+                      >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium">{acct.name}</p>
-                            <p className="text-sm text-gray-500">ID: {acct.accountId} · {acct.currency} · {fmtCurr(acct.balance, acct.currency)}</p>
+                            <p className="text-sm font-medium text-ink">{acct.name}</p>
+                            <p className="text-xs text-ink-200 mt-0.5">ID: {acct.accountId} · {acct.currency} · {fmtCurr(acct.balance, acct.currency)}</p>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-500">{acct._count.campaigns} campaigns</span>
-                            <span className={`px-2 py-0.5 text-xs rounded-full ${acct.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{acct.status}</span>
+                            <span className="text-xs text-ink-200">{acct._count.campaigns} campaigns</span>
+                            <span className={`badge-${acct.status === 'ACTIVE' ? 'success' : 'warning'}`}>{acct.status}</span>
                             {acct.isWarmingUp ? (
-                              <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 rounded-full">Warmup D{acct.warmupDay}</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full"
+                                style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', boxShadow: '0 0 0 1px rgba(251,146,60,0.25)' }}>
+                                Warmup D{acct.warmupDay}
+                              </span>
                             ) : (
                               <button onClick={(e) => { e.stopPropagation(); setWarmupStart({ accountId: acct.id, accountName: acct.name, currency: acct.currency }); setWarmupTarget(200); }}
-                                className="px-2 py-0.5 text-xs bg-orange-50 text-orange-600 rounded-full hover:bg-orange-100 font-medium">
+                                className="text-xs font-medium px-2 py-0.5 rounded-full cursor-pointer"
+                                style={{ background: 'rgba(251,146,60,0.08)', color: '#fb923c', boxShadow: '0 0 0 1px rgba(251,146,60,0.2)', letterSpacing: '-0.01em' }}>
                                 🔥 Warmup
                               </button>
                             )}
-                            <svg className={`w-4 h-4 text-gray-400 transition-transform ${selectedAccountId === acct.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            <svg className={`w-4 h-4 text-ink-200 transition-transform ${selectedAccountId === acct.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                           </div>
                         </div>
                       </div>
                       {selectedAccountId === acct.id && (
-                        <div className="bg-slate-50 border-t">
+                        <div style={{ background: 'rgba(255,255,255,0.02)' }}>
                           {campaigns.length === 0 ? (
-                            <div className="px-6 py-4 text-sm text-gray-400 text-center">No campaigns found</div>
+                            <div className="px-5 py-4 text-sm text-ink-200 text-center">No campaigns found</div>
                           ) : (
-                            <div className="divide-y">
+                            <div>
                               {campaigns.map((camp) => (
-                                <div key={camp.id} className="px-6 py-3 ml-4">
+                                <div key={camp.id} className="px-5 py-3 ml-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.04)' }}>
                                   <div className="flex items-center justify-between">
                                     <div>
-                                      <p className="text-sm font-medium">{camp.name}</p>
-                                      <p className="text-xs text-gray-400">{objLabel(camp.objective)} · {camp.dailyBudget ? fmtCurr(camp.dailyBudget, acct.currency) + '/day' : 'No daily budget'}</p>
+                                      <p className="text-sm font-medium text-ink">{camp.name}</p>
+                                      <p className="text-xs text-ink-200 mt-0.5">{objLabel(camp.objective)} · {camp.dailyBudget ? fmtCurr(camp.dailyBudget, acct.currency) + '/day' : 'No daily budget'}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <span className={`px-2 py-0.5 text-xs rounded-full ${camp.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : camp.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>{camp.status}</span>
-                                      <button onClick={(e) => { e.stopPropagation(); openEdit(camp); }} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Edit</button>
-                                      <button onClick={(e) => { e.stopPropagation(); setDeleteCamp(camp); }} className="text-xs text-red-500 hover:text-red-700 font-medium">Del</button>
+                                      <span className={`badge-${camp.status === 'ACTIVE' ? 'success' : camp.status === 'PAUSED' ? 'warning' : 'ink'}`}>{camp.status}</span>
+                                      <button onClick={(e) => { e.stopPropagation(); openEdit(camp); }} className="text-xs text-accent font-medium hover:opacity-80 bg-transparent border-none cursor-pointer" style={{ letterSpacing: '-0.01em' }}>Edit</button>
+                                      <button onClick={(e) => { e.stopPropagation(); setDeleteCamp(camp); }} className="text-xs text-danger font-medium hover:opacity-80 bg-transparent border-none cursor-pointer" style={{ letterSpacing: '-0.01em' }}>Del</button>
                                       <a href={`${axios.defaults.baseURL || ''}/api/reports/campaigns/${camp.id}/excel`} download onClick={(e) => e.stopPropagation()}
-                                        className="text-xs text-purple-500 hover:text-purple-700 font-medium">📥 CSV</a>
+                                        className="text-xs font-medium" style={{ color: '#a78bfa', letterSpacing: '-0.01em' }}>📥 CSV</a>
                                       <a href={`${axios.defaults.baseURL || ''}/api/reports/campaigns/${camp.id}/html`} target="_blank" onClick={(e) => e.stopPropagation()}
-                                        className="text-xs text-purple-500 hover:text-purple-700 font-medium">📄 HTML</a>
+                                        className="text-xs font-medium" style={{ color: '#a78bfa', letterSpacing: '-0.01em' }}>📄 HTML</a>
                                     </div>
                                   </div>
                                 </div>
@@ -453,39 +491,40 @@ export default function DashboardPage() {
             </div>
 
             {/* Warmup Section */}
-            <div className="bg-white rounded-xl shadow-sm border mb-6">
-              <div className="px-6 py-4 border-b flex items-center justify-between">
-                <h3 className="text-lg font-semibold">🔥 Account Warmup</h3>
+            <div className="card mb-6">
+              <div className="px-5 py-3.5 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                <h3 className="text-sm font-semibold text-ink">🔥 Account Warmup</h3>
                 <div className="flex gap-2">
                   {warmups.length > 0 && (
                     <button onClick={warmupTick} disabled={warmupBusy}
-                      className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 disabled:opacity-50 font-medium">
+                      className="text-xs font-medium px-3 py-1.5 rounded-full disabled:opacity-50 cursor-pointer"
+                      style={{ background: 'rgba(139,92,246,0.1)', color: '#a78bfa', boxShadow: '0 0 0 1px rgba(139,92,246,0.2)', letterSpacing: '-0.01em' }}>
                       ⏭️ Advance Day (Manual)
                     </button>
                   )}
                 </div>
               </div>
               {warmups.length === 0 ? (
-                <div className="px-6 py-6 text-center text-gray-400 text-sm">
+                <div className="px-5 py-6 text-center text-ink-200 text-sm">
                   No accounts warming up. Start a warmup on any ad account to gradually scale budget over 7 days.
                 </div>
               ) : (
-                <div className="divide-y">
+                <div>
                   {warmups.map((w) => (
-                    <div key={w.id} className="px-6 py-4">
+                    <div key={w.id} className="px-5 py-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <p className="font-medium">{w.name}</p>
-                          <p className="text-xs text-gray-500">Day {w.day}/{w.totalDays} · ${w.currentBudget}/day → Target ${w.targetBudget}/day</p>
+                          <p className="text-sm font-medium text-ink">{w.name}</p>
+                          <p className="text-xs text-ink-200 mt-0.5">Day {w.day}/{w.totalDays} · ${w.currentBudget}/day → Target ${w.targetBudget}/day</p>
                         </div>
                         <button onClick={() => stopWarmup(w.id)} disabled={warmupBusy}
-                          className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50">
+                          className="text-xs text-danger font-medium disabled:opacity-50 bg-transparent border-none cursor-pointer" style={{ letterSpacing: '-0.01em' }}>
                           Stop Warmup
                         </button>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-orange-400 to-red-500 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${w.progress}%` }} />
+                      <div className="w-full rounded-full h-2" style={{ background: '#222222' }}>
+                        <div className="h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${w.progress}%`, background: 'linear-gradient(90deg, #fb923c, #ef4444)' }} />
                       </div>
                     </div>
                   ))}
@@ -495,50 +534,98 @@ export default function DashboardPage() {
           </>
         )}
         {!fbStatus?.connected && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-6 py-4 rounded-lg">
-            <p className="font-medium">Getting Started</p>
-            <p className="text-sm mt-1">Connect your Facebook account above to start managing ads.</p>
+          <div className="px-5 py-4 rounded-lg"
+            style={{ background: 'rgba(0,112,243,0.08)', boxShadow: '0px 0px 0px 1px rgba(0,112,243,0.2)' }}>
+            <p className="text-sm font-medium" style={{ color: '#0070f3' }}>Getting Started</p>
+            <p className="text-xs mt-1" style={{ color: '#60a5fa' }}>Connect your Facebook account above to start managing ads.</p>
           </div>
         )}
-      </main>
 
-      {/* Edit Modal */}
-      {editCamp && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setEditCamp(null)}>
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">✏️ Edit Campaign</h3>
-            {editError && <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mb-3">{editError}</div>}
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">Name</label>
-                <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" />
+        {/* Edit Modal */}
+        {editCamp && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setEditCamp(null)}>
+            <div className="card p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-sm font-semibold text-ink mb-4">✏️ Edit Campaign</h3>
+              {editError && (
+                <div className="mb-3 px-3 py-2 rounded-lg text-sm text-danger"
+                  style={{ background: 'rgba(239,68,68,0.08)', boxShadow: '0px 0px 0px 1px rgba(239,68,68,0.2)' }}>
+                  {editError}
+                </div>
+              )}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-ink-200 mb-1">Name</label>
+                  <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})}
+                    className="w-full" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink-200 mb-1">Status</label>
+                  <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}
+                    className="w-full">
+                    <option value="ACTIVE">Active</option>
+                    <option value="PAUSED">Paused</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-ink-200 mb-1">Daily Budget</label>
+                  <input type="number" value={editForm.dailyBudget} onChange={e => setEditForm({...editForm, dailyBudget: Number(e.target.value) || 0})}
+                    className="w-full" min={1} />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Status</label>
-                <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm">
-                  <option value="ACTIVE">Active</option>
-                  <option value="PAUSED">Paused</option>
-                </select>
+              <div className="flex justify-end gap-2 mt-4">
+                <button onClick={() => setEditCamp(null)} className="btn-secondary btn-sm">Cancel</button>
+                <button onClick={saveEdit} disabled={editSaving}
+                  className="btn-primary btn-sm">
+                  {editSaving ? 'Saving...' : 'Save'}
+                </button>
               </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Daily Budget</label>
-                <input type="number" value={editForm.dailyBudget} onChange={e => setEditForm({...editForm, dailyBudget: Number(e.target.value) || 0})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" min={1} />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setEditCamp(null)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-              <button onClick={saveEdit} disabled={editSaving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
-                {editSaving ? 'Saving...' : 'Save'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-    </div>
+        {/* Delete Modal */}
+        {deleteCamp && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setDeleteCamp(null)}>
+            <div className="card p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-sm font-semibold text-ink mb-2">🗑️ Delete Campaign</h3>
+              <p className="text-sm text-ink-200 mb-4">Are you sure you want to delete <strong className="text-ink">{deleteCamp.name}</strong>? This will also delete it on Facebook.</p>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setDeleteCamp(null)} className="btn-secondary btn-sm">Cancel</button>
+                <button onClick={confirmDelete} disabled={deleteSaving}
+                  className="btn-sm font-medium cursor-pointer disabled:opacity-50"
+                  style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', boxShadow: '0px 0px 0px 1px rgba(239,68,68,0.3)', borderRadius: '8px', padding: '6px 14px', letterSpacing: '-0.01em' }}>
+                  {deleteSaving ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Warmup Start Modal */}
+        {warmupStart && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setWarmupStart(null)}>
+            <div className="card p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+              <h3 className="text-sm font-semibold text-ink mb-2">🔥 Start Warmup</h3>
+              <p className="text-sm text-ink-200 mb-4">
+                Start 7-day warmup for <strong className="text-ink">{warmupStart.accountName}</strong>? Budget starts low and scales daily.
+              </p>
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-ink-200 mb-1">Target Daily Budget ({warmupStart.currency})</label>
+                <input type="number" value={warmupTarget} onChange={e => setWarmupTarget(Number(e.target.value) || 0)}
+                  className="w-full" min={1} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setWarmupStart(null)} className="btn-secondary btn-sm">Cancel</button>
+                <button onClick={startWarmup} disabled={warmupBusy}
+                  className="btn-sm font-medium cursor-pointer disabled:opacity-50"
+                  style={{ background: 'rgba(251,146,60,0.15)', color: '#fb923c', boxShadow: '0px 0px 0px 1px rgba(251,146,60,0.3)', borderRadius: '8px', padding: '6px 14px', letterSpacing: '-0.01em' }}>
+                  {warmupBusy ? 'Starting...' : 'Start Warmup'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Shell>
   );
 }

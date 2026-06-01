@@ -2,83 +2,178 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.cdnfonts.com/css/geist');
+@import url('https://fonts.cdnfonts.com/css/geist-mono');
+
+/* ─── Vercel Design Tokens ─── */
 :root {
-  --bg-primary: #0b1120;
-  --bg-card: #1e293b;
-  --bg-nav: #0f172a;
-  --bg-hover: #334155;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --border: #334155;
+  --bg: #000000;
+  --surface: #111111;
+  --surface-50: #0a0a0a;
+  --border-shadow: 0px 0px 0px 1px rgba(255,255,255,0.08);
+  --border-shadow-light: 0px 0px 0px 1px rgba(255,255,255,0.05);
+  --ink: #ededed;
+  --ink-secondary: #888888;
+  --ink-muted: #666666;
+  --accent: #0070f3;
 }
+
+* { box-sizing: border-box; }
 
 body {
-  color: var(--text-primary);
-  background: var(--bg-primary) !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-/* ─── Global overrides for Tailwind classes ─── */
-
-.bg-slate-50, .bg-gray-50 { background: var(--bg-primary) !important; }
-.bg-white { background: var(--bg-card) !important; }
-.bg-gray-100, .bg-slate-100 { background: var(--bg-hover) !important; }
-.border, .border-gray-200, .border-slate-200 { border-color: var(--border) !important; }
-
-.text-gray-400, .text-slate-400, .text-gray-500, .text-slate-500 { color: var(--text-secondary) !important; }
-.text-gray-600, .text-slate-600 { color: var(--text-secondary) !important; }
-.text-gray-700, .text-slate-700, .text-gray-800, .text-slate-800 { color: var(--text-primary) !important; }
-
-.text-blue-600, .text-blue-700, .text-blue-800 { color: var(--accent) !important; }
-.text-green-600, .text-green-700, .text-green-800 { color: var(--success) !important; }
-.text-red-500, .text-red-600, .text-red-700 { color: var(--danger) !important; }
-.text-purple-600, .text-purple-700 { color: #a855f7 !important; }
-.text-orange-600 { color: var(--warning) !important; }
-
-.bg-blue-600 { background: var(--accent) !important; }
-.bg-blue-700:hover { background: var(--accent-hover) !important; }
-.bg-green-100 { background: rgba(34, 197, 94, 0.1) !important; }
-.bg-red-50 { background: rgba(239, 68, 68, 0.1) !important; }
-.bg-blue-50 { background: rgba(59, 130, 246, 0.1) !important; }
-.bg-green-50 { background: rgba(34, 197, 94, 0.08) !important; }
-.bg-purple-100 { background: rgba(168, 85, 247, 0.12) !important; }
-.bg-orange-50 { background: rgba(245, 158, 11, 0.1) !important; }
-
-.border-green-200 { border-color: rgba(34, 197, 94, 0.3) !important; }
-.border-red-200 { border-color: rgba(239, 68, 68, 0.3) !important; }
-.border-blue-200 { border-color: rgba(59, 130, 246, 0.3) !important; }
-
-.hover\:bg-gray-50:hover, .hover\:bg-slate-50:hover { background: var(--bg-hover) !important; }
-.hover\:text-red-600:hover, .hover\:text-red-700:hover { color: var(--danger) !important; }
-.hover\:text-gray-800:hover { color: var(--text-primary) !important; }
-.hover\:text-blue-800:hover, .hover\:text-blue-700:hover { color: var(--accent-hover) !important; }
-
-/* ─── Input fields ─── */
-input, select, textarea {
-  background: #0f172a !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border) !important;
-}
-input:focus, select:focus, textarea:focus {
-  border-color: var(--accent) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga' 1;
 }
 
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 3px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #222222; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #333333; }
 
-/* ─── Badge variants ─── */
-.bg-green-100.text-green-700 { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; }
-.bg-blue-100.text-blue-700 { background: rgba(59, 130, 246, 0.15) !important; color: #60a5fa !important; }
-.bg-yellow-100.text-yellow-700, .bg-orange-100.text-orange-700 { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
-.bg-gray-100.text-gray-600 { background: var(--bg-hover) !important; color: var(--text-secondary) !important; }
-.bg-slate-100.text-slate-600 { background: var(--bg-hover) !important; color: var(--text-secondary) !important; }
+/* ─── Vercel Shadow-as-Border Utility ─── */
+.shadow-border {
+  box-shadow: var(--border-shadow);
+}
+.shadow-border-light {
+  box-shadow: var(--border-shadow-light);
+}
+.shadow-card {
+  box-shadow: 0px 0px 0px 1px rgba(255,255,255,0.08), 0px 2px 2px rgba(0,0,0,0.3);
+}
+
+@layer base {
+  /* ─── Input / Select / Textarea ─── */
+  input, select, textarea {
+    @apply bg-surface-100 rounded-lg px-3 py-2 text-sm text-ink placeholder:text-ink-200 transition-all;
+    box-shadow: var(--border-shadow);
+    font-feature-settings: 'liga' 1;
+  }
+  input:focus, select:focus, textarea:focus {
+    @apply outline-none;
+    box-shadow: 0px 0px 0px 2px rgba(0,112,243,0.4);
+  }
+
+  /* ─── Tables ─── */
+  table { @apply w-full text-sm; }
+  th {
+    @apply text-left font-medium text-ink-200 px-4 py-3 text-xs uppercase tracking-wider;
+  }
+  td {
+    @apply px-4 py-3;
+    box-shadow: 0px -1px 0px 0px rgba(255,255,255,0.06);
+  }
+  tr:first-child td {
+    box-shadow: none;
+  }
+
+  /* ─── Card (Vercel shadow-as-border) ─── */
+  .card {
+    @apply bg-surface-100 rounded-lg;
+    box-shadow: 0px 0px 0px 1px rgba(255,255,255,0.08), 0px 2px 2px rgba(0,0,0,0.3);
+  }
+
+  /* ─── Status Badge (Vercel pill style) ─── */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 text-xs rounded-full font-medium;
+  }
+  .badge-success {
+    @apply badge text-success;
+    background: rgba(34, 197, 94, 0.10);
+    box-shadow: 0px 0px 0px 1px rgba(34, 197, 94, 0.25);
+  }
+  .badge-warning {
+    @apply badge text-warning;
+    background: rgba(245, 158, 11, 0.10);
+    box-shadow: 0px 0px 0px 1px rgba(245, 158, 11, 0.25);
+  }
+  .badge-danger {
+    @apply badge text-danger;
+    background: rgba(239, 68, 68, 0.10);
+    box-shadow: 0px 0px 0px 1px rgba(239, 68, 68, 0.25);
+  }
+  .badge-ink {
+    @apply badge text-ink-100;
+    background: rgba(255,255,255,0.05);
+    box-shadow: 0px 0px 0px 1px rgba(255,255,255,0.10);
+  }
+  .badge-info {
+    @apply badge text-accent;
+    background: rgba(0, 112, 243, 0.10);
+    box-shadow: 0px 0px 0px 1px rgba(0, 112, 243, 0.25);
+  }
+
+  /* ─── Stat Card ─── */
+  .stat-card {
+    @apply card p-5;
+  }
+  .stat-card .label {
+    @apply text-xs text-ink-200 uppercase tracking-wider font-medium;
+  }
+  .stat-card .value {
+    @apply text-2xl font-semibold text-ink mt-1.5;
+    letter-spacing: -0.02em;
+  }
+
+  /* ─── Button Variants (Vercel-style) ─── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    letter-spacing: -0.01em;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover active:scale-[0.98];
+    box-shadow: 0px 0px 0px 1px rgba(0,112,243,0.4);
+  }
+  .btn-primary:hover {
+    box-shadow: 0px 0px 0px 1px rgba(0,112,243,0.6);
+  }
+  .btn-secondary {
+    @apply btn text-ink;
+    background: rgba(255,255,255,0.06);
+    box-shadow: var(--border-shadow);
+  }
+  .btn-secondary:hover {
+    background: rgba(255,255,255,0.10);
+  }
+  .btn-ghost {
+    @apply btn text-ink-200 hover:text-ink;
+    background: transparent;
+  }
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.05);
+  }
+  .btn-danger {
+    @apply btn text-danger;
+    background: rgba(239, 68, 68, 0.08);
+    box-shadow: 0px 0px 0px 1px rgba(239, 68, 68, 0.25);
+  }
+  .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs rounded-md;
+  }
+  .btn-xs {
+    @apply px-2 py-1 text-[11px] rounded;
+  }
+
+  /* ─── Message Banners ─── */
+  .msg-success {
+    @apply px-4 py-3 rounded-lg text-sm text-success;
+    background: rgba(34, 197, 94, 0.08);
+    box-shadow: 0px 0px 0px 1px rgba(34, 197, 94, 0.20);
+  }
+  .msg-error {
+    @apply px-4 py-3 rounded-lg text-sm text-danger;
+    background: rgba(239, 68, 68, 0.08);
+    box-shadow: 0px 0px 0px 1px rgba(239, 68, 68, 0.20);
+  }
+  .msg-info {
+    @apply px-4 py-3 rounded-lg text-sm text-accent;
+    background: rgba(0, 112, 243, 0.08);
+    box-shadow: 0px 0px 0px 1px rgba(0, 112, 243, 0.20);
+  }
+}

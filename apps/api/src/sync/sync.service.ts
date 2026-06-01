@@ -61,16 +61,35 @@ export class SyncService {
     }
   }
 
-  private mapCampaignObjective(obj: string): CampaignObjective {
+  private mapCampaignObjective(obj: string | null | undefined): CampaignObjective {
+    // Map old Facebook API objective names to Prisma enum
     const map: Record<string, CampaignObjective> = {
+      // New names (direct match)
       OUTCOME_AWARENESS: 'OUTCOME_AWARENESS',
       OUTCOME_ENGAGEMENT: 'OUTCOME_ENGAGEMENT',
       OUTCOME_TRAFFIC: 'OUTCOME_TRAFFIC',
       OUTCOME_LEADS: 'OUTCOME_LEADS',
       OUTCOME_SALES: 'OUTCOME_SALES',
       OUTCOME_APP_PROMOTION: 'OUTCOME_APP_PROMOTION',
+      // Legacy Facebook objective names → new mapping
+      BRAND_AWARENESS: 'OUTCOME_AWARENESS',
+      REACH: 'OUTCOME_AWARENESS',
+      PAGE_LIKES: 'OUTCOME_ENGAGEMENT',
+      POST_ENGAGEMENT: 'OUTCOME_ENGAGEMENT',
+      VIDEO_VIEWS: 'OUTCOME_ENGAGEMENT',
+      EVENT_RESPONSES: 'OUTCOME_ENGAGEMENT',
+      MESSAGES: 'OUTCOME_ENGAGEMENT',
+      LINK_CLICKS: 'OUTCOME_TRAFFIC',
+      TRAFFIC: 'OUTCOME_TRAFFIC',
+      STORE_VISITS: 'OUTCOME_TRAFFIC',
+      LEAD_GENERATION: 'OUTCOME_LEADS',
+      CONVERSIONS: 'OUTCOME_SALES',
+      VALUE: 'OUTCOME_SALES',
+      PRODUCT_CATALOG_SALES: 'OUTCOME_SALES',
+      APP_INSTALLS: 'OUTCOME_APP_PROMOTION',
     };
-    return map[obj] || 'OUTCOME_TRAFFIC';
+    const key = (obj || '').replace(/-/g, '_').toUpperCase();
+    return map[key] || 'OUTCOME_TRAFFIC';
   }
 
   private mapCampaignStatus(status: string): CampaignStatus {

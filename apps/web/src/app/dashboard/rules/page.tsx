@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import Shell from '@/components/Shell';
+import PageHeader from '@/components/PageHeader';
+import Modal from '@/components/Modal';
+import { ConfirmModal } from '@/components/Modal';
 
 type RuleCondition = { metric: string; operator: string; value: number; window?: string };
 type Rule = {
@@ -37,14 +41,14 @@ const OPERATORS = [
 ];
 
 const ACTIONS = [
-  { key: 'PAUSE_CAMPAIGN', label: '⏸ Pause Campaign', color: 'bg-red-100 text-red-700' },
-  { key: 'PAUSE_ADSET', label: '⏸ Pause AdSet', color: 'bg-red-100 text-red-700' },
-  { key: 'INCREASE_BUDGET_10', label: '📈 +10% Budget', color: 'bg-green-100 text-green-700' },
-  { key: 'INCREASE_BUDGET_20', label: '📈 +20% Budget', color: 'bg-green-100 text-green-700' },
-  { key: 'INCREASE_BUDGET_50', label: '📈 +50% Budget', color: 'bg-green-100 text-green-700' },
-  { key: 'DECREASE_BUDGET_10', label: '📉 -10% Budget', color: 'bg-yellow-100 text-yellow-700' },
-  { key: 'DECREASE_BUDGET_20', label: '📉 -20% Budget', color: 'bg-yellow-100 text-yellow-700' },
-  { key: 'NOTIFY', label: '🔔 Notify', color: 'bg-blue-100 text-blue-700' },
+  { key: 'PAUSE_CAMPAIGN', label: '⏸ Pause Campaign', color: 'badge-danger' },
+  { key: 'PAUSE_ADSET', label: '⏸ Pause AdSet', color: 'badge-danger' },
+  { key: 'INCREASE_BUDGET_10', label: '📈 +10% Budget', color: 'bg-success-muted text-success border border-success-border' },
+  { key: 'INCREASE_BUDGET_20', label: '📈 +20% Budget', color: 'bg-success-muted text-success border border-success-border' },
+  { key: 'INCREASE_BUDGET_50', label: '📈 +50% Budget', color: 'bg-success-muted text-success border border-success-border' },
+  { key: 'DECREASE_BUDGET_10', label: '📉 -10% Budget', color: 'badge-warning' },
+  { key: 'DECREASE_BUDGET_20', label: '📉 -20% Budget', color: 'badge-warning' },
+  { key: 'NOTIFY', label: '🔔 Notify', color: 'bg-accent-muted text-accent border border-accent-border' },
 ];
 
 const SCOPE_LABELS: Record<string, string> = { CAMPAIGN: 'Campaign', ADSET: 'AdSet', AD: 'Ad', ACCOUNT: 'Account' };
@@ -72,6 +76,10 @@ export default function RulesPage() {
   const [showLogs, setShowLogs] = useState<string | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -147,13 +155,16 @@ export default function RulesPage() {
     } catch {}
   };
 
-  const deleteRule = async (id: string, name: string) => {
-    if (!confirm(`Delete rule "${name}"?`)) return;
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
     try {
-      await axios.delete(`/api/rules/${id}`);
+      await axios.delete(`/api/rules/${deleteConfirm.id}`);
       setMsg('🗑️ Rule deleted');
+      setDeleteConfirm(null);
       loadAll();
     } catch {}
+    setDeleting(false);
   };
 
   const editRule = (rule: Rule) => {
@@ -215,50 +226,49 @@ export default function RulesPage() {
 
   const metricLabel = (key: string) => METRICS.find(m => m.key === key)?.label || key;
   const actionLabel = (key: string) => ACTIONS.find(a => a.key === key)?.label || key;
-  const actionColor = (key: string) => ACTIONS.find(a => a.key === key)?.color || 'bg-gray-100 text-gray-600';
+  const actionColor = (key: string) => ACTIONS.find(a => a.key === key)?.color || 'badge-ink';
   const operatorLabel = (key: string) => OPERATORS.find(o => o.key === key)?.label || key;
   const fmtDate = (d: string) => new Date(d).toLocaleString('th');
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>;
+  if (loading) return (
+    <Shell>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-ink-300 animate-pulse">Loading rules...</p>
+      </div>
+    </Shell>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold">⚡ Rule Engine</h1>
-            <a href="/dashboard" className="text-sm text-blue-600 hover:text-blue-800">← Back to Dashboard</a>
-          </div>
-          <button onClick={openNewRule}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm font-medium">
-            {showForm ? '✕ Close' : '+ New Rule'}
-          </button>
-        </div>
-      </header>
+    <Shell>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="⚡ Rule Engine"
+          subtitle={rules.length > 0 ? `${rules.length} rules configured` : undefined}
+          actions={
+            <button onClick={openNewRule} className="btn-primary btn-sm">
+              {showForm ? '✕ Close' : '+ New Rule'}
+            </button>
+          }
+        />
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
-        {msg && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.includes('✅') || msg.includes('🗑️') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-            {msg}
-            <button className="float-right" onClick={() => setMsg('')}>✕</button>
-          </div>
-        )}
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">{error}</div>}
+        {/* Messages */}
+        {msg && <div className={`${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>{msg}<button className="float-right" onClick={() => setMsg('')}>✕</button></div>}
+        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}>✕</button></div>}
 
         {/* Create Form */}
         {showForm && (
-          <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">{editId ? '✏️ Edit Rule' : 'Create Rule'}</h3>
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold mb-4 text-ink">{editId ? '✏️ Edit Rule' : 'Create Rule'}</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Rule Name</label>
+                <label className="block text-sm font-medium text-ink mb-1">Rule Name</label>
                 <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="e.g. Stop if CPA too high" />
+                  className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink" placeholder="e.g. Stop if CPA too high" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Scope</label>
+                <label className="block text-sm font-medium text-ink mb-1">Scope</label>
                 <select value={form.scope} onChange={e => setForm({...form, scope: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm">
+                  className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink">
                   <option value="CAMPAIGN">Campaign</option>
                   <option value="ACCOUNT">Account</option>
                 </select>
@@ -268,17 +278,17 @@ export default function RulesPage() {
             {/* Target selector */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Ad Account (optional)</label>
+                <label className="block text-sm font-medium text-ink mb-1">Ad Account (optional)</label>
                 <select value={form.adAccountId} onChange={e => setForm({...form, adAccountId: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm">
+                  className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink">
                   <option value="">All accounts</option>
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Campaign (optional)</label>
+                <label className="block text-sm font-medium text-ink mb-1">Campaign (optional)</label>
                 <select value={form.campaignId} onChange={e => setForm({...form, campaignId: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm">
+                  className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink">
                   <option value="">All campaigns</option>
                   {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -287,27 +297,27 @@ export default function RulesPage() {
 
             {/* Conditions */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Conditions ({form.logic})</label>
+              <label className="block text-sm font-medium text-ink mb-2">Conditions ({form.logic})</label>
               <div className="space-y-2">
                 {form.conditions.map((cond, i) => (
                   <div key={i} className="flex gap-2 items-center">
                     <select value={cond.metric} onChange={e => updateCondition(i, 'metric', e.target.value)}
-                      className="border rounded-lg px-3 py-2 text-sm w-40">
+                      className="border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink w-40">
                       {METRICS.map(m => <option key={m.key} value={m.key}>{m.label}</option>)}
                     </select>
                     <select value={cond.operator} onChange={e => updateCondition(i, 'operator', e.target.value)}
-                      className="border rounded-lg px-3 py-2 text-sm w-16">
+                      className="border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink w-16">
                       {OPERATORS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                     </select>
                     <input type="number" value={cond.value} onChange={e => updateCondition(i, 'value', parseFloat(e.target.value) || 0)}
-                      className="border rounded-lg px-3 py-2 text-sm w-24" step="0.01" />
-                    <span className="text-xs text-gray-400 w-8">{METRICS.find(m => m.key === cond.metric)?.unit}</span>
-                    <button onClick={() => removeCondition(i)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+                      className="border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink w-24" step="0.01" />
+                    <span className="text-xs text-ink-300 w-8">{METRICS.find(m => m.key === cond.metric)?.unit}</span>
+                    <button onClick={() => removeCondition(i)} className="text-danger hover:text-danger/80 text-xs">✕</button>
                   </div>
                 ))}
               </div>
-              <button onClick={addCondition} className="mt-2 text-sm text-blue-600 hover:text-blue-800">+ Add condition</button>
-              <div className="mt-2 flex gap-4 text-sm">
+              <button onClick={addCondition} className="mt-2 text-sm text-accent hover:text-accent/80">+ Add condition</button>
+              <div className="mt-2 flex gap-4 text-sm text-ink">
                 <label className="flex items-center gap-1">
                   <input type="radio" name="logic" checked={form.logic === 'ALL'} onChange={() => setForm({...form, logic: 'ALL'})} />
                   ALL conditions must match
@@ -321,7 +331,7 @@ export default function RulesPage() {
 
             {/* Actions */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Actions</label>
+              <label className="block text-sm font-medium text-ink mb-2">Actions</label>
               <div className="flex flex-wrap gap-2">
                 {ACTIONS.map(a => (
                   <button key={a.key}
@@ -333,8 +343,8 @@ export default function RulesPage() {
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
                       form.actions.includes(a.key)
-                        ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
-                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                        ? 'bg-accent-muted text-accent border-accent-border'
+                        : 'bg-white text-ink-300 border-surface-200 hover:border-ink-100'
                     }`}>
                     {a.label}
                   </button>
@@ -345,20 +355,20 @@ export default function RulesPage() {
             {/* Cooldown */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Cooldown (minutes)</label>
+                <label className="block text-sm font-medium text-ink mb-1">Cooldown (minutes)</label>
                 <input type="number" value={form.cooldownMinutes}
                   onChange={e => setForm({...form, cooldownMinutes: parseInt(e.target.value) || 60})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
+                <label className="block text-sm font-medium text-ink mb-1">Description</label>
                 <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-                  className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Optional description" />
+                  className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink" placeholder="Optional description" />
               </div>
             </div>
 
             <button onClick={saveRule}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 text-sm font-medium">
+              className="btn-primary btn-sm">
               {editId ? '💾 Update Rule' : '💾 Save Rule'}
             </button>
           </div>
@@ -366,43 +376,39 @@ export default function RulesPage() {
 
         {/* Rules List */}
         {rules.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
+          <div className="card p-12 text-center">
             <p className="text-4xl mb-3">⚡</p>
-            <p className="text-gray-500 text-lg mb-4">No rules yet</p>
+            <p className="text-ink-300 text-lg mb-4">No rules yet</p>
             <button onClick={() => setShowForm(true)}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 text-sm font-medium">
+              className="btn-primary btn-sm">
               + Create your first rule
             </button>
           </div>
         ) : (
           <div className="space-y-4">
             {rules.map((rule) => (
-              <div key={rule.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
+              <div key={rule.id} className="card overflow-hidden">
                 <div className="p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-semibold">{rule.name}</h3>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          rule.isEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                        }`}>{rule.isEnabled ? 'Active' : 'Disabled'}</span>
-                        <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded-full">{SCOPE_LABELS[rule.scope] || rule.scope}</span>
+                        <h3 className="font-semibold text-ink">{rule.name}</h3>
+                        <span className={`badge-${rule.isEnabled ? 'success' : 'ink'} text-xs`}>{rule.isEnabled ? 'Active' : 'Disabled'}</span>
+                        <span className="badge-ink text-xs">{SCOPE_LABELS[rule.scope] || rule.scope}</span>
                       </div>
-                      {rule.description && <p className="text-sm text-gray-500 mb-2">{rule.description}</p>}
+                      {rule.description && <p className="text-sm text-ink-300 mb-2">{rule.description}</p>}
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => editRule(rule)}
-                        className="px-3 py-1 text-xs rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium">
+                        className="btn-secondary btn-xs">
                         ✏️ Edit
                       </button>
                       <button onClick={() => toggleRule(rule.id)}
-                        className={`px-3 py-1 text-xs rounded-lg font-medium ${
-                          rule.isEnabled ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}>
+                        className={`btn-xs ${rule.isEnabled ? 'btn bg-warning-muted text-warning border border-warning-border hover:bg-warning/20' : 'btn bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
                         {rule.isEnabled ? 'Disable' : 'Enable'}
                       </button>
-                      <button onClick={() => deleteRule(rule.id, rule.name)}
-                        className="px-3 py-1 text-xs rounded-lg bg-red-50 text-red-500 hover:bg-red-100">
+                      <button onClick={() => setDeleteConfirm({ id: rule.id, name: rule.name })}
+                        className="btn-danger btn-xs">
                         Delete
                       </button>
                     </div>
@@ -411,11 +417,11 @@ export default function RulesPage() {
                   {/* Conditions */}
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {(rule.conditions as RuleCondition[]).map((c, i) => (
-                      <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md">
+                      <span key={i} className="px-2 py-1 bg-accent-muted text-accent text-xs rounded-md">
                         {metricLabel(c.metric)} {operatorLabel(c.operator)} {c.value}
                       </span>
                     ))}
-                    <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded-md font-medium">
+                    <span className="px-2 py-1 bg-surface-100 text-ink-300 text-xs rounded-md font-medium">
                       {rule.logic}
                     </span>
                   </div>
@@ -430,11 +436,11 @@ export default function RulesPage() {
                   </div>
 
                   {/* Meta */}
-                  <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
+                  <div className="mt-3 flex items-center gap-4 text-xs text-ink-300">
                     <span>🔄 Triggered {rule.triggerCount} times</span>
                     <span>⏱ Cooldown: {rule.cooldownMinutes}m</span>
                     {rule.remainingCooldown > 0 && (
-                      <span className="text-orange-500 font-medium">
+                      <span className="text-warning font-medium">
                         ⏳ Cooldown remaining: {Math.floor(rule.remainingCooldown / 60)}m {rule.remainingCooldown % 60}s
                       </span>
                     )}
@@ -445,30 +451,30 @@ export default function RulesPage() {
 
                   {/* View logs button */}
                   <button onClick={() => viewLogs(rule.id)}
-                    className="mt-2 text-xs text-blue-600 hover:text-blue-800">
+                    className="mt-2 text-xs text-accent hover:text-accent/80">
                     {showLogs === rule.id ? 'Hide logs' : 'View logs'}
                   </button>
 
                   {/* Logs */}
                   {showLogs === rule.id && (
-                    <div className="mt-3 border-t pt-3">
+                    <div className="mt-3 pt-3" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
                       {loadingLogs ? (
-                        <p className="text-sm text-gray-400">Loading...</p>
+                        <p className="text-sm text-ink-300">Loading...</p>
                       ) : logs.length === 0 ? (
-                        <p className="text-sm text-gray-400">No logs yet</p>
+                        <p className="text-sm text-ink-300">No logs yet</p>
                       ) : (
                         <div className="max-h-60 overflow-y-auto space-y-1">
                           {logs.map((log: any) => (
                             <div key={log.id} className={`text-xs p-2 rounded ${
-                              log.success ? 'bg-green-50' : 'bg-red-50'
+                              log.success ? 'bg-success-muted' : 'bg-danger-muted'
                             }`}>
-                              <span className="font-medium">{fmtDate(log.triggeredAt)}</span>
+                              <span className="font-medium text-ink">{fmtDate(log.triggeredAt)}</span>
                               {' — '}
-                              <span className={log.success ? 'text-green-600' : 'text-red-600'}>
+                              <span className={log.success ? 'text-success' : 'text-danger'}>
                                 {log.success ? '✅ Success' : `❌ ${log.errorMessage || 'Failed'}`}
                               </span>
                               {' — '}
-                              <span className="text-gray-500">
+                              <span className="text-ink-300">
                                 {JSON.stringify(log.action)}
                               </span>
                             </div>
@@ -482,7 +488,19 @@ export default function RulesPage() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={confirmDelete}
+        title="Delete Rule"
+        message={deleteConfirm ? `Are you sure you want to delete "${deleteConfirm.name}"?` : ''}
+        busy={deleting}
+        icon="🗑️"
+        danger
+      />
+    </Shell>
   );
 }

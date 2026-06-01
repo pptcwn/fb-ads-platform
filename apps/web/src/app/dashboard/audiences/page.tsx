@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import Shell from '@/components/Shell';
+import PageHeader from '@/components/PageHeader';
+import Modal from '@/components/Modal';
+import { ConfirmModal } from '@/components/Modal';
 
 interface AdAccount { id: string; accountId: string; name: string; currency: string; }
 interface Audience { id: string; adAccountId: string; accountName: string; fbAudienceId: string; name: string; type: string; subtype: string | null; description: string | null; approximateCount: number | null; status: string; sourceAudienceId: string | null; lookalikeRatio: number | null; createdAt: string; }
@@ -11,10 +15,10 @@ const fmtNum = (n: number | null) => n ? (n >= 1000000 ? `${(n / 1000000).toFixe
 const TYPE_ICONS: Record<string, string> = { CUSTOM: '🎯', LOOKALIKE: '👥', SAVED: '💾' };
 const TYPE_LABELS: Record<string, string> = { CUSTOM: 'Custom', LOOKALIKE: 'Lookalike', SAVED: 'Saved Audience' };
 const STATUS_COLORS: Record<string, string> = {
-  READY: 'bg-green-900/40 text-green-400 border-green-800/50',
-  IS_EXCLUDED: 'bg-red-900/40 text-red-400 border-red-800/50',
-  IS_HOUSEHOLD: 'bg-blue-900/40 text-blue-400 border-blue-800/50',
-  IS_LOOKALIKE: 'bg-purple-900/40 text-purple-400 border-purple-800/50',
+  READY: 'badge-success',
+  IS_EXCLUDED: 'badge-danger',
+  IS_HOUSEHOLD: 'bg-accent-muted text-accent border border-accent-border',
+  IS_LOOKALIKE: 'bg-purple-50 text-purple-700 border border-purple-200',
 };
 
 const RATIO_OPTIONS = [1, 2, 3, 5, 10];
@@ -199,62 +203,37 @@ export default function AudiencesPage() {
   );
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0b1120] flex items-center justify-center">
-      <p className="text-slate-400 animate-pulse">Loading audiences...</p>
-    </div>
+    <Shell>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-ink-300 animate-pulse">Loading audiences...</p>
+      </div>
+    </Shell>
   );
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-slate-200">
-      {/* Navbar */}
-      <header className="bg-[#1e293b] border-b border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold">FB Ads Platform</h1>
-            <nav className="flex gap-4 text-sm">
-              <a href="/dashboard" className="text-gray-400 hover:text-gray-200">Dashboard</a>
-              <a href="/dashboard/all-campaigns" className="text-gray-400 hover:text-gray-200">📋 Campaigns</a>
-              <a href="/dashboard/analytics" className="text-gray-400 hover:text-gray-200">📊 Analytics</a>
-              <a href="/dashboard/abtest" className="text-gray-400 hover:text-gray-200">🔁 A/B Test</a>
-              <a href="/dashboard/audiences" className="text-blue-400 font-medium hover:text-blue-300">🎯 Audiences</a>
-              <a href="/dashboard/schedules" className="text-gray-400 hover:text-gray-200">📅 Schedules</a>
-              <a href="/dashboard/rules" className="text-gray-400 hover:text-gray-200">⚡ Rules</a>
-              <a href="/dashboard/budget" className="text-gray-400 hover:text-gray-200">💰 Budget</a>
-              <a href="/dashboard/notifications" className="text-gray-400 hover:text-gray-200">🔔 Alerts</a>
-              <a href="/dashboard/creatives" className="text-gray-400 hover:text-gray-200">🎨 Creatives</a>
-            </nav>
-          </div>
-          <button onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
-            className="text-sm text-gray-500 hover:text-red-400">Sign Out</button>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">🎯 Audience Management</h2>
-            <p className="text-sm text-slate-500 mt-1">{audiences.length} audiences</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowCustomModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">➕ Custom</button>
-            <button onClick={() => setShowLookalikeModal(true)}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">👥 Lookalike</button>
-            <button onClick={fetchAll} disabled={loading}
-              className="px-4 py-2 bg-[#1e293b] text-slate-300 rounded-lg text-sm hover:bg-[#293548] border border-slate-700/50">🔄 Refresh</button>
-          </div>
-        </div>
+    <Shell>
+      <div className="p-6 space-y-6">
+        <PageHeader
+          title="🎯 Audience Management"
+          subtitle={`${audiences.length} audiences`}
+          actions={
+            <>
+              <button onClick={() => setShowCustomModal(true)} className="btn-primary btn-sm">➕ Custom</button>
+              <button onClick={() => setShowLookalikeModal(true)} className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg">👥 Lookalike</button>
+              <button onClick={fetchAll} disabled={loading} className="btn-secondary btn-sm">🔄 Refresh</button>
+            </>
+          }
+        />
 
         {/* Messages */}
-        {msg && <div className="px-4 py-3 rounded-lg text-sm bg-green-900/30 text-green-400 border border-green-800/50">{msg}<button className="float-right" onClick={() => setMsg('')}>✕</button></div>}
-        {error && <div className="px-4 py-3 rounded-lg text-sm bg-red-900/30 text-red-400 border border-red-800/50">{error}<button className="float-right" onClick={() => setError('')}>✕</button></div>}
+        {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}>✕</button></div>}
+        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}>✕</button></div>}
 
         {/* Accounts quick sync */}
         <div className="flex flex-wrap gap-2">
           {accounts.map(acc => (
             <button key={acc.id} onClick={() => syncAudiences(acc.id)} disabled={syncing === acc.id}
-              className="px-3 py-1.5 bg-[#1e293b] border border-slate-700/50 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:border-slate-500 disabled:opacity-50">
+              className="btn-secondary btn-xs">
               {syncing === acc.id ? '⟳ Syncing...' : `⟳ Sync ${acc.name}`}
             </button>
           ))}
@@ -262,42 +241,42 @@ export default function AudiencesPage() {
 
         {/* Audience Grid */}
         {audiences.length === 0 ? (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700/50 p-12 text-center">
+          <div className="card p-12 text-center">
             <p className="text-4xl mb-3">🎯</p>
-            <p className="text-lg font-medium mb-1 text-slate-300">No audiences yet</p>
-            <p className="text-sm text-slate-500">Sync your ad accounts or create a new audience.</p>
+            <p className="text-lg font-medium mb-1 text-ink">No audiences yet</p>
+            <p className="text-sm text-ink-300">Sync your ad accounts or create a new audience.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {audiences.map(a => (
-              <div key={a.id} className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50 hover:border-slate-600 transition-colors">
+              <div key={a.id} className="card p-4 hover:border-surface-300 transition-colors">
                 <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className="text-lg">{TYPE_ICONS[a.type] || '🎯'}</span>
-                    <div>
-                      <p className="text-sm font-medium truncate max-w-[180px]">{a.name}</p>
-                      <p className="text-[10px] text-slate-500">{TYPE_LABELS[a.type] || a.type} · {a.accountName}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink truncate max-w-[180px]">{a.name}</p>
+                      <p className="text-[10px] text-ink-300">{TYPE_LABELS[a.type] || a.type} · {a.accountName}</p>
                     </div>
                   </div>
                   <button onClick={() => setDeleteConfirm(a)}
-                    className="text-slate-500 hover:text-red-400 text-xs shrink-0">🗑</button>
+                    className="text-ink-300 hover:text-danger text-xs shrink-0">🗑</button>
                 </div>
 
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg font-bold text-blue-400">{fmtNum(a.approximateCount)}</span>
-                  <span className="text-[10px] text-slate-500">people</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${STATUS_COLORS[a.status] || 'bg-gray-900/40 text-gray-400 border-gray-700'}`}>{a.status}</span>
+                  <span className="text-lg font-bold text-accent">{fmtNum(a.approximateCount)}</span>
+                  <span className="text-[10px] text-ink-300">people</span>
+                  <span className={`badge-ink text-[10px] ${STATUS_COLORS[a.status] || 'badge-ink'}`}>{a.status}</span>
                 </div>
 
-                {a.description && <p className="text-[11px] text-slate-500 mb-2 line-clamp-2">{a.description}</p>}
+                {a.description && <p className="text-[11px] text-ink-300 mb-2 line-clamp-2">{a.description}</p>}
 
-                <div className="flex flex-wrap gap-1 text-[10px] text-slate-500">
-                  {a.subtype && <span className="bg-[#0b1120] px-1.5 py-0.5 rounded">📁 {a.subtype}</span>}
-                  {a.type === 'LOOKALIKE' && a.lookalikeRatio && <span className="bg-[#0b1120] px-1.5 py-0.5 rounded">📊 {a.lookalikeRatio}% ratio</span>}
+                <div className="flex flex-wrap gap-1 text-[10px] text-ink-300">
+                  {a.subtype && <span className="bg-surface-50 px-1.5 py-0.5 rounded">📁 {a.subtype}</span>}
+                  {a.type === 'LOOKALIKE' && a.lookalikeRatio && <span className="bg-surface-50 px-1.5 py-0.5 rounded">📊 {a.lookalikeRatio}% ratio</span>}
                 </div>
                 {a.type === 'CUSTOM' && a.status === 'READY' && (
                   <button onClick={() => setUploadTarget(a)}
-                    className="mt-2 w-full text-[10px] py-1 rounded-lg bg-[#0b1120] border border-slate-700/50 text-slate-400 hover:text-blue-400 hover:border-blue-800/50 transition-colors">
+                    className="mt-2 w-full text-[10px] py-1 rounded-lg bg-surface-50 border border-surface-200/50 text-ink-300 hover:text-accent hover:border-accent-border transition-colors">
                     📤 Upload CSV
                   </button>
                 )}
@@ -305,245 +284,210 @@ export default function AudiencesPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* ─── Create Custom Audience Modal ─── */}
-      {showCustomModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowCustomModal(false)}>
-          <div className="bg-[#1e293b] rounded-xl shadow-xl w-full max-w-md mx-4 border border-slate-700/50" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">🎯 Create Custom Audience</h3>
-              <button onClick={() => setShowCustomModal(false)} className="text-slate-400 hover:text-slate-200 text-xl">✕</button>
-            </div>
-            <div className="p-4 space-y-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Ad Account</label>
-                <select value={customForm.adAccountId} onChange={e => setCustomForm({...customForm, adAccountId: e.target.value})}
-                  className="w-full bg-[#0b1120] border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200">
-                  <option value="">Select account...</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Audience Name</label>
-                <input type="text" value={customForm.name} onChange={e => setCustomForm({...customForm, name: e.target.value})}
-                  className="w-full bg-[#0b1120] border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Description (optional)</label>
-                <textarea value={customForm.description} onChange={e => setCustomForm({...customForm, description: e.target.value})}
-                  className="w-full bg-[#0b1120] border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" rows={2} />
-              </div>
-              <p className="text-xs text-slate-500">This creates an empty custom audience on Facebook. You can add users via CSV or Pixel later.</p>
-            </div>
-            <div className="p-4 border-t border-slate-700/50 flex justify-end gap-2">
-              <button onClick={() => setShowCustomModal(false)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-sm text-slate-300 hover:bg-slate-700">Cancel</button>
-              <button onClick={createCustom} disabled={formBusy || !customForm.adAccountId || !customForm.name}
-                className="px-4 py-2 bg-blue-600 rounded-lg text-sm text-white hover:bg-blue-700 disabled:opacity-50">
-                {formBusy ? 'Creating...' : 'Create'}
-              </button>
-            </div>
+      <Modal open={showCustomModal} onClose={() => setShowCustomModal(false)} title="Create Custom Audience" icon="🎯">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">Ad Account</label>
+            <select value={customForm.adAccountId} onChange={e => setCustomForm({...customForm, adAccountId: e.target.value})}
+              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink">
+              <option value="">Select account...</option>
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
           </div>
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">Audience Name</label>
+            <input type="text" value={customForm.name} onChange={e => setCustomForm({...customForm, name: e.target.value})}
+              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink" />
+          </div>
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">Description (optional)</label>
+            <textarea value={customForm.description} onChange={e => setCustomForm({...customForm, description: e.target.value})}
+              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink" rows={2} />
+          </div>
+          <p className="text-xs text-ink-300">This creates an empty custom audience on Facebook. You can add users via CSV or Pixel later.</p>
         </div>
-      )}
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+          <button onClick={() => setShowCustomModal(false)} className="btn-secondary btn-sm">Cancel</button>
+          <button onClick={createCustom} disabled={formBusy || !customForm.adAccountId || !customForm.name}
+            className="btn-primary btn-sm">
+            {formBusy ? 'Creating...' : 'Create'}
+          </button>
+        </div>
+      </Modal>
 
       {/* ─── Create Lookalike Modal ─── */}
-      {showLookalikeModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowLookalikeModal(false)}>
-          <div className="bg-[#1e293b] rounded-xl shadow-xl w-full max-w-md mx-4 border border-slate-700/50" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">👥 Create Lookalike Audience</h3>
-              <button onClick={() => setShowLookalikeModal(false)} className="text-slate-400 hover:text-slate-200 text-xl">✕</button>
+      <Modal open={showLookalikeModal} onClose={() => setShowLookalikeModal(false)} title="Create Lookalike Audience" icon="👥">
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">Ad Account</label>
+            <select value={lookalikeForm.adAccountId} onChange={e => setLookalikeForm({...lookalikeForm, adAccountId: e.target.value})}
+              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink">
+              <option value="">Select account...</option>
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">Source Audience</label>
+            <select value={lookalikeForm.sourceAudienceId} onChange={e => setLookalikeForm({...lookalikeForm, sourceAudienceId: e.target.value})}
+              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink">
+              <option value="">Select source...</option>
+              {sourceAudiences.map(a => <option key={a.fbAudienceId} value={a.fbAudienceId}>{a.name} ({fmtNum(a.approximateCount)})</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">Lookalike Name</label>
+            <input type="text" value={lookalikeForm.name} onChange={e => setLookalikeForm({...lookalikeForm, name: e.target.value})}
+              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink" />
+          </div>
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">Audience Size (ratio)</label>
+            <div className="flex gap-2">
+              {RATIO_OPTIONS.map(r => (
+                <button key={r} onClick={() => setLookalikeForm({...lookalikeForm, ratio: r})}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    lookalikeForm.ratio === r ? 'bg-purple-600 text-white' : 'bg-surface-50 text-ink-300 border border-surface-200 hover:border-surface-300'
+                  }`}>
+                  {r}%
+                </button>
+              ))}
             </div>
-            <div className="p-4 space-y-3">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Ad Account</label>
-                <select value={lookalikeForm.adAccountId} onChange={e => setLookalikeForm({...lookalikeForm, adAccountId: e.target.value})}
-                  className="w-full bg-[#0b1120] border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200">
-                  <option value="">Select account...</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Source Audience</label>
-                <select value={lookalikeForm.sourceAudienceId} onChange={e => setLookalikeForm({...lookalikeForm, sourceAudienceId: e.target.value})}
-                  className="w-full bg-[#0b1120] border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200">
-                  <option value="">Select source...</option>
-                  {sourceAudiences.map(a => <option key={a.fbAudienceId} value={a.fbAudienceId}>{a.name} ({fmtNum(a.approximateCount)})</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Lookalike Name</label>
-                <input type="text" value={lookalikeForm.name} onChange={e => setLookalikeForm({...lookalikeForm, name: e.target.value})}
-                  className="w-full bg-[#0b1120] border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200" />
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Audience Size (ratio)</label>
-                <div className="flex gap-2">
-                  {RATIO_OPTIONS.map(r => (
-                    <button key={r} onClick={() => setLookalikeForm({...lookalikeForm, ratio: r})}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        lookalikeForm.ratio === r ? 'bg-purple-600 text-white' : 'bg-[#0b1120] text-slate-400 border border-slate-600 hover:border-slate-500'
-                      }`}>
-                      {r}%
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-slate-500 mt-1">Higher % = larger audience but less similarity to source</p>
-              </div>
-            </div>
-            <div className="p-4 border-t border-slate-700/50 flex justify-end gap-2">
-              <button onClick={() => setShowLookalikeModal(false)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-sm text-slate-300 hover:bg-slate-700">Cancel</button>
-              <button onClick={createLookalike} disabled={formBusy || !lookalikeForm.adAccountId || !lookalikeForm.name || !lookalikeForm.sourceAudienceId}
-                className="px-4 py-2 bg-purple-600 rounded-lg text-sm text-white hover:bg-purple-700 disabled:opacity-50">
-                {formBusy ? 'Creating...' : '👥 Create Lookalike'}
-              </button>
-            </div>
+            <p className="text-[10px] text-ink-300 mt-1">Higher % = larger audience but less similarity to source</p>
           </div>
         </div>
-      )}
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+          <button onClick={() => setShowLookalikeModal(false)} className="btn-secondary btn-sm">Cancel</button>
+          <button onClick={createLookalike} disabled={formBusy || !lookalikeForm.adAccountId || !lookalikeForm.name || !lookalikeForm.sourceAudienceId}
+            className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg disabled:opacity-50">
+            {formBusy ? 'Creating...' : '👥 Create Lookalike'}
+          </button>
+        </div>
+      </Modal>
 
       {/* ─── Delete Confirmation ─── */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setDeleteConfirm(null)}>
-          <div className="bg-[#1e293b] rounded-xl shadow-xl w-full max-w-sm mx-4 border border-slate-700/50" onClick={e => e.stopPropagation()}>
-            <div className="p-4">
-              <h3 className="text-lg font-semibold mb-2">🗑 Delete Audience</h3>
-              <p className="text-sm text-slate-400 mb-2">Are you sure you want to delete <strong className="text-slate-200">{deleteConfirm.name}</strong>?</p>
-              <p className="text-xs text-red-400">This will also delete it from Facebook.</p>
-            </div>
-            <div className="p-4 border-t border-slate-700/50 flex justify-end gap-2">
-              <button onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-sm text-slate-300 hover:bg-slate-700">Cancel</button>
-              <button onClick={deleteAudience} disabled={formBusy}
-                className="px-4 py-2 bg-red-600 rounded-lg text-sm text-white hover:bg-red-700 disabled:opacity-50">
-                {formBusy ? 'Deleting...' : '🗑 Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={deleteAudience}
+        title="Delete Audience"
+        message={deleteConfirm ? `Are you sure you want to delete ${deleteConfirm.name}?` : ''}
+        confirmLabel="Delete"
+        danger
+        busy={formBusy}
+        icon="🗑"
+      />
 
       {/* ─── Upload CSV Modal ─── */}
-      {uploadTarget && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={closeUploadModal}>
-          <div className="bg-[#1e293b] rounded-xl shadow-xl w-full max-w-lg mx-4 border border-slate-700/50" onClick={e => e.stopPropagation()}>
-            <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">📤 Upload Users to Audience</h3>
-              <button onClick={closeUploadModal} className="text-slate-400 hover:text-slate-200 text-xl">✕</button>
+      <Modal open={!!uploadTarget} onClose={closeUploadModal} title="Upload Users to Audience" icon="📤" maxWidth="max-w-lg">
+        <div className="space-y-3">
+          <p className="text-sm text-ink font-medium">{uploadTarget?.name}</p>
+          <p className="text-xs text-ink-300">Upload a CSV file with customer data. Supported columns: email, phone, MADID, extern_id, name, zip, country.</p>
+
+          {/* File picker */}
+          {!csvPreview && (
+            <div className="border-2 border-dashed border-surface-200 rounded-lg p-6 text-center">
+              <input ref={fileInputRef} id="csv-file-input" type="file" accept=".csv" onChange={handleFileSelect}
+                className="hidden" />
+              <label htmlFor="csv-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+                <span className="text-3xl">📄</span>
+                <span className="text-sm text-ink-300 hover:text-ink">Click to select CSV file</span>
+                <span className="text-[10px] text-ink-400">First row must be column headers</span>
+              </label>
             </div>
-            <div className="p-4 space-y-3">
-              <p className="text-sm text-slate-300 font-medium">{uploadTarget.name}</p>
-              <p className="text-xs text-slate-500">Upload a CSV file with customer data. Supported columns: email, phone, MADID, extern_id, name, zip, country.</p>
+          )}
 
-              {/* File picker */}
-              {!csvPreview && (
-                <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center">
-                  <input ref={fileInputRef} id="csv-file-input" type="file" accept=".csv" onChange={handleFileSelect}
-                    className="hidden" />
-                  <label htmlFor="csv-file-input" className="cursor-pointer flex flex-col items-center gap-2">
-                    <span className="text-3xl">📄</span>
-                    <span className="text-sm text-slate-400 hover:text-slate-200">Click to select CSV file</span>
-                    <span className="text-[10px] text-slate-600">First row must be column headers</span>
-                  </label>
-                </div>
-              )}
+          {uploading && !csvPreview && <p className="text-xs text-ink-300 text-center animate-pulse">Reading file...</p>}
 
-              {uploading && !csvPreview && <p className="text-xs text-slate-400 text-center animate-pulse">Reading file...</p>}
-
-              {/* Preview */}
-              {csvPreview && csvPreview.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-400 mb-1">Preview ({csvHeaders.length} columns, showing first rows)</p>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[10px] border-collapse">
-                      <thead>
-                        <tr className="text-slate-400">
-                          {csvHeaders.map((h, i) => (
-                            <th key={i} className="border border-slate-700/50 px-2 py-1 text-left bg-[#0b1120]">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {csvPreview.map((row, ri) => (
-                          <tr key={ri} className="text-slate-300">
-                            {row.map((val: string, ci: number) => (
-                              <td key={ci} className="border border-slate-700/50 px-2 py-1 truncate max-w-[120px]">{val}</td>
-                            ))}
-                          </tr>
+          {/* Preview */}
+          {csvPreview && csvPreview.length > 0 && (
+            <div>
+              <p className="text-xs text-ink-300 mb-1">Preview ({csvHeaders.length} columns, showing first rows)</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[10px] border-collapse">
+                  <thead>
+                    <tr className="text-ink-300">
+                      {csvHeaders.map((h, i) => (
+                        <th key={i} className="border border-surface-200/50 px-2 py-1 text-left bg-surface-50">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvPreview.map((row, ri) => (
+                      <tr key={ri} className="text-ink">
+                        {row.map((val: string, ci: number) => (
+                          <td key={ci} className="border border-surface-200/50 px-2 py-1 truncate max-w-[120px]">{val}</td>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Column Mapping */}
-              {csvHeaders.length > 0 && (
-                <div>
-                  <p className="text-xs text-slate-400 mb-1">Column Mapping (Facebook Schema)</p>
-                  <div className="space-y-1.5">
-                    {csvHeaders.map((h, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="text-slate-400 w-24 truncate shrink-0">{h}</span>
-                        <span className="text-slate-600">→</span>
-                        <select value={schemaMapping[h] || ''}
-                          onChange={e => setSchemaMapping({...schemaMapping, [h]: e.target.value})}
-                          className="flex-1 bg-[#0b1120] border border-slate-600 rounded px-2 py-1 text-slate-200 text-xs">
-                          <option value="">-- Skip --</option>
-                          <option value="EMAIL">EMAIL</option>
-                          <option value="PHONE">PHONE</option>
-                          <option value="MADID">MADID (Device ID)</option>
-                          <option value="EXTERN_ID">EXTERN_ID</option>
-                          <option value="WHATSAPP">WHATSAPP</option>
-                          <option value="GEN">GEN (Gender)</option>
-                          <option value="DOBY">DOBY (Birth Year)</option>
-                          <option value="DOBM">DOBM (Birth Month)</option>
-                          <option value="DOBD">DOBD (Birth Day)</option>
-                          <option value="FIRST_NAME">FIRST_NAME</option>
-                          <option value="LAST_NAME">LAST_NAME</option>
-                          <option value="ZIP">ZIP</option>
-                          <option value="COUNTRY">COUNTRY</option>
-                          <option value="CITY">CITY</option>
-                          <option value="CT_VALUE">CT_VALUE</option>
-                        </select>
-                      </div>
+                      </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Column Mapping */}
+          {csvHeaders.length > 0 && (
+            <div>
+              <p className="text-xs text-ink-300 mb-1">Column Mapping (Facebook Schema)</p>
+              <div className="space-y-1.5">
+                {csvHeaders.map((h, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className="text-ink-300 w-24 truncate shrink-0">{h}</span>
+                    <span className="text-ink-400">→</span>
+                    <select value={schemaMapping[h] || ''}
+                      onChange={e => setSchemaMapping({...schemaMapping, [h]: e.target.value})}
+                      className="flex-1 bg-surface-50 border border-surface-200 rounded px-2 py-1 text-ink text-xs">
+                      <option value="">-- Skip --</option>
+                      <option value="EMAIL">EMAIL</option>
+                      <option value="PHONE">PHONE</option>
+                      <option value="MADID">MADID (Device ID)</option>
+                      <option value="EXTERN_ID">EXTERN_ID</option>
+                      <option value="WHATSAPP">WHATSAPP</option>
+                      <option value="GEN">GEN (Gender)</option>
+                      <option value="DOBY">DOBY (Birth Year)</option>
+                      <option value="DOBM">DOBM (Birth Month)</option>
+                      <option value="DOBD">DOBD (Birth Day)</option>
+                      <option value="FIRST_NAME">FIRST_NAME</option>
+                      <option value="LAST_NAME">LAST_NAME</option>
+                      <option value="ZIP">ZIP</option>
+                      <option value="COUNTRY">COUNTRY</option>
+                      <option value="CITY">CITY</option>
+                      <option value="CT_VALUE">CT_VALUE</option>
+                    </select>
                   </div>
-                </div>
-              )}
-
-              {/* Result */}
-              {uploadResult && (
-                <div className="bg-green-900/30 border border-green-800/50 rounded-lg p-3 text-xs text-green-400 space-y-1">
-                  <p>✅ {uploadResult.message}</p>
-                  <p>📊 Total: {uploadResult.totalRows} rows</p>
-                  {uploadResult.invalid > 0 && <p>⚠️ Invalid: {uploadResult.invalid}</p>}
-                  {uploadResult.rejected > 0 && <p>⛔ Rejected: {uploadResult.rejected}</p>}
-                </div>
-              )}
-
-              {uploadError && (
-                <div className="bg-red-900/30 border border-red-800/50 rounded-lg p-3 text-xs text-red-400">{uploadError}</div>
-              )}
+                ))}
+              </div>
             </div>
-            <div className="p-4 border-t border-slate-700/50 flex justify-end gap-2">
-              <button onClick={closeUploadModal}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-sm text-slate-300 hover:bg-slate-700">
-                {uploadResult ? 'Close' : 'Cancel'}
-              </button>
-              {csvPreview && !uploadResult && (
-                <button onClick={submitUpload} disabled={uploading || Object.values(schemaMapping).filter(Boolean).length === 0}
-                  className="px-4 py-2 bg-blue-600 rounded-lg text-sm text-white hover:bg-blue-700 disabled:opacity-50">
-                  {uploading ? 'Uploading...' : '📤 Upload to Facebook'}
-                </button>
-              )}
+          )}
+
+          {/* Result */}
+          {uploadResult && (
+            <div className="msg-success space-y-1">
+              <p>✅ {uploadResult.message}</p>
+              <p>📊 Total: {uploadResult.totalRows} rows</p>
+              {uploadResult.invalid > 0 && <p>⚠️ Invalid: {uploadResult.invalid}</p>}
+              {uploadResult.rejected > 0 && <p>⛔ Rejected: {uploadResult.rejected}</p>}
             </div>
-          </div>
+          )}
+
+          {uploadError && (
+            <div className="msg-error">{uploadError}</div>
+          )}
         </div>
-      )}
-    </div>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+          <button onClick={closeUploadModal} className="btn-secondary btn-sm">
+            {uploadResult ? 'Close' : 'Cancel'}
+          </button>
+          {csvPreview && !uploadResult && (
+            <button onClick={submitUpload} disabled={uploading || Object.values(schemaMapping).filter(Boolean).length === 0}
+              className="btn-primary btn-sm">
+              {uploading ? 'Uploading...' : '📤 Upload to Facebook'}
+            </button>
+          )}
+        </div>
+      </Modal>
+    </Shell>
   );
 }

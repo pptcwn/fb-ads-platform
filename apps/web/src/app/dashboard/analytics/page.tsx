@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
+import Shell from '@/components/Shell';
+import PageHeader from '@/components/PageHeader';
+import { objLabel, fmtCurr, fmtNum, daysAgo } from '@/lib/utils';
 
 // ─── Types ───
 
@@ -22,10 +25,6 @@ interface CampaignRank { id: string; name: string; objective: string; status: st
 interface Comparison { period: string; current: { impressions: number; clicks: number; spend: number; conversions: number }; previous: { impressions: number; clicks: number; spend: number; conversions: number }; changes: { impressions: number; clicks: number; spend: number; conversions: number } }
 
 interface AccountSummary { id: string; name: string; currency: string; status: string; balance: number; spentToday: number; campaignCount: number; latestInsight: { impressions: number; clicks: number; spend: number; conversions: number; ctr: number; cpc: number } | null }
-
-const fmtCurr = (val: number, cur: string = 'USD') => new Intl.NumberFormat('en', { style: 'currency', currency: cur, minimumFractionDigits: 0 }).format(val);
-const fmtNum = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString();
-const daysAgo = (d: number) => { const dt = new Date(); dt.setDate(dt.getDate() - d); return dt.toISOString().slice(0, 10); };
 
 const DAY_OPTIONS = [
   { label: '7D', days: 7 }, { label: '30D', days: 30 },
@@ -78,108 +77,91 @@ export default function AnalyticsPage() {
   }, [sortBy, range]);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0b1120] flex items-center justify-center">
-      <p className="text-slate-400 text-lg animate-pulse">Loading analytics...</p>
-    </div>
+    <Shell>
+      <div className="flex items-center justify-center py-24">
+        <p className="text-ink-300 text-lg animate-pulse">Loading analytics...</p>
+      </div>
+    </Shell>
   );
 
   if (!overview?.connected) return (
-    <div className="min-h-screen bg-[#0b1120] flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-slate-300 text-lg mb-2">Connect your Facebook account first</p>
-        <a href="/dashboard" className="text-blue-400 hover:text-blue-300">← Back to Dashboard</a>
+    <Shell>
+      <div className="flex items-center justify-center py-24">
+        <div className="text-center">
+          <p className="text-ink text-lg mb-2">Connect your Facebook account first</p>
+          <a href="/dashboard" className="text-accent hover:text-accent/80">← Back to Dashboard</a>
+        </div>
       </div>
-    </div>
+    </Shell>
   );
 
   const o = overview;
-  const objLabel = (o: string) => ({ OUTCOME_AWARENESS: 'Awareness', OUTCOME_ENGAGEMENT: 'Engagement', OUTCOME_TRAFFIC: 'Traffic', OUTCOME_LEADS: 'Leads', OUTCOME_SALES: 'Sales', OUTCOME_APP_PROMOTION: 'App Promotion' } as any)[o] || o;
-
-  const trendOpt = <T>(a: T, b: T) => a ?? b;
+  const trendOpt = function<T>(a: T, b: T) { return a ?? b; };
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-slate-200">
-      {/* Navbar */}
-      <header className="bg-[#1e293b] border-b border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold">FB Ads Platform</h1>
-            <nav className="flex gap-4 text-sm">
-              <a href="/dashboard" className="text-gray-400 hover:text-gray-200">Dashboard</a>
-              <a href="/dashboard/analytics" className="text-blue-400 font-medium hover:text-blue-300">📊 Analytics</a>
-              <a href="/dashboard/audiences" className="text-gray-400 hover:text-gray-200">🎯 Audiences</a>
-              <a href="/dashboard/all-campaigns" className="text-gray-400 hover:text-gray-200">📋 All Campaigns</a>
-              <a href="/dashboard/abtest" className="text-gray-400 hover:text-gray-200">🔁 A/B Test</a>
-              <a href="/dashboard/rules" className="text-gray-400 hover:text-gray-200">⚡ Rules</a>
-              <a href="/dashboard/budget" className="text-gray-400 hover:text-gray-200">💰 Budget</a>
-              <a href="/dashboard/notifications" className="text-gray-400 hover:text-gray-200">🔔 Alerts</a>
-              <a href="/dashboard/creatives" className="text-gray-400 hover:text-gray-200">🎨 Creatives</a>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <Shell>
+      <div className="px-6 py-6 space-y-6">
         {/* Header + Date Range */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">📊 Analytics</h2>
-          <div className="flex gap-2">
-            {DAY_OPTIONS.map(opt => (
-              <button key={opt.days} onClick={() => setRange(opt.days)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  range === opt.days ? 'bg-blue-600 text-white' : 'bg-[#1e293b] text-slate-400 hover:bg-[#293548]'
-                }`}>{opt.label}</button>
-            ))}
-          </div>
-        </div>
+        <PageHeader
+          title="📊 Analytics"
+          actions={
+            <div className="flex gap-2">
+              {DAY_OPTIONS.map(opt => (
+                <button key={opt.days} onClick={() => setRange(opt.days)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    range === opt.days ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'
+                  }`}>{opt.label}</button>
+              ))}
+            </div>
+          }
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
-            { label: 'Total Spend', value: fmtCurr(o.summary.totalSpend, 'USD'), color: 'from-blue-600 to-blue-400' },
-            { label: 'Impressions', value: fmtNum(o.summary.totalImpressions), color: 'from-purple-600 to-purple-400' },
-            { label: 'Clicks', value: fmtNum(o.summary.totalClicks), color: 'from-cyan-600 to-cyan-400' },
-            { label: 'CTR', value: `${o.rates.ctr}%`, color: 'from-green-600 to-green-400' },
-            { label: 'CPC', value: fmtCurr(o.rates.cpc), color: 'from-orange-600 to-orange-400' },
-            { label: 'Conversions', value: fmtNum(o.summary.totalConversions), color: 'from-emerald-600 to-emerald-400' },
-            { label: 'ROAS', value: `${o.rates.roas}x`, color: 'from-rose-600 to-rose-400' },
+            { label: 'Total Spend', value: fmtCurr(o.summary.totalSpend), color: 'text-accent' },
+            { label: 'Impressions', value: fmtNum(o.summary.totalImpressions), color: 'text-accent' },
+            { label: 'Clicks', value: fmtNum(o.summary.totalClicks), color: 'text-accent' },
+            { label: 'CTR', value: `${o.rates.ctr}%`, color: 'text-success' },
+            { label: 'CPC', value: fmtCurr(o.rates.cpc), color: 'text-accent' },
+            { label: 'Conversions', value: fmtNum(o.summary.totalConversions), color: 'text-success' },
+            { label: 'ROAS', value: `${o.rates.roas}x`, color: 'text-accent' },
           ].map((card, i) => (
-            <div key={i} className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-              <p className="text-xs text-slate-500 mb-1">{card.label}</p>
-              <p className={`text-lg font-bold bg-gradient-to-r ${card.color} bg-clip-text text-transparent`}>{card.value}</p>
+            <div key={i} className="stat-card">
+              <p className="label">{card.label}</p>
+              <p className={`value ${card.color}`}>{card.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Budget + Active */}
+        {/* Budget + Active + Objectives */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-            <p className="text-xs text-slate-500 mb-2">Budget Usage</p>
+          <div className="card p-4">
+            <p className="text-xs text-ink-300 mb-2">Budget Usage</p>
             <div className="flex items-end gap-2 mb-1">
-              <span className="text-lg font-bold">{fmtCurr(o.budget.spent)}</span>
-              <span className="text-xs text-slate-500 mb-0.5">/ {fmtCurr(o.budget.totalMonthly)}</span>
+              <span className="text-lg font-bold text-ink">{fmtCurr(o.budget.spent)}</span>
+              <span className="text-xs text-ink-300 mb-0.5">/ {fmtCurr(o.budget.totalMonthly)}</span>
             </div>
-            <div className="w-full bg-slate-700 rounded-full h-2">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-400 h-2 rounded-full transition-all" style={{ width: `${Math.min(o.budget.usagePercent, 100)}%` }} />
+            <div className="w-full bg-ink-200 rounded-full h-2">
+              <div className="bg-accent h-2 rounded-full transition-all" style={{ width: `${Math.min(o.budget.usagePercent, 100)}%` }} />
             </div>
-            <p className="text-xs text-slate-500 mt-1">{o.budget.usagePercent}% used</p>
+            <p className="text-xs text-ink-300 mt-1">{o.budget.usagePercent}% used</p>
           </div>
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-            <p className="text-xs text-slate-500 mb-2">Campaigns</p>
-            <p className="text-2xl font-bold text-blue-400">{o.summary.activeCampaigns}</p>
-            <p className="text-xs text-slate-500">Active of {o.summary.totalCampaigns} total</p>
-            <div className="w-full bg-slate-700 rounded-full h-2 mt-1">
-              <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${o.summary.totalCampaigns > 0 ? (o.summary.activeCampaigns / o.summary.totalCampaigns) * 100 : 0}%` }} />
+          <div className="card p-4">
+            <p className="text-xs text-ink-300 mb-2">Campaigns</p>
+            <p className="text-2xl font-bold text-accent">{o.summary.activeCampaigns}</p>
+            <p className="text-xs text-ink-300">Active of {o.summary.totalCampaigns} total</p>
+            <div className="w-full bg-ink-200 rounded-full h-2 mt-1">
+              <div className="bg-accent h-2 rounded-full" style={{ width: `${o.summary.totalCampaigns > 0 ? (o.summary.activeCampaigns / o.summary.totalCampaigns) * 100 : 0}%` }} />
             </div>
           </div>
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-            <p className="text-xs text-slate-500 mb-2">Objectives Breakdown</p>
+          <div className="card p-4">
+            <p className="text-xs text-ink-300 mb-2">Objectives Breakdown</p>
             <div className="space-y-1">
               {o.objectives.map((obj, i) => (
                 <div key={i} className="flex justify-between text-xs">
-                  <span className="text-slate-400">{objLabel(obj.objective)}</span>
-                  <span className="text-slate-200 font-medium">{obj.count}</span>
+                  <span className="text-ink-200">{objLabel(obj.objective)}</span>
+                  <span className="text-ink font-medium">{obj.count}</span>
                 </div>
               ))}
             </div>
@@ -188,20 +170,20 @@ export default function AnalyticsPage() {
 
         {/* Comparison */}
         {comparison && (
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-            <h3 className="text-sm font-semibold mb-3 text-slate-300">📈 Period Comparison (vs previous {comparison.period})</h3>
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold mb-3 text-ink">📈 Period Comparison (vs previous {comparison.period})</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'Spend', curVal: fmtCurr(comparison.current.spend), prevVal: fmtCurr(comparison.previous.spend), change: comparison.changes.spend, color: comparison.changes.spend > 0 ? 'text-red-400' : 'text-green-400' },
-                { label: 'Impressions', curVal: fmtNum(comparison.current.impressions), prevVal: fmtNum(comparison.previous.impressions), change: comparison.changes.impressions, color: comparison.changes.impressions > 0 ? 'text-green-400' : 'text-red-400' },
-                { label: 'Clicks', curVal: fmtNum(comparison.current.clicks), prevVal: fmtNum(comparison.previous.clicks), change: comparison.changes.clicks, color: comparison.changes.clicks > 0 ? 'text-green-400' : 'text-red-400' },
-                { label: 'Conversions', curVal: fmtNum(comparison.current.conversions), prevVal: fmtNum(comparison.previous.conversions), change: comparison.changes.conversions, color: comparison.changes.conversions > 0 ? 'text-green-400' : 'text-red-400' },
+                { label: 'Spend', curVal: fmtCurr(comparison.current.spend), prevVal: fmtCurr(comparison.previous.spend), change: comparison.changes.spend, color: comparison.changes.spend > 0 ? 'text-danger' : 'text-success' },
+                { label: 'Impressions', curVal: fmtNum(comparison.current.impressions), prevVal: fmtNum(comparison.previous.impressions), change: comparison.changes.impressions, color: comparison.changes.impressions > 0 ? 'text-success' : 'text-danger' },
+                { label: 'Clicks', curVal: fmtNum(comparison.current.clicks), prevVal: fmtNum(comparison.previous.clicks), change: comparison.changes.clicks, color: comparison.changes.clicks > 0 ? 'text-success' : 'text-danger' },
+                { label: 'Conversions', curVal: fmtNum(comparison.current.conversions), prevVal: fmtNum(comparison.previous.conversions), change: comparison.changes.conversions, color: comparison.changes.conversions > 0 ? 'text-success' : 'text-danger' },
               ].map((c, i) => (
-                <div key={i} className="bg-[#0b1120] rounded-lg p-3">
-                  <p className="text-xs text-slate-500 mb-1">{c.label}</p>
-                  <p className="text-sm font-bold">{c.curVal}</p>
+                <div key={i} className="bg-surface-200 rounded-lg p-3">
+                  <p className="text-xs text-ink-300 mb-1">{c.label}</p>
+                  <p className="text-sm font-bold text-ink">{c.curVal}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-[10px] text-slate-600">prev: {c.prevVal}</span>
+                    <span className="text-[10px] text-ink-300">prev: {c.prevVal}</span>
                     <span className={`text-xs font-medium ${c.color}`}>
                       {c.change > 0 ? '↑' : '↓'} {Math.abs(c.change)}%
                     </span>
@@ -215,14 +197,14 @@ export default function AnalyticsPage() {
         {/* Trend Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Spend Trend */}
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
+          <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-300">💰 Spend Trend</h3>
+              <h3 className="text-sm font-semibold text-ink">💰 Spend Trend</h3>
               <select value={granularity} onChange={e => setGranularity(e.target.value)}
-                className="bg-[#0b1120] text-slate-300 border border-slate-600 rounded px-2 py-1 text-xs">
-                <option value="day">Daily</option>
-                <option value="week">Weekly</option>
-                <option value="month">Monthly</option>
+                className="bg-surface-200 text-ink border border-ink-200 rounded px-2 py-1 text-xs">
+                <option value="day" className="text-ink">Daily</option>
+                <option value="week" className="text-ink">Weekly</option>
+                <option value="month" className="text-ink">Monthly</option>
               </select>
             </div>
             <div className="h-64">
@@ -245,8 +227,8 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Impressions + Clicks */}
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-            <h3 className="text-sm font-semibold mb-3 text-slate-300">👁️ Impressions & Clicks</h3>
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold mb-3 text-ink">👁️ Impressions & Clicks</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={trends}>
@@ -263,8 +245,8 @@ export default function AnalyticsPage() {
           </div>
 
           {/* CTR Trend */}
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-            <h3 className="text-sm font-semibold mb-3 text-slate-300">📈 CTR Trend (%)</h3>
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold mb-3 text-ink">📈 CTR Trend (%)</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trends}>
@@ -280,8 +262,8 @@ export default function AnalyticsPage() {
           </div>
 
           {/* CPC Trend */}
-          <div className="bg-[#1e293b] rounded-xl p-4 border border-slate-700/50">
-            <h3 className="text-sm font-semibold mb-3 text-slate-300">💵 CPC Trend</h3>
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold mb-3 text-ink">💵 CPC Trend</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trends}>
@@ -297,24 +279,24 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Campaign Ranking */}
-        <div className="bg-[#1e293b] rounded-xl border border-slate-700/50 overflow-hidden">
-          <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-300">🏆 Campaign Ranking</h3>
+        <div className="card overflow-hidden">
+          <div className="p-4 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+            <h3 className="text-sm font-semibold text-ink">🏆 Campaign Ranking</h3>
             <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-              className="bg-[#0b1120] text-slate-300 border border-slate-600 rounded px-2 py-1 text-xs">
-              <option value="spend">By Spend</option>
-              <option value="impressions">By Impressions</option>
-              <option value="clicks">By Clicks</option>
-              <option value="ctr">By CTR</option>
-              <option value="cpc">By CPC</option>
-              <option value="conversions">By Conversions</option>
-              <option value="roas">By ROAS</option>
+              className="bg-surface-200 text-ink border border-ink-200 rounded px-2 py-1 text-xs">
+              <option value="spend" className="text-ink">By Spend</option>
+              <option value="impressions" className="text-ink">By Impressions</option>
+              <option value="clicks" className="text-ink">By Clicks</option>
+              <option value="ctr" className="text-ink">By CTR</option>
+              <option value="cpc" className="text-ink">By CPC</option>
+              <option value="conversions" className="text-ink">By Conversions</option>
+              <option value="roas" className="text-ink">By ROAS</option>
             </select>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-[#0b1120]/50 text-slate-500">
+                <tr className="bg-surface-200/50 text-ink-300">
                   <th className="text-left px-4 py-2">#</th>
                   <th className="text-left px-3 py-2">Campaign</th>
                   <th className="text-left px-3 py-2">Account</th>
@@ -329,24 +311,24 @@ export default function AnalyticsPage() {
               </thead>
               <tbody>
                 {campaigns.map((c, i) => (
-                  <tr key={c.id} className="border-t border-slate-800/50 hover:bg-[#0b1120]/30 transition-colors">
-                    <td className="px-4 py-2 text-slate-500">{i + 1}</td>
+                  <tr key={c.id} className="hover:bg-surface-200/30 transition-colors" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+                    <td className="px-4 py-2 text-ink-300">{i + 1}</td>
                     <td className="px-3 py-2">
-                      <p className="text-slate-200 font-medium truncate max-w-[160px]">{c.name}</p>
-                      <p className="text-slate-500">{objLabel(c.objective)} · {c.status}</p>
+                      <p className="text-ink font-medium truncate max-w-[160px]">{c.name}</p>
+                      <p className="text-ink-300">{objLabel(c.objective)} · {c.status}</p>
                     </td>
-                    <td className="px-3 py-2 text-slate-400">{c.accountName}</td>
-                    <td className="px-3 py-2 text-right text-blue-400 font-mono">{fmtCurr(c.totalSpend)}</td>
-                    <td className="px-3 py-2 text-right text-slate-300 font-mono">{fmtNum(c.impressions)}</td>
-                    <td className="px-3 py-2 text-right text-slate-300 font-mono">{fmtNum(c.clicks)}</td>
-                    <td className="px-3 py-2 text-right text-emerald-400 font-mono">{c.ctr}%</td>
-                    <td className="px-3 py-2 text-right text-orange-400 font-mono">{fmtCurr(c.cpc)}</td>
-                    <td className="px-3 py-2 text-right text-slate-300 font-mono">{fmtNum(c.conversions)}</td>
-                    <td className="px-3 py-2 text-right text-rose-400 font-mono">{c.roas.toFixed(1)}x</td>
+                    <td className="px-3 py-2 text-ink-200">{c.accountName}</td>
+                    <td className="px-3 py-2 text-right text-accent font-mono">{fmtCurr(c.totalSpend)}</td>
+                    <td className="px-3 py-2 text-right text-ink font-mono">{fmtNum(c.impressions)}</td>
+                    <td className="px-3 py-2 text-right text-ink font-mono">{fmtNum(c.clicks)}</td>
+                    <td className="px-3 py-2 text-right text-success font-mono">{c.ctr}%</td>
+                    <td className="px-3 py-2 text-right text-accent font-mono">{fmtCurr(c.cpc)}</td>
+                    <td className="px-3 py-2 text-right text-ink font-mono">{fmtNum(c.conversions)}</td>
+                    <td className="px-3 py-2 text-right text-accent font-mono">{c.roas.toFixed(1)}x</td>
                   </tr>
                 ))}
                 {campaigns.length === 0 && (
-                  <tr><td colSpan={10} className="text-center py-8 text-slate-500">No campaign data for this period</td></tr>
+                  <tr><td colSpan={10} className="text-center py-8 text-ink-300">No campaign data for this period</td></tr>
                 )}
               </tbody>
             </table>
@@ -354,35 +336,35 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Account Summary */}
-        <div className="bg-[#1e293b] rounded-xl border border-slate-700/50 overflow-hidden">
-          <div className="p-4 border-b border-slate-700/50">
-            <h3 className="text-sm font-semibold text-slate-300">🏦 Account Summary</h3>
+        <div className="card overflow-hidden">
+          <div className="p-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+            <h3 className="text-sm font-semibold text-ink">🏦 Account Summary</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
             {accounts.map(acc => (
-              <div key={acc.id} className="bg-[#0b1120] rounded-lg p-3 border border-slate-700/30">
+              <div key={acc.id} className="bg-surface-200 rounded-lg p-3 border border-surface-border">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-slate-200 truncate">{acc.name}</p>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${acc.status === 'ACTIVE' ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400'}`}>{acc.status}</span>
+                  <p className="text-sm font-medium text-ink truncate">{acc.name}</p>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${acc.status === 'ACTIVE' ? 'badge-success' : 'badge-danger'}`}>{acc.status}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <p className="text-slate-500">Balance</p>
-                    <p className="text-slate-200 font-mono">{fmtCurr(acc.balance, acc.currency)}</p>
+                    <p className="text-ink-300">Balance</p>
+                    <p className="text-ink font-mono">{fmtCurr(acc.balance, acc.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Spent Today</p>
-                    <p className="text-slate-200 font-mono">{fmtCurr(acc.spentToday, acc.currency)}</p>
+                    <p className="text-ink-300">Spent Today</p>
+                    <p className="text-ink font-mono">{fmtCurr(acc.spentToday, acc.currency)}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Campaigns</p>
-                    <p className="text-slate-200">{acc.campaignCount}</p>
+                    <p className="text-ink-300">Campaigns</p>
+                    <p className="text-ink">{acc.campaignCount}</p>
                   </div>
                   {acc.latestInsight && (
                     <>
                       <div>
-                        <p className="text-slate-500">CTR / CPC</p>
-                        <p className="text-slate-200 font-mono">{Number(acc.latestInsight.ctr).toFixed(2)}% / {fmtCurr(Number(acc.latestInsight.cpc))}</p>
+                        <p className="text-ink-300">CTR / CPC</p>
+                        <p className="text-ink font-mono">{Number(acc.latestInsight.ctr).toFixed(2)}% / {fmtCurr(Number(acc.latestInsight.cpc))}</p>
                       </div>
                     </>
                   )}
@@ -390,11 +372,11 @@ export default function AnalyticsPage() {
               </div>
             ))}
             {accounts.length === 0 && (
-              <div className="col-span-full text-center py-6 text-slate-500 text-sm">No accounts found</div>
+              <div className="col-span-full text-center py-6 text-ink-300 text-sm">No accounts found</div>
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </Shell>
   );
 }

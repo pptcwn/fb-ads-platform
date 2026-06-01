@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'FB Ads Platform',
@@ -15,8 +12,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th">
-      <body className={inter.className}>{children}</body>
+    <html lang="th" className="dark">
+      <body
+        className="antialiased"
+        style={{
+          fontFamily: "'Geist', 'Geist Fallback', system-ui, sans-serif",
+          fontFeatureSettings: "'liga' 1",
+        }}
+      >
+        {children}
+      </body>
     </html>
   );
 }

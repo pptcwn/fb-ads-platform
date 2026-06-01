@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import Shell from '@/components/Shell';
+import PageHeader from '@/components/PageHeader';
+import Modal from '@/components/Modal';
+import { ConfirmModal } from '@/components/Modal';
+import { objLabel, fmtCurr } from '@/lib/utils';
 
 // ─── Types ───
 
@@ -22,12 +27,6 @@ interface Template {
   createdAt: string;
   updatedAt: string;
 }
-
-const objLabel = (o: string) =>
-  ({ OUTCOME_AWARENESS: 'Awareness', OUTCOME_ENGAGEMENT: 'Engagement', OUTCOME_TRAFFIC: 'Traffic', OUTCOME_LEADS: 'Leads', OUTCOME_SALES: 'Sales', OUTCOME_APP_PROMOTION: 'App Promotion' }[o] || o);
-
-const fmtCurr = (v: number, cur = 'THB') =>
-  new Intl.NumberFormat('en', { style: 'currency', currency: cur, minimumFractionDigits: 0 }).format(v);
 
 const OBJECTIVES = [
   'OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT',
@@ -131,61 +130,34 @@ export default function TemplatesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0b1120]">
-        <p className="text-slate-400 animate-pulse">Loading templates...</p>
-      </div>
+      <Shell>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-ink-300 animate-pulse">Loading templates...</p>
+        </div>
+      </Shell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-slate-200">
-      {/* Header */}
-      <header className="bg-[#1e293b] border-b border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold">FB Ads Platform</h1>
-            <nav className="flex gap-4 text-sm">
-              <a href="/dashboard" className="text-gray-400 hover:text-gray-200">Dashboard</a>
-              <a href="/dashboard/all-campaigns" className="text-gray-400 hover:text-gray-200">📋 All Campaigns</a>
-              <a href="/dashboard/campaigns/new" className="text-gray-400 hover:text-gray-200">🎯 New Campaign</a>
-              <a href="/dashboard/rules" className="text-gray-400 hover:text-gray-200">⚡ Rules</a>
-              <a href="/dashboard/schedules" className="text-gray-400 hover:text-gray-200">📅 Schedules</a>
-              <a href="/dashboard/templates" className="text-blue-400 font-medium hover:text-blue-300">📦 Templates</a>
-              <a href="/dashboard/analytics" className="text-gray-400 hover:text-gray-200">📊 Analytics</a>
-              <a href="/dashboard/audiences" className="text-gray-400 hover:text-gray-200">🎯 Audiences</a>
-              <a href="/dashboard/abtest" className="text-gray-400 hover:text-gray-200">🔁 A/B Test</a>
-              <a href="/dashboard/budget" className="text-gray-400 hover:text-gray-200">💰 Budget</a>
-              <a href="/dashboard/notifications" className="text-gray-400 hover:text-gray-200">🔔 Alerts</a>
-              <a href="/dashboard/creatives" className="text-gray-400 hover:text-gray-200">🎨 Creatives</a>
-            </nav>
-          </div>
-          <button onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
-            className="text-sm text-gray-500 hover:text-red-400">Sign Out</button>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Title */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">📦 Campaign Templates</h2>
-            <p className="text-sm text-slate-500 mt-1">{templates.length} template{templates.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button onClick={openCreate}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
-            ➕ New Template
-          </button>
-        </div>
+    <Shell>
+      <div className="p-6">
+        <PageHeader
+          title="📦 Campaign Templates"
+          subtitle={`${templates.length} template${templates.length !== 1 ? 's' : ''}`}
+          actions={
+            <button onClick={openCreate} className="btn-primary btn-sm">➕ New Template</button>
+          }
+        />
 
         {/* Messages */}
         {msg && (
-          <div className="mb-4 px-4 py-3 rounded-lg text-sm bg-green-900/30 text-green-400 border border-green-800/50">
+          <div className="msg-success mb-4">
             {msg}
             <button className="float-right" onClick={() => setMsg('')}>✕</button>
           </div>
         )}
         {error && (
-          <div className="mb-4 px-4 py-3 rounded-lg text-sm bg-red-900/30 text-red-400 border border-red-800/50">
+          <div className="msg-error mb-4">
             {error}
             <button className="float-right" onClick={() => setError('')}>✕</button>
           </div>
@@ -193,51 +165,49 @@ export default function TemplatesPage() {
 
         {/* Grid */}
         {templates.length === 0 ? (
-          <div className="bg-[#1e293b] rounded-xl border border-slate-700/50 p-12 text-center">
+          <div className="card p-12 text-center">
             <p className="text-4xl mb-3">📦</p>
-            <p className="text-lg font-medium mb-1 text-slate-300">No templates yet</p>
-            <p className="text-sm text-slate-500">Save your campaign settings as templates and reuse them instantly.</p>
+            <p className="text-lg font-medium mb-1 text-ink">No templates yet</p>
+            <p className="text-sm text-ink-300">Save your campaign settings as templates and reuse them instantly.</p>
             <button onClick={openCreate}
-              className="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
-              ➕ Create First Template
-            </button>
+              className="mt-4 btn-primary">➕ Create First Template</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {templates.map((t) => (
-              <div key={t.id} className="bg-[#1e293b] rounded-xl border border-slate-700/50 p-5 hover:border-blue-500/30 transition-all group">
+              <div key={t.id} className="card p-5 hover:border-accent-border/30 transition-all group">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base truncate">{t.name}</h3>
-                    {t.notes && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{t.notes}</p>}
+                    <h3 className="font-semibold text-base text-ink truncate">{t.name}</h3>
+                    {t.notes && <p className="text-xs text-ink-300 mt-1 line-clamp-2">{t.notes}</p>}
                   </div>
                 </div>
 
                 {/* Meta */}
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="text-[10px] px-2 py-0.5 bg-blue-900/40 text-blue-400 rounded-full font-medium">
+                  <span className="badge-success text-[10px]">
                     {objLabel(t.objective)}
                   </span>
                   {t.dailyBudget && (
-                    <span className="text-[10px] px-2 py-0.5 bg-green-900/40 text-green-400 rounded-full font-medium">
-                      {fmtCurr(Number(t.dailyBudget))}/day
+                    <span className="text-[10px] px-2 py-0.5 bg-success-muted text-success rounded-full font-medium border border-success-border">
+                      {fmtCurr(Number(t.dailyBudget), 'THB')}/day
                     </span>
                   )}
                   {t.optimizationGoal && (
-                    <span className="text-[10px] px-2 py-0.5 bg-purple-900/40 text-purple-400 rounded-full">
+                    <span className="text-[10px] px-2 py-0.5 bg-accent-muted text-accent rounded-full border border-accent-border">
                       🎯 {t.optimizationGoal}
                     </span>
                   )}
                   {t.adSetName && (
-                    <span className="text-[10px] px-2 py-0.5 bg-indigo-900/40 text-indigo-400 rounded-full">
+                    <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-200">
                       📦 {t.adSetName}
                     </span>
                   )}
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-3 text-xs text-slate-500 mb-4">
+                <div className="flex items-center gap-3 text-xs text-ink-300 mb-4">
                   <span>🔄 Used {t.useCount}x</span>
                   {t.lastUsedAt && (
                     <span>Last: {new Date(t.lastUsedAt).toLocaleDateString('th')}</span>
@@ -247,15 +217,15 @@ export default function TemplatesPage() {
                 {/* Actions */}
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => applyTemplate(t)}
-                    className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700">
+                    className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-accent text-white hover:bg-accent/90">
                     🔄 Apply
                   </button>
                   <button onClick={() => openEdit(t)}
-                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-indigo-900/40 text-indigo-400 hover:bg-indigo-800/50">
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-accent-muted text-accent hover:bg-accent/20">
                     ✏️ Edit
                   </button>
                   <button onClick={() => setDeleteTpl(t)}
-                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-red-900/40 text-red-400 hover:bg-red-800/50">
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-danger-muted text-danger hover:bg-danger/20">
                     🗑
                   </button>
                 </div>
@@ -263,115 +233,101 @@ export default function TemplatesPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* ─── Create/Edit Modal ─── */}
-      {editModal !== null && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setEditModal(null)}>
-          <div className="bg-[#1e293b] rounded-xl shadow-xl w-full max-w-lg mx-4 border border-slate-700/50 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">{editModal?.template ? '✏️ Edit Template' : '➕ New Template'}</h3>
-              <button onClick={() => setEditModal(null)} className="text-slate-400 hover:text-slate-200">✕</button>
+      <Modal open={editModal !== null} onClose={() => setEditModal(null)} title={editModal?.template ? '✏️ Edit Template' : '➕ New Template'} maxWidth="max-w-lg">
+        <div className="space-y-4">
+          {/* Name */}
+          <div>
+            <label className="text-xs font-medium text-ink-300 mb-1 block">Template Name *</label>
+            <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+              placeholder="e.g., Standard Traffic Campaign"
+              className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink placeholder-ink-400 focus:outline-none focus:border-accent" />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="text-xs font-medium text-ink-300 mb-1 block">Notes (optional)</label>
+            <textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+              placeholder="Describe when to use this template..."
+              rows={3}
+              className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink placeholder-ink-400 focus:outline-none focus:border-accent" />
+          </div>
+
+          {/* Objective */}
+          <div>
+            <label className="text-xs font-medium text-ink-300 mb-1 block">Objective</label>
+            <select value={editForm.objective} onChange={e => setEditForm(f => ({ ...f, objective: e.target.value }))}
+              className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent">
+              {OBJECTIVES.map(o => <option key={o} value={o}>{objLabel(o)}</option>)}
+            </select>
+          </div>
+
+          {/* Budget */}
+          <div>
+            <label className="text-xs font-medium text-ink-300 mb-1 block">Daily Budget (THB)</label>
+            <input type="number" value={editForm.dailyBudget} onChange={e => setEditForm(f => ({ ...f, dailyBudget: Number(e.target.value) }))}
+              min={0}
+              className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent" />
+          </div>
+
+          {/* Ad Set */}
+          <div>
+            <label className="text-xs font-medium text-ink-300 mb-1 block">Ad Set Name (optional)</label>
+            <input value={editForm.adSetName} onChange={e => setEditForm(f => ({ ...f, adSetName: e.target.value }))}
+              placeholder="e.g., TH Traffic Ad Set"
+              className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink placeholder-ink-400 focus:outline-none focus:border-accent" />
+          </div>
+
+          {/* Optimization Goal + Billing Event */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-ink-300 mb-1 block">Optimization Goal</label>
+              <select value={editForm.optimizationGoal} onChange={e => setEditForm(f => ({ ...f, optimizationGoal: e.target.value }))}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent">
+                {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
             </div>
-            <div className="p-5 space-y-4">
-              {/* Name */}
-              <div>
-                <label className="text-xs font-medium text-slate-400 mb-1 block">Template Name *</label>
-                <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g., Standard Traffic Campaign"
-                  className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500" />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="text-xs font-medium text-slate-400 mb-1 block">Notes (optional)</label>
-                <textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Describe when to use this template..."
-                  rows={3}
-                  className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500" />
-              </div>
-
-              {/* Objective */}
-              <div>
-                <label className="text-xs font-medium text-slate-400 mb-1 block">Objective</label>
-                <select value={editForm.objective} onChange={e => setEditForm(f => ({ ...f, objective: e.target.value }))}
-                  className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
-                  {OBJECTIVES.map(o => <option key={o} value={o}>{objLabel(o)}</option>)}
-                </select>
-              </div>
-
-              {/* Budget */}
-              <div>
-                <label className="text-xs font-medium text-slate-400 mb-1 block">Daily Budget (THB)</label>
-                <input type="number" value={editForm.dailyBudget} onChange={e => setEditForm(f => ({ ...f, dailyBudget: Number(e.target.value) }))}
-                  min={0}
-                  className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500" />
-              </div>
-
-              {/* Ad Set */}
-              <div>
-                <label className="text-xs font-medium text-slate-400 mb-1 block">Ad Set Name (optional)</label>
-                <input value={editForm.adSetName} onChange={e => setEditForm(f => ({ ...f, adSetName: e.target.value }))}
-                  placeholder="e.g., TH Traffic Ad Set"
-                  className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500" />
-              </div>
-
-              {/* Optimization Goal + Billing Event */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1 block">Optimization Goal</label>
-                  <select value={editForm.optimizationGoal} onChange={e => setEditForm(f => ({ ...f, optimizationGoal: e.target.value }))}
-                    className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
-                    {OPT_GOALS.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-400 mb-1 block">Billing Event</label>
-                  <select value={editForm.billingEvent} onChange={e => setEditForm(f => ({ ...f, billingEvent: e.target.value }))}
-                    className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
-                    <option value="IMPRESSIONS">Impressions</option>
-                    <option value="LINK_CLICKS">Link Clicks</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Ad Name */}
-              <div>
-                <label className="text-xs font-medium text-slate-400 mb-1 block">Ad Name (optional)</label>
-                <input value={editForm.adName} onChange={e => setEditForm(f => ({ ...f, adName: e.target.value }))}
-                  placeholder="e.g., TH Traffic Ad"
-                  className="w-full bg-[#0b1120] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500" />
-              </div>
-            </div>
-
-            <div className="p-5 border-t border-slate-700/50 flex justify-end gap-2">
-              <button onClick={() => setEditModal(null)}
-                className="px-4 py-2 border border-slate-600 rounded-lg text-sm hover:bg-slate-700 text-slate-300">Cancel</button>
-              <button onClick={saveTemplate} disabled={editSaving}
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-                {editSaving ? 'Saving...' : editModal?.template ? '💾 Update' : '➕ Create'}
-              </button>
+            <div>
+              <label className="text-xs font-medium text-ink-300 mb-1 block">Billing Event</label>
+              <select value={editForm.billingEvent} onChange={e => setEditForm(f => ({ ...f, billingEvent: e.target.value }))}
+                className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-accent">
+                <option value="IMPRESSIONS">Impressions</option>
+                <option value="LINK_CLICKS">Link Clicks</option>
+              </select>
             </div>
           </div>
+
+          {/* Ad Name */}
+          <div>
+            <label className="text-xs font-medium text-ink-300 mb-1 block">Ad Name (optional)</label>
+            <input value={editForm.adName} onChange={e => setEditForm(f => ({ ...f, adName: e.target.value }))}
+              placeholder="e.g., TH Traffic Ad"
+              className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink placeholder-ink-400 focus:outline-none focus:border-accent" />
+          </div>
         </div>
-      )}
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+          <button onClick={() => setEditModal(null)} className="btn-secondary btn-sm">Cancel</button>
+          <button onClick={saveTemplate} disabled={editSaving}
+            className="btn-primary btn-sm">
+            {editSaving ? 'Saving...' : editModal?.template ? '💾 Update' : '➕ Create'}
+          </button>
+        </div>
+      </Modal>
 
       {/* ─── Delete Modal ─── */}
-      {deleteTpl && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setDeleteTpl(null)}>
-          <div className="bg-[#1e293b] rounded-xl shadow-xl p-6 w-full max-w-sm mx-4 border border-slate-700/50" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-2">🗑 Delete Template</h3>
-            <p className="text-sm text-slate-400 mb-4">Delete &quot;{deleteTpl.name}&quot;? This cannot be undone.</p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteTpl(null)} className="px-4 py-2 border border-slate-600 rounded-lg text-sm hover:bg-slate-700 text-slate-300">Cancel</button>
-              <button onClick={deleteTemplate} disabled={deleteBusy}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50">
-                {deleteBusy ? 'Deleting...' : '🗑 Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <ConfirmModal
+        open={!!deleteTpl}
+        onClose={() => setDeleteTpl(null)}
+        onConfirm={deleteTemplate}
+        title="Delete Template"
+        message={deleteTpl ? `Delete "${deleteTpl.name}"? This cannot be undone.` : ''}
+        confirmLabel="Delete"
+        danger
+        busy={deleteBusy}
+        icon="🗑"
+      />
+    </Shell>
   );
 }
