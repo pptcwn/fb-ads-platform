@@ -10,3 +10,4 @@ backups/
 secrets/
 .DS_Store
 *.tsbuildinfo
+.github/skills/

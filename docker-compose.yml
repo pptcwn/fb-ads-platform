@@ -8,7 +8,6 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    # ports: # commented to avoid conflict with host PG
     expose:
       - "5432"
     healthcheck:
@@ -24,7 +23,6 @@ services:
       - redisdata:/data
     expose:
       - "6379"
-    # ports: commented — Redis already on host for n8n
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -33,13 +31,17 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile.dev
+      # 💡 ถ้าต้องการรัน Production บน VPS ให้เปลี่ยนเป็น Dockerfile.prod นะครับ
+      dockerfile: apps/api/Dockerfile.dev 
     restart: unless-stopped
     env_file: .env
     volumes:
-      - ./apps/api/src:/app/apps/api/src
-      - ./packages:/app/packages
+      - .:/app
+      # Anonymous Volumes เพื่อป้องกันไม่ให้ node_modules ในเครื่อง VPS วิ่งไปทับในตู้คอนเทนเนอร์
+      - /app/node_modules
       - /app/apps/api/node_modules
+      - /app/packages/shared/node_modules
+      - /app/packages/facebook-sdk-wrapper/node_modules
     ports:
       - "4001:4000"
     depends_on:
@@ -51,13 +53,16 @@ services:
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile.dev
+      # 💡 ถ้าต้องการรัน Production บน VPS ให้เปลี่ยนเป็น Dockerfile.prod นะครับ
+      dockerfile: apps/web/Dockerfile.dev 
     restart: unless-stopped
     env_file: .env
     volumes:
-      - ./apps/web/src:/app/apps/web/src
-      - ./packages:/app/packages
+      - .:/app
+      - /app/node_modules
       - /app/apps/web/node_modules
+      - /app/packages/shared/node_modules
+      - /app/packages/facebook-sdk-wrapper/node_modules
     ports:
       - "3001:4000"
     depends_on:
