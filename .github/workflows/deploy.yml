@@ -1,10 +1,8 @@
 name: CI/CD Auto Deploy to VPS
 
-# 💡 เพิ่มตรงนี้เพื่อเปิดระบบบังคับใช้ Node.js 24 ในทุกสเต็ปของสคริปต์นี้
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-# สั่งให้ระบบทำงานเมื่อมีการ Push โค้ดขึ้นไปที่กิ่ง main เท่านั้น
 on:
   push:
     branches:
@@ -15,11 +13,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 💡 1. เปลี่ยนจาก @v4 หรือ @v4.2.2 เป็น @v5 (เวอร์ชันล่าสุดที่ทำมาเพื่อ Node 24 แท้ๆ)
       - name: Checkout Repository Code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5
 
+      # 💡 2. เปลี่ยนจาก appleboy/ssh-action@v1.0.3 เป็น @v1.2.0 (หรือตัวล่าสุดที่อัปเดตสเปคแล้ว)
       - name: Executing Remote SSH Commands via Passwordless Key
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
