@@ -219,7 +219,7 @@ export default function AbTestPage() {
           <div className="space-y-6">
             {tests.map((test) => (
               <div key={test.id} className="card">
-                <div className="px-6 py-4 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
                   <div>
                     <h3 className="font-semibold text-ink">{test.name}</h3>
                     <p className="text-xs text-ink-300 mt-0.5">
@@ -269,7 +269,7 @@ export default function AbTestPage() {
                           const cps = test.variants.map(x => x.cpc);
                           const convs = test.variants.map(x => x.conversions);
                           return (
-                            <tr key={v.id} className="hover:bg-surface-100" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+                            <tr key={v.id} className="hover:bg-surface-100 border-b border-surface-300">
                               <td className="px-4 py-3">
                                 <span className="font-medium text-ink">{v.name}</span>
                                 <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${v.status === 'ACTIVE' ? 'bg-success-muted text-success border border-success-border' : 'bg-warning-muted text-warning border border-warning-border'}`}>{v.status}</span>
@@ -351,7 +351,7 @@ export default function AbTestPage() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setShowCreate(false)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={createTest} disabled={saving}
             className="btn-primary btn-sm">
@@ -374,7 +374,7 @@ export default function AbTestPage() {
               className="w-full px-3 py-2 text-sm bg-surface-100 text-ink" min={1} />
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setEditVariant(null)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={saveEdit} disabled={editSaving}
             className="btn-primary btn-sm">

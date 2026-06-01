@@ -457,7 +457,7 @@ export default function RulesPage() {
 
                   {/* Logs */}
                   {showLogs === rule.id && (
-                    <div className="mt-3 pt-3" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                    <div className="mt-3 pt-3 border-t border-surface-300">
                       {loadingLogs ? (
                         <p className="text-sm text-ink-300">Loading...</p>
                       ) : logs.length === 0 ? (

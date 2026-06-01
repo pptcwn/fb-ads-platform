@@ -309,7 +309,7 @@ export default function AudiencesPage() {
           </div>
           <p className="text-xs text-ink-300">This creates an empty custom audience on Facebook. You can add users via CSV or Pixel later.</p>
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setShowCustomModal(false)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={createCustom} disabled={formBusy || !customForm.adAccountId || !customForm.name}
             className="btn-primary btn-sm">
@@ -357,7 +357,7 @@ export default function AudiencesPage() {
             <p className="text-[10px] text-ink-300 mt-1">Higher % = larger audience but less similarity to source</p>
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setShowLookalikeModal(false)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={createLookalike} disabled={formBusy || !lookalikeForm.adAccountId || !lookalikeForm.name || !lookalikeForm.sourceAudienceId}
             className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg disabled:opacity-50">
@@ -476,7 +476,7 @@ export default function AudiencesPage() {
             <div className="msg-error">{uploadError}</div>
           )}
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={closeUploadModal} className="btn-secondary btn-sm">
             {uploadResult ? 'Close' : 'Cancel'}
           </button>

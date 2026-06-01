@@ -324,7 +324,7 @@ export default function AllCampaignsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-surface-200/50" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                  <tr className="bg-surface-200/50 border-b border-surface-300">
                     <th className="px-3 py-3 text-left w-10">
                       <input type="checkbox" checked={allCampaigns.length > 0 && checked.size === allCampaigns.length}
                         onChange={toggleSelectAll} className="rounded border-ink-200 bg-surface-200" />
@@ -345,7 +345,7 @@ export default function AllCampaignsPage() {
                         const isChecked = checked.has(camp.id);
                         return (
                           <tr key={camp.id}
-                            className={`hover:bg-surface-200/30 transition-colors ${isChecked ? 'bg-accent-muted/30' : ''}`} style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+                            className={`hover:bg-surface-200/30 transition-colors border-b border-surface-300 ${isChecked ? 'bg-accent-muted/30' : ''}`}>
                             <td className="px-3 py-3">
                               <input type="checkbox" checked={isChecked} onChange={() => toggleCheck(camp.id)} className="rounded border-ink-200 bg-surface-200" />
                             </td>
@@ -386,7 +386,7 @@ export default function AllCampaignsPage() {
                 </tbody>
               </table>
             </div>
-            <div className="px-4 py-3 bg-surface-200/50 text-xs text-ink-300 flex items-center justify-between" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+            <div className="px-4 py-3 bg-surface-200/50 text-xs text-ink-300 flex items-center justify-between border-t border-surface-300">
               <span>Showing {allCampaigns.length} campaign{allCampaigns.length !== 1 ? 's' : ''} from {accounts.length} account{accounts.length !== 1 ? 's' : ''}</span>
               <button onClick={exportCsv} className="text-accent hover:text-accent/80 font-medium">📥 Export CSV</button>
             </div>
@@ -503,7 +503,7 @@ export default function AllCampaignsPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center text-xs text-ink-300 mt-3 pt-3" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="text-center text-xs text-ink-300 mt-3 pt-3 border-t border-surface-300">
           {adSets.length} ad set{adSets.length !== 1 ? 's' : ''}
         </div>
       </Modal>
@@ -524,7 +524,7 @@ export default function AllCampaignsPage() {
           <textarea value={tplNotes} onChange={e => setTplNotes(e.target.value)} rows={3} placeholder="When to use this template..."
             className="w-full bg-surface-200 border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink placeholder-ink-300" />
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-3" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-surface-300">
           <button onClick={() => setSaveTpl(null)}
             className="btn-secondary btn-sm">Cancel</button>
           <button onClick={saveAsTemplate} disabled={tplBusy || !tplName.trim()}
@@ -549,7 +549,7 @@ export default function AllCampaignsPage() {
             className="w-full bg-surface-200 border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink" />
           <p className="text-xs text-ink-300">The cloned campaign will start in <strong className="text-warning">PAUSED</strong> status.</p>
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-3" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-surface-300">
           <button onClick={() => setCloneModal(null)}
             className="btn-secondary btn-sm">Cancel</button>
           <button onClick={cloneCampaign} disabled={cloneBusy || !cloneName.trim()}

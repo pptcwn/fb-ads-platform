@@ -307,7 +307,7 @@ export default function TemplatesPage() {
               className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink placeholder-ink-400 focus:outline-none focus:border-accent" />
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setEditModal(null)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={saveTemplate} disabled={editSaving}
             className="btn-primary btn-sm">

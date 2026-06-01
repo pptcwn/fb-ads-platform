@@ -1,0 +1,14 @@
+{
+  "name": "ckm:design",
+  "source": "nextlevelbuilder-ui-ux-pro-max-skill",
+  "description": "Comprehensive design skill: brand identity, design tokens, UI styling, logo generation (55 styles, Gemini AI), corporate identity program (50 deliverables, CIP mockups), HTML presentations (Chart.js),...",
+  "whenToUse": "Brand identity, voice, assets; Design system tokens and specs; UI styling with shadcn/ui + Tailwind; Logo design and AI generation; Corporate identity program (CIP) deliverables",
+  "categories": [],
+  "installedAt": "2026-06-01T20:39:05.694Z",
+  "relativePath": "ckm-design",
+  "remotePath": ".claude/skills/design",
+  "installedVia": "packageChild",
+  "packageParentName": "skills",
+  "packageParentRemotePath": ".claude/skills",
+  "metadataVersion": 2
+}

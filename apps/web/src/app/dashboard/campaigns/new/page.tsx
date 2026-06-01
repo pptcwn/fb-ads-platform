@@ -171,19 +171,19 @@ export default function NewCampaignPage() {
       <h3 className="text-xs font-semibold text-accent uppercase tracking-wide mb-2">📊 Budget Preview</h3>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
         <div>
-          <p className="text-ink-300 text-xs">Daily Spend</p>
+          <p className="text-ink-200 text-xs">Daily Spend</p>
           <p className="font-bold text-ink">฿{budgetPreview.dailySpend.toLocaleString()}</p>
         </div>
         <div>
-          <p className="text-ink-300 text-xs">Est. Daily Reach</p>
+          <p className="text-ink-200 text-xs">Est. Daily Reach</p>
           <p className="font-bold text-ink">{budgetPreview.estimatedDailyReach.toLocaleString()}</p>
         </div>
         <div>
-          <p className="text-ink-300 text-xs">Est. CPC</p>
+          <p className="text-ink-200 text-xs">Est. CPC</p>
           <p className="font-bold text-ink">฿{budgetPreview.estimatedCpc}</p>
         </div>
         <div>
-          <p className="text-ink-300 text-xs">Est. CPM</p>
+          <p className="text-ink-200 text-xs">Est. CPM</p>
           <p className="font-bold text-ink">฿{budgetPreview.estimatedCpm}</p>
         </div>
       </div>
@@ -202,9 +202,14 @@ export default function NewCampaignPage() {
   const renderNameField = () => (
     <div className="mb-4">
       <label className="block text-sm font-medium text-ink mb-1">Campaign Name <span className="text-danger">*</span></label>
-      <input value={form.name} onChange={e => { setForm({...form, name: e.target.value}); setTouched({...touched, name: true}); }}
-        className={`w-full border rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink placeholder-ink-300 ${errors.name && touched.name ? 'border-danger' : 'border-ink-200'}`}
-        placeholder="e.g. Summer Sale 2026" />
+      <input
+        value={form.name}
+        onChange={e => { setForm({...form, name: e.target.value}); setTouched({...touched, name: true}); }}
+        className={`w-full px-3 py-2 text-sm rounded-lg border bg-surface-100 text-ink placeholder-ink-200 transition-colors ${
+          errors.name && touched.name ? 'border-danger' : 'border-surface-300'
+        }`}
+        placeholder="e.g. Summer Sale 2026"
+      />
       {errors.name && touched.name && <p className="text-danger text-xs mt-1">{errors.name}</p>}
     </div>
   );
@@ -212,9 +217,14 @@ export default function NewCampaignPage() {
   const renderAccountField = () => (
     <div className="mb-4">
       <label className="block text-sm font-medium text-ink mb-1">Ad Account</label>
-      <select value={form.adAccountId} onChange={e => setForm({...form, adAccountId: e.target.value})}
-        className={`w-full border rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink ${errors.adAccountId && touched.adAccountId ? 'border-danger' : 'border-ink-200'}`}>
-        <option value="" className="text-ink-300">Select an account...</option>
+      <select
+        value={form.adAccountId}
+        onChange={e => setForm({...form, adAccountId: e.target.value})}
+        className={`w-full px-3 py-2 text-sm rounded-lg border bg-surface-100 text-ink transition-colors ${
+          errors.adAccountId && touched.adAccountId ? 'border-danger' : 'border-surface-300'
+        }`}
+      >
+        <option value="" className="text-ink-200">Select an account...</option>
         {accounts.map(a => <option key={a.id} value={a.id} className="text-ink">{a.name} ({a.accountId})</option>)}
       </select>
       {errors.adAccountId && touched.adAccountId && <p className="text-danger text-xs mt-1">{errors.adAccountId}</p>}
@@ -225,11 +235,17 @@ export default function NewCampaignPage() {
     <div>
       <label className="block text-sm font-medium text-ink mb-1">Daily Budget (THB) <span className="text-danger">*</span></label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-300 text-sm">฿</span>
-        <input type="number" value={form.dailyBudget}
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-200 text-sm">฿</span>
+        <input
+          type="number"
+          value={form.dailyBudget}
           onChange={e => { setForm({...form, dailyBudget: parseInt(e.target.value) || 0}); setTouched({...touched, dailyBudget: true}); }}
-          className={`w-full border rounded-lg pl-7 pr-3 py-2 text-sm bg-surface-100 text-ink ${errors.dailyBudget && touched.dailyBudget ? 'border-danger' : 'border-ink-200'}`}
-          min={10} placeholder="300" />
+          className={`w-full pl-7 pr-3 py-2 text-sm rounded-lg border bg-surface-100 text-ink transition-colors ${
+            errors.dailyBudget && touched.dailyBudget ? 'border-danger' : 'border-surface-300'
+          }`}
+          min={10}
+          placeholder="300"
+        />
       </div>
       {errors.dailyBudget && touched.dailyBudget && <p className="text-danger text-xs mt-1">{errors.dailyBudget}</p>}
     </div>
@@ -242,16 +258,20 @@ export default function NewCampaignPage() {
 
         {/* Quick/Wizard Mode Toggle */}
         <div className="flex items-center gap-1 bg-surface-200 p-1 rounded-lg mb-6 w-fit">
-          <button onClick={() => setMode('wizard')}
+          <button
+            onClick={() => setMode('wizard')}
             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-              mode === 'wizard' ? 'bg-surface-100 shadow-sm text-accent' : 'text-ink-200 hover:text-ink'
-            }`}>
+              mode === 'wizard' ? 'bg-surface-100 text-accent' : 'text-ink-200 hover:text-ink'
+            }`}
+          >
             📋 Wizard
           </button>
-          <button onClick={() => setMode('quick')}
+          <button
+            onClick={() => setMode('quick')}
             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-              mode === 'quick' ? 'bg-surface-100 shadow-sm text-accent' : 'text-ink-200 hover:text-ink'
-            }`}>
+              mode === 'quick' ? 'bg-surface-100 text-accent' : 'text-ink-200 hover:text-ink'
+            }`}
+          >
             ⚡ Quick
           </button>
         </div>
@@ -263,16 +283,19 @@ export default function NewCampaignPage() {
         {mode === 'quick' && (
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-ink mb-4">⚡ Quick Campaign</h2>
-            <p className="text-sm text-ink-300 mb-6">Set up your campaign fast with essential fields.</p>
+            <p className="text-sm text-ink-200 mb-6">Set up your campaign fast with essential fields.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
               {OBJECTIVES.map(obj => (
-                <button key={obj.key} onClick={() => setForm({...form, objective: obj.key})}
+                <button
+                  key={obj.key}
+                  onClick={() => setForm({...form, objective: obj.key})}
                   className={`text-left p-4 rounded-xl border-2 transition-all ${
-                    form.objective === obj.key ? 'border-accent bg-accent-muted' : 'border-ink-200 hover:border-ink'
-                  }`}>
+                    form.objective === obj.key ? 'border-accent bg-accent-muted' : 'border-surface-300 hover:border-surface-400'
+                  }`}
+                >
                   <p className="font-semibold text-ink">{obj.label}</p>
-                  <p className="text-xs text-ink-300 mt-1">{obj.desc}</p>
+                  <p className="text-xs text-ink-200 mt-1">{obj.desc}</p>
                 </button>
               ))}
             </div>
@@ -283,8 +306,11 @@ export default function NewCampaignPage() {
               {renderBudgetField()}
               <div>
                 <label className="block text-sm font-medium text-ink mb-1">Status</label>
-                <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
-                  className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink">
+                <select
+                  value={form.status}
+                  onChange={e => setForm({...form, status: e.target.value})}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink transition-colors"
+                >
                   <option value="PAUSED" className="text-ink">⏸ Paused (start later)</option>
                   <option value="ACTIVE" className="text-ink">▶️ Active (start now)</option>
                 </select>
@@ -293,8 +319,11 @@ export default function NewCampaignPage() {
 
             <BudgetPreview />
 
-            <button onClick={createCampaign} disabled={saving}
-              className="btn-primary flex items-center gap-2 disabled:opacity-50">
+            <button
+              onClick={createCampaign}
+              disabled={saving}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50"
+            >
               {saving ? <><Spinner /> Creating...</> : '🚀 Launch Campaign'}
             </button>
           </div>
@@ -317,23 +346,31 @@ export default function NewCampaignPage() {
                 return (
                   <div key={item.step} className="flex items-center flex-1">
                     <div className="flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                        isComplete
-                          ? 'bg-success text-white shadow-md'
-                          : isActive
-                            ? 'bg-accent text-white shadow-md ring-4 ring-accent-muted'
-                            : 'bg-surface-200 text-ink-300'
-                      }`}>
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                          isComplete
+                            ? 'bg-success text-white'
+                            : isActive
+                              ? 'bg-accent text-white ring-4 ring-accent-muted'
+                              : 'bg-surface-200 text-ink-200'
+                        }`}
+                      >
                         {isComplete ? '✓' : item.icon}
                       </div>
-                      <span className={`text-xs mt-1.5 font-medium ${
-                        isActive ? 'text-accent' : isComplete ? 'text-success' : 'text-ink-300'
-                      }`}>{item.label}</span>
+                      <span
+                        className={`text-xs mt-1.5 font-medium ${
+                          isActive ? 'text-accent' : isComplete ? 'text-success' : 'text-ink-200'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </div>
                     {!isLast && (
-                      <div className={`flex-1 h-0.5 mx-3 mt-[-1.25rem] ${
-                        isComplete ? 'bg-success-muted' : 'bg-ink-200'
-                      }`} />
+                      <div
+                        className={`flex-1 h-0.5 mx-3 mt-[-1.25rem] ${
+                          isComplete ? 'bg-success' : 'bg-surface-300'
+                        }`}
+                      />
                     )}
                   </div>
                 );
@@ -343,15 +380,18 @@ export default function NewCampaignPage() {
             {step === 1 && (
               <div className="card p-6">
                 <h2 className="text-lg font-semibold text-ink mb-4">Choose Campaign Objective</h2>
-                <p className="text-sm text-ink-300 mb-4">What would you like to achieve with this campaign?</p>
+                <p className="text-sm text-ink-200 mb-4">What would you like to achieve with this campaign?</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                   {OBJECTIVES.map(obj => (
-                    <button key={obj.key} onClick={() => setForm({...form, objective: obj.key})}
+                    <button
+                      key={obj.key}
+                      onClick={() => setForm({...form, objective: obj.key})}
                       className={`text-left p-4 rounded-xl border-2 transition-all ${
-                        form.objective === obj.key ? 'border-accent bg-accent-muted' : 'border-ink-200 hover:border-ink'
-                      }`}>
+                        form.objective === obj.key ? 'border-accent bg-accent-muted' : 'border-surface-300 hover:border-surface-400'
+                      }`}
+                    >
                       <p className="font-semibold text-ink">{obj.label}</p>
-                      <p className="text-xs text-ink-300 mt-1">{obj.desc}</p>
+                      <p className="text-xs text-ink-200 mt-1">{obj.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -359,8 +399,11 @@ export default function NewCampaignPage() {
                 {renderAccountField()}
                 {renderNameField()}
 
-                <button onClick={() => handleNext(1)} disabled={!form.adAccountId}
-                  className="btn-primary disabled:opacity-50">
+                <button
+                  onClick={() => handleNext(1)}
+                  disabled={!form.adAccountId}
+                  className="btn-primary disabled:opacity-50"
+                >
                   Next: Budget →
                 </button>
               </div>
@@ -374,8 +417,11 @@ export default function NewCampaignPage() {
                   {renderBudgetField()}
                   <div>
                     <label className="block text-sm font-medium text-ink mb-1">Status</label>
-                    <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
-                      className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink">
+                    <select
+                      value={form.status}
+                      onChange={e => setForm({...form, status: e.target.value})}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink transition-colors"
+                    >
                       <option value="PAUSED" className="text-ink">⏸ Paused (start later)</option>
                       <option value="ACTIVE" className="text-ink">▶️ Active (start now)</option>
                     </select>
@@ -384,23 +430,32 @@ export default function NewCampaignPage() {
 
                 <BudgetPreview />
 
-                <div className="border-t border-ink-200 pt-4 mb-4">
+                <div className="border-t border-surface-300 pt-4 mb-4">
                   <label className="flex items-center gap-2 text-sm font-medium text-ink mb-3">
-                    <input type="checkbox" checked={!!form.adSetName}
-                      onChange={e => setForm({...form, adSetName: e.target.checked ? 'Ad Set 1' : ''})} />
+                    <input
+                      type="checkbox"
+                      checked={!!form.adSetName}
+                      onChange={e => setForm({...form, adSetName: e.target.checked ? 'Ad Set 1' : ''})}
+                    />
                     Create Ad Set
                   </label>
                   {form.adSetName && (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-medium text-ink mb-1">Ad Set Name</label>
-                        <input value={form.adSetName} onChange={e => setForm({...form, adSetName: e.target.value})}
-                          className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink" />
+                        <input
+                          value={form.adSetName}
+                          onChange={e => setForm({...form, adSetName: e.target.value})}
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink transition-colors"
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-ink mb-1">Optimization Goal</label>
-                        <select value={form.optimizationGoal} onChange={e => setForm({...form, optimizationGoal: e.target.value})}
-                          className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink">
+                        <select
+                          value={form.optimizationGoal}
+                          onChange={e => setForm({...form, optimizationGoal: e.target.value})}
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink transition-colors"
+                        >
                           {OPTIMIZATION_GOALS.map(g => <option key={g.key} value={g.key} className="text-ink">{g.label}</option>)}
                         </select>
                       </div>
@@ -422,8 +477,11 @@ export default function NewCampaignPage() {
                 <h2 className="text-lg font-semibold text-ink mb-4">Ad Creative</h2>
 
                 <label className="flex items-center gap-2 text-sm font-medium text-ink mb-3">
-                  <input type="checkbox" checked={form.createAd}
-                    onChange={e => setForm({...form, createAd: e.target.checked})} />
+                  <input
+                    type="checkbox"
+                    checked={form.createAd}
+                    onChange={e => setForm({...form, createAd: e.target.checked})}
+                  />
                   Create an Ad
                 </label>
 
@@ -431,28 +489,45 @@ export default function NewCampaignPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-ink mb-1">Ad Name</label>
-                      <input value={form.adName} onChange={e => { setForm({...form, adName: e.target.value}); setTouched({...touched, adName: true}); }}
-                        className={`w-full border rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink placeholder-ink-300 ${errors.adName && touched.adName ? 'border-danger' : 'border-ink-200'}`}
-                        placeholder="e.g. Summer Sale Ad 1" />
+                      <input
+                        value={form.adName}
+                        onChange={e => { setForm({...form, adName: e.target.value}); setTouched({...touched, adName: true}); }}
+                        className={`w-full px-3 py-2 text-sm rounded-lg border bg-surface-100 text-ink placeholder-ink-200 transition-colors ${
+                          errors.adName && touched.adName ? 'border-danger' : 'border-surface-300'
+                        }`}
+                        placeholder="e.g. Summer Sale Ad 1"
+                      />
                       {errors.adName && touched.adName && <p className="text-danger text-xs mt-1">{errors.adName}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-ink mb-1">Message / Body Text</label>
-                      <textarea value={form.creativeMessage} onChange={e => setForm({...form, creativeMessage: e.target.value})}
-                        className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink placeholder-ink-300" rows={3} placeholder="Your ad text here..." />
+                      <textarea
+                        value={form.creativeMessage}
+                        onChange={e => setForm({...form, creativeMessage: e.target.value})}
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink placeholder-ink-200 transition-colors"
+                        rows={3}
+                        placeholder="Your ad text here..."
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-ink mb-1">Destination URL</label>
-                      <input value={form.creativeLink} onChange={e => setForm({...form, creativeLink: e.target.value})}
-                        className="w-full border border-ink-200 rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink placeholder-ink-300" placeholder="https://..." />
+                      <input
+                        value={form.creativeLink}
+                        onChange={e => setForm({...form, creativeLink: e.target.value})}
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink placeholder-ink-200 transition-colors"
+                        placeholder="https://..."
+                      />
                     </div>
                   </div>
                 )}
 
                 <div className="flex gap-3 mt-4">
                   <button onClick={() => setStep(2)} className="btn-secondary">← Back</button>
-                  <button onClick={createCampaign} disabled={saving}
-                    className="btn-primary flex items-center gap-2 disabled:opacity-50">
+                  <button
+                    onClick={createCampaign}
+                    disabled={saving}
+                    className="btn-primary flex items-center gap-2 disabled:opacity-50"
+                  >
                     {saving ? <><Spinner /> Creating...</> : '🚀 Launch Campaign'}
                   </button>
                 </div>
@@ -463,9 +538,8 @@ export default function NewCampaignPage() {
               <div className="card p-12 text-center">
                 <p className="text-6xl mb-4">🎉</p>
                 <h2 className="text-2xl font-bold text-ink mb-2">Campaign Created!</h2>
-                <p className="text-ink-300 mb-6">Your campaign has been submitted to Facebook.</p>
-                <a href="/dashboard"
-                  className="btn-primary inline-block">
+                <p className="text-ink-200 mb-6">Your campaign has been submitted to Facebook.</p>
+                <a href="/dashboard" className="btn-primary inline-block">
                   ← Back to Dashboard
                 </a>
               </div>

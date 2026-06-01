@@ -28,20 +28,26 @@ export default function Modal({ open, onClose, title, icon, children, maxWidth =
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
       <div
-        className={`${maxWidth} w-full mx-4 bg-surface-100 rounded-xl border border-surface-200/50 shadow-2xl`}
+        className={`${maxWidth} w-full mx-4 bg-surface-100 rounded-lg border border-surface-300 shadow-elevated`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-200/50">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-300">
           <h3 className="text-base font-semibold text-ink flex items-center gap-2">
             {icon && <span>{icon}</span>}
             {title}
           </h3>
-          <button onClick={onClose} className="text-ink-300 hover:text-ink text-lg leading-none p-1 rounded hover:bg-surface-200 transition-colors">✕</button>
+          <button 
+            onClick={onClose} 
+            className="text-ink-100 hover:text-ink text-lg leading-none p-1 rounded hover:bg-surface-200 transition-colors cursor-pointer"
+            aria-label="Close modal"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Body */}
@@ -76,7 +82,7 @@ export function ConfirmModal({
 
   return (
     <Modal open={open} onClose={onClose} title={title} icon={icon}>
-      <p className="text-sm text-ink-200 mb-4">{message}</p>
+      <p className="text-sm text-ink-50 mb-4">{message}</p>
       {danger && <p className="text-xs text-danger mb-4 font-medium">⚠️ This cannot be undone.</p>}
       <div className="flex justify-end gap-2">
         <button onClick={onClose} className="btn-secondary btn-sm" disabled={busy}>Cancel</button>

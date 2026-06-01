@@ -301,7 +301,7 @@ export default function SchedulesPage() {
 
           <p className="text-[10px] text-ink-300">The cron checks every minute and executes the action when conditions match.</p>
         </div>
-        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+        <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setShowModal(false)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={submitForm} disabled={formBusy || !form.campaignId || !form.action}
             className="btn-primary btn-sm">

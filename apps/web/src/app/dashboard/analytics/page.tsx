@@ -280,7 +280,7 @@ export default function AnalyticsPage() {
 
         {/* Campaign Ranking */}
         <div className="card overflow-hidden">
-          <div className="p-4 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+          <div className="p-4 flex items-center justify-between border-b border-surface-300">
             <h3 className="text-sm font-semibold text-ink">🏆 Campaign Ranking</h3>
             <select value={sortBy} onChange={e => setSortBy(e.target.value)}
               className="bg-surface-200 text-ink border border-ink-200 rounded px-2 py-1 text-xs">
@@ -311,7 +311,7 @@ export default function AnalyticsPage() {
               </thead>
               <tbody>
                 {campaigns.map((c, i) => (
-                  <tr key={c.id} className="hover:bg-surface-200/30 transition-colors" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+                  <tr key={c.id} className="hover:bg-surface-200/30 transition-colors border-b border-surface-300">
                     <td className="px-4 py-2 text-ink-300">{i + 1}</td>
                     <td className="px-3 py-2">
                       <p className="text-ink font-medium truncate max-w-[160px]">{c.name}</p>
@@ -337,7 +337,7 @@ export default function AnalyticsPage() {
 
         {/* Account Summary */}
         <div className="card overflow-hidden">
-          <div className="p-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+          <div className="p-4 border-b border-surface-300">
             <h3 className="text-sm font-semibold text-ink">🏦 Account Summary</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">

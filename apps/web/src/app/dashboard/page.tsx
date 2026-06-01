@@ -265,41 +265,31 @@ export default function DashboardPage() {
                 {syncing ? 'Syncing...' : '🔄 Sync Now'}
               </button>
               <button onClick={syncInsights} disabled={insightSyncing}
-                className="btn-primary btn-sm" style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', boxShadow: '0px 0px 0px 1px rgba(124,58,237,0.3)' }}>
+                className="btn-secondary btn-sm">
                 {insightSyncing ? 'Loading...' : '📊 Get Insights'}
               </button>
             </div>
           )}
         </div>
         {syncMsg && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            syncMsg.includes('✅') || syncMsg.includes('ℹ️')
-              ? 'text-success' + (syncMsg.includes('ℹ️') ? ' text-ink-200' : '')
-              : 'text-danger'
-          }`}
-            style={{
-              background: syncMsg.includes('✅') || syncMsg.includes('ℹ️')
-                ? 'rgba(34,197,94,0.08)'
-                : syncMsg.includes('❌')
-                  ? 'rgba(239,68,68,0.08)'
-                  : 'rgba(255,255,255,0.05)',
-              boxShadow: syncMsg.includes('✅')
-                ? '0px 0px 0px 1px rgba(34,197,94,0.2)'
-                : syncMsg.includes('❌')
-                  ? '0px 0px 0px 1px rgba(239,68,68,0.2)'
-                  : '0px 0px 0px 1px rgba(255,255,255,0.06)',
-            }}
-          >{syncMsg}</div>
+          <div className={`mb-4 ${
+            syncMsg.includes('✅')
+              ? 'msg-success'
+              : syncMsg.includes('❌')
+              ? 'msg-error'
+              : 'msg-info'
+          }`}>
+            {syncMsg}
+          </div>
         )}
-        {error && <div className="mb-4 px-4 py-3 rounded-lg text-sm text-danger" style={{ background: 'rgba(239,68,68,0.08)', boxShadow: '0px 0px 0px 1px rgba(239,68,68,0.2)' }}>{error}</div>}
+        {error && <div className="mb-4 msg-error">{error}</div>}
 
         {/* FB Connection */}
         <div className="card p-5 mb-6">
           <h3 className="text-sm font-semibold mb-4 text-ink">Facebook Connection</h3>
           {fbStatus?.connected ? (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{ background: 'rgba(0,112,243,0.15)', color: '#0070f3' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-accent/10 text-accent">
                 {fbStatus.data?.facebookName?.charAt(0) || '?'}
               </div>
               <div className="flex-1">
@@ -316,8 +306,7 @@ export default function DashboardPage() {
                 } catch (err: any) {
                   setSyncMsg('❌ Disconnect failed: ' + (err?.response?.data?.message || err.message));
                 }
-              }} className="text-xs text-danger font-medium hover:opacity-80 border-none bg-transparent cursor-pointer ml-2"
-                style={{ letterSpacing: '-0.01em' }}>
+              }} className="btn-ghost btn-sm text-danger">
                 Disconnect
               </button>
             </div>
@@ -354,16 +343,16 @@ export default function DashboardPage() {
             {syncStatus && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="card p-5">
-                  <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>Ad Sets</p>
+                  <p className="text-xs text-ink-100 uppercase tracking-wider">Ad Sets</p>
                   <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.adsets}</p>
                 </div>
                 <div className="card p-5">
-                  <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>Ads</p>
+                  <p className="text-xs text-ink-100 uppercase tracking-wider">Ads</p>
                   <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.ads}</p>
                 </div>
                 {syncStatus.lastSync && (
                   <div className="card p-5 col-span-2">
-                    <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>Last Sync</p>
+                    <p className="text-xs text-ink-100 uppercase tracking-wider">Last Sync</p>
                     <p className="text-lg font-bold mt-1 text-ink">
                       {new Date(syncStatus.lastSync).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
@@ -417,7 +406,7 @@ export default function DashboardPage() {
 
             {/* Ad Accounts + Campaigns */}
             <div className="card mb-6">
-              <div className="px-5 py-3.5" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+              <div className="px-5 py-3.5 border-b border-surface-300">
                 <h3 className="text-sm font-semibold text-ink">Ad Accounts</h3>
               </div>
               {accounts.length === 0 ? (
@@ -427,9 +416,8 @@ export default function DashboardPage() {
                   {accounts.map((acct) => (
                     <div key={acct.id}>
                       <div
-                        className="px-5 py-3.5 cursor-pointer transition-colors hover:bg-surface-100"
+                        className="px-5 py-3.5 cursor-pointer transition-colors hover:bg-surface-100 border-b border-surface-300"
                         onClick={() => loadCampaigns(acct.id)}
-                        style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -440,14 +428,12 @@ export default function DashboardPage() {
                             <span className="text-xs text-ink-200">{acct._count.campaigns} campaigns</span>
                             <span className={`badge-${acct.status === 'ACTIVE' ? 'success' : 'warning'}`}>{acct.status}</span>
                             {acct.isWarmingUp ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full"
-                                style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', boxShadow: '0 0 0 1px rgba(251,146,60,0.25)' }}>
+                              <span className="badge-warning">
                                 Warmup D{acct.warmupDay}
                               </span>
                             ) : (
                               <button onClick={(e) => { e.stopPropagation(); setWarmupStart({ accountId: acct.id, accountName: acct.name, currency: acct.currency }); setWarmupTarget(200); }}
-                                className="text-xs font-medium px-2 py-0.5 rounded-full cursor-pointer"
-                                style={{ background: 'rgba(251,146,60,0.08)', color: '#fb923c', boxShadow: '0 0 0 1px rgba(251,146,60,0.2)', letterSpacing: '-0.01em' }}>
+                                className="badge-warning">
                                 🔥 Warmup
                               </button>
                             )}
@@ -456,13 +442,13 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       {selectedAccountId === acct.id && (
-                        <div style={{ background: 'rgba(255,255,255,0.02)' }}>
+                        <div className="bg-surface-200">
                           {campaigns.length === 0 ? (
                             <div className="px-5 py-4 text-sm text-ink-200 text-center">No campaigns found</div>
                           ) : (
                             <div>
                               {campaigns.map((camp) => (
-                                <div key={camp.id} className="px-5 py-3 ml-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.04)' }}>
+                                <div key={camp.id} className="px-5 py-3 ml-4 border-b border-surface-300">
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <p className="text-sm font-medium text-ink">{camp.name}</p>
@@ -470,12 +456,12 @@ export default function DashboardPage() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <span className={`badge-${camp.status === 'ACTIVE' ? 'success' : camp.status === 'PAUSED' ? 'warning' : 'ink'}`}>{camp.status}</span>
-                                      <button onClick={(e) => { e.stopPropagation(); openEdit(camp); }} className="text-xs text-accent font-medium hover:opacity-80 bg-transparent border-none cursor-pointer" style={{ letterSpacing: '-0.01em' }}>Edit</button>
-                                      <button onClick={(e) => { e.stopPropagation(); setDeleteCamp(camp); }} className="text-xs text-danger font-medium hover:opacity-80 bg-transparent border-none cursor-pointer" style={{ letterSpacing: '-0.01em' }}>Del</button>
+                                      <button onClick={(e) => { e.stopPropagation(); openEdit(camp); }} className="btn-ghost btn-xs text-accent">Edit</button>
+                                      <button onClick={(e) => { e.stopPropagation(); setDeleteCamp(camp); }} className="btn-ghost btn-xs text-danger">Del</button>
                                       <a href={`${axios.defaults.baseURL || ''}/api/reports/campaigns/${camp.id}/excel`} download onClick={(e) => e.stopPropagation()}
-                                        className="text-xs font-medium" style={{ color: '#a78bfa', letterSpacing: '-0.01em' }}>📥 CSV</a>
+                                        className="btn-ghost btn-xs text-accent">📥 CSV</a>
                                       <a href={`${axios.defaults.baseURL || ''}/api/reports/campaigns/${camp.id}/html`} target="_blank" onClick={(e) => e.stopPropagation()}
-                                        className="text-xs font-medium" style={{ color: '#a78bfa', letterSpacing: '-0.01em' }}>📄 HTML</a>
+                                        className="btn-ghost btn-xs text-accent">📄 HTML</a>
                                     </div>
                                   </div>
                                 </div>
@@ -492,13 +478,12 @@ export default function DashboardPage() {
 
             {/* Warmup Section */}
             <div className="card mb-6">
-              <div className="px-5 py-3.5 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+              <div className="px-5 py-3.5 flex items-center justify-between border-b border-surface-300">
                 <h3 className="text-sm font-semibold text-ink">🔥 Account Warmup</h3>
                 <div className="flex gap-2">
                   {warmups.length > 0 && (
                     <button onClick={warmupTick} disabled={warmupBusy}
-                      className="text-xs font-medium px-3 py-1.5 rounded-full disabled:opacity-50 cursor-pointer"
-                      style={{ background: 'rgba(139,92,246,0.1)', color: '#a78bfa', boxShadow: '0 0 0 1px rgba(139,92,246,0.2)', letterSpacing: '-0.01em' }}>
+                      className="badge-info cursor-pointer disabled:opacity-50">
                       ⏭️ Advance Day (Manual)
                     </button>
                   )}
@@ -511,18 +496,18 @@ export default function DashboardPage() {
               ) : (
                 <div>
                   {warmups.map((w) => (
-                    <div key={w.id} className="px-5 py-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                    <div key={w.id} className="px-5 py-4 border-b border-surface-300">
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <p className="text-sm font-medium text-ink">{w.name}</p>
                           <p className="text-xs text-ink-200 mt-0.5">Day {w.day}/{w.totalDays} · ${w.currentBudget}/day → Target ${w.targetBudget}/day</p>
                         </div>
                         <button onClick={() => stopWarmup(w.id)} disabled={warmupBusy}
-                          className="text-xs text-danger font-medium disabled:opacity-50 bg-transparent border-none cursor-pointer" style={{ letterSpacing: '-0.01em' }}>
+                          className="btn-ghost btn-xs text-danger">
                           Stop Warmup
                         </button>
                       </div>
-                      <div className="w-full rounded-full h-2" style={{ background: '#222222' }}>
+                      <div className="w-full rounded-full h-2 bg-surface-300">
                         <div className="h-2 rounded-full transition-all duration-500"
                           style={{ width: `${w.progress}%`, background: 'linear-gradient(90deg, #fb923c, #ef4444)' }} />
                       </div>
@@ -534,21 +519,19 @@ export default function DashboardPage() {
           </>
         )}
         {!fbStatus?.connected && (
-          <div className="px-5 py-4 rounded-lg"
-            style={{ background: 'rgba(0,112,243,0.08)', boxShadow: '0px 0px 0px 1px rgba(0,112,243,0.2)' }}>
-            <p className="text-sm font-medium" style={{ color: '#0070f3' }}>Getting Started</p>
-            <p className="text-xs mt-1" style={{ color: '#60a5fa' }}>Connect your Facebook account above to start managing ads.</p>
+          <div className="msg-info">
+            <p className="text-sm font-medium">Getting Started</p>
+            <p className="text-xs mt-1">Connect your Facebook account above to start managing ads.</p>
           </div>
         )}
 
         {/* Edit Modal */}
         {editCamp && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setEditCamp(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditCamp(null)}>
             <div className="card p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-sm font-semibold text-ink mb-4">✏️ Edit Campaign</h3>
               {editError && (
-                <div className="mb-3 px-3 py-2 rounded-lg text-sm text-danger"
-                  style={{ background: 'rgba(239,68,68,0.08)', boxShadow: '0px 0px 0px 1px rgba(239,68,68,0.2)' }}>
+                <div className="mb-3 msg-error">
                   {editError}
                 </div>
               )}
@@ -585,15 +568,14 @@ export default function DashboardPage() {
 
         {/* Delete Modal */}
         {deleteCamp && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setDeleteCamp(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setDeleteCamp(null)}>
             <div className="card p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-sm font-semibold text-ink mb-2">🗑️ Delete Campaign</h3>
               <p className="text-sm text-ink-200 mb-4">Are you sure you want to delete <strong className="text-ink">{deleteCamp.name}</strong>? This will also delete it on Facebook.</p>
               <div className="flex justify-end gap-2">
                 <button onClick={() => setDeleteCamp(null)} className="btn-secondary btn-sm">Cancel</button>
                 <button onClick={confirmDelete} disabled={deleteSaving}
-                  className="btn-sm font-medium cursor-pointer disabled:opacity-50"
-                  style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', boxShadow: '0px 0px 0px 1px rgba(239,68,68,0.3)', borderRadius: '8px', padding: '6px 14px', letterSpacing: '-0.01em' }}>
+                  className="btn-danger btn-sm">
                   {deleteSaving ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
@@ -603,7 +585,7 @@ export default function DashboardPage() {
 
         {/* Warmup Start Modal */}
         {warmupStart && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setWarmupStart(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setWarmupStart(null)}>
             <div className="card p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
               <h3 className="text-sm font-semibold text-ink mb-2">🔥 Start Warmup</h3>
               <p className="text-sm text-ink-200 mb-4">
@@ -617,8 +599,7 @@ export default function DashboardPage() {
               <div className="flex justify-end gap-2">
                 <button onClick={() => setWarmupStart(null)} className="btn-secondary btn-sm">Cancel</button>
                 <button onClick={startWarmup} disabled={warmupBusy}
-                  className="btn-sm font-medium cursor-pointer disabled:opacity-50"
-                  style={{ background: 'rgba(251,146,60,0.15)', color: '#fb923c', boxShadow: '0px 0px 0px 1px rgba(251,146,60,0.3)', borderRadius: '8px', padding: '6px 14px', letterSpacing: '-0.01em' }}>
+                  className="badge-warning cursor-pointer disabled:opacity-50">
                   {warmupBusy ? 'Starting...' : 'Start Warmup'}
                 </button>
               </div>

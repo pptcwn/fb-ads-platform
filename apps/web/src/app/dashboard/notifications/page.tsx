@@ -234,7 +234,7 @@ export default function NotificationsPage() {
           <>
             {/* Alert Configs */}
             <div className="card">
-              <div className="px-6 py-4 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+              <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
                 <h3 className="text-sm font-semibold text-ink">⚙️ Alert Configurations</h3>
                 <div className="flex gap-2">
                   <button onClick={initDefaults} disabled={saving}
@@ -249,7 +249,7 @@ export default function NotificationsPage() {
               </div>
 
               {showForm && (
-                <div className="px-6 py-4 bg-surface-50" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                <div className="px-6 py-4 bg-surface-50 border-b border-surface-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-ink mb-1">Name</label>
@@ -349,7 +349,7 @@ export default function NotificationsPage() {
           <>
             {/* Alert History */}
             <div className="card">
-              <div className="px-6 py-4 flex items-center justify-between" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+              <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
                 <h3 className="text-sm font-semibold text-ink">📋 Alert History</h3>
                 {alerts.alerts.some(a => !a.isRead) && (
                   <button onClick={() => markRead()}
@@ -412,7 +412,7 @@ export default function NotificationsPage() {
           <>
             {/* Telegram Settings */}
             <div className="card">
-              <div className="px-6 py-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+              <div className="px-6 py-4 border-b border-surface-300">
                 <h3 className="text-sm font-semibold text-ink">🤖 Telegram Integration</h3>
               </div>
               <div className="px-6 py-6">
@@ -451,7 +451,7 @@ export default function NotificationsPage() {
                     </div>
 
                     {/* Reconfigure */}
-                    <div className="pt-4" style={{ boxShadow: 'inset 0 -1px 0 0 rgba(255,255,255,0.06)' }}>
+                    <div className="pt-4 border-t border-surface-300">
                       <p className="text-sm font-medium text-ink mb-3">Update Settings</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
