@@ -1,6 +1,10 @@
 name: CI/CD Auto Deploy to VPS
 
-# สั่งให้ระบบทำงานเมื่อมีการ Push โค้ดขึ้นไปที่กิ่ง main เท่านั้น c
+# 💡 เพิ่มตรงนี้เพื่อเปิดระบบบังคับใช้ Node.js 24 ในทุกสเต็ปของสคริปต์นี้
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# สั่งให้ระบบทำงานเมื่อมีการ Push โค้ดขึ้นไปที่กิ่ง main เท่านั้น
 on:
   push:
     branches:
