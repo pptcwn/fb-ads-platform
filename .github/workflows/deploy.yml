@@ -13,15 +13,17 @@ jobs:
       - name: Checkout Repository Code
         uses: actions/checkout@v5
 
-      - name: Executing Remote SSH Commands via Passwordless Key
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: |
-            ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY_B64 }}" | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key root@${{ secrets.VPS_HOST }} << 'EOF'
             cd /root/fb-ads-platform
             git pull origin main
             docker compose up -d --build
+          EOF
