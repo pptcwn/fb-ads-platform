@@ -1,8 +1,5 @@
 name: CI/CD Auto Deploy to VPS
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     branches:
@@ -13,17 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 💡 1. เปลี่ยนจาก @v4 หรือ @v4.2.2 เป็น @v5 (เวอร์ชันล่าสุดที่ทำมาเพื่อ Node 24 แท้ๆ)
       - name: Checkout Repository Code
         uses: actions/checkout@v5
 
-      # 💡 2. เปลี่ยนจาก appleboy/ssh-action@v1.0.3 เป็น @v1.2.0 (หรือตัวล่าสุดที่อัปเดตสเปคแล้ว)
       - name: Executing Remote SSH Commands via Passwordless Key
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key: |
+            ${{ secrets.VPS_SSH_KEY }}
           port: 22
           script: |
             cd /root/fb-ads-platform
