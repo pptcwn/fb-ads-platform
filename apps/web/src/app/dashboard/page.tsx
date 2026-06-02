@@ -5,7 +5,7 @@ import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
-import { objLabel, fmtCurr, fmtNum } from '@/lib/utils';
+import { fmtCurr, fmtNum } from '@/lib/utils';
 
 // ─── Types ───
 
@@ -13,7 +13,6 @@ interface FbAccount { id: string; facebookUserId: string; facebookName: string; 
 interface FbStatus { connected: boolean; data: FbAccount | null }
 interface SyncStatus { accounts: number; campaigns: number; adsets: number; ads: number; lastSync: string | null }
 interface AdAccount { id: string; accountId: string; name: string; currency: string; timezone: string; status: string; balance: number; spentToday: number; isWarmingUp: boolean; warmupDay: number; createdAt: string; _count: { campaigns: number } }
-interface Campaign { id: string; campaignId: string; name: string; objective: string; status: string; dailyBudget: number | null; lifetimeBudget: number | null; spent: number; impressions: number; clicks: number; createdAt: string }
 interface InsightRow { id: string; date: string; impressions: number; clicks: number; spend: number; conversions: number; ctr: number; cpc: number; cpm?: number; reach?: number; frequency?: number; cpa?: number; roas?: number }
 interface ChartData { date: string; spend: number; impressions: number; clicks: number; ctr: number }
 interface WarmupStatus { id: string; name: string; day: number; totalDays: number; progress: number; targetBudget: number; currentBudget: number }
@@ -22,8 +21,6 @@ export default function DashboardPage() {
   const [fbStatus, setFbStatus] = useState<FbStatus | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [accounts, setAccounts] = useState<AdAccount[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [insightSyncing, setInsightSyncing] = useState(false);
@@ -37,14 +34,6 @@ export default function DashboardPage() {
 
   // Summary
   const [summary, setSummary] = useState<{ accounts: number; totalCampaigns: number; activeCampaigns: number; totalSpend: number } | null>(null);
-
-  // Edit/Delete
-  const [editCamp, setEditCamp] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', status: 'PAUSED', dailyBudget: 0 });
-  const [editSaving, setEditSaving] = useState(false);
-  const [deleteCamp, setDeleteCamp] = useState<any>(null);
-  const [deleteSaving, setDeleteSaving] = useState(false);
-  const [editError, setEditError] = useState('');
 
   // Warmup
   const [warmups, setWarmups] = useState<WarmupStatus[]>([]);
@@ -141,55 +130,12 @@ export default function DashboardPage() {
     } finally { setInsightSyncing(false); }
   };
 
-  const loadCampaigns = async (accountId: string) => {
-    setSelectedAccountId(accountId);
-    try { const { data } = await axios.get(`/api/adaccounts/${accountId}/campaigns`); setCampaigns(data); }
-    catch { setCampaigns([]); }
-    await loadInsights(accountId);
-  };
-
   const loadInsights = async (accountId: string) => {
     setInsightAccountId(accountId);
     try {
       const { data } = await axios.get(`/api/insights/accounts/${accountId}?days=${insightDays}`);
       setInsights(data);
     } catch { setInsights([]); }
-  };
-
-  const openEdit = (camp: any) => {
-    setEditCamp(camp);
-    setEditForm({ name: camp.name, status: camp.status, dailyBudget: camp.dailyBudget || 0 });
-    setEditError('');
-  };
-
-  const saveEdit = async () => {
-    if (!editCamp) return;
-    setEditSaving(true); setEditError('');
-    try {
-      const payload: any = {};
-      if (editForm.name !== editCamp.name) payload.name = editForm.name;
-      if (editForm.status !== editCamp.status) payload.status = editForm.status;
-      if (Number(editForm.dailyBudget) !== Number(editCamp.dailyBudget)) payload.dailyBudget = Number(editForm.dailyBudget);
-      if (Object.keys(payload).length === 0) { setEditCamp(null); return; }
-      await axios.patch(`/api/campaigns/${editCamp.id}`, payload);
-      setEditCamp(null);
-      if (selectedAccountId) loadCampaigns(selectedAccountId);
-    } catch (err: any) {
-      setEditError(err?.response?.data?.message || err.message);
-    } finally { setEditSaving(false); }
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteCamp) return;
-    setDeleteSaving(true);
-    try {
-      await axios.delete(`/api/campaigns/${deleteCamp.id}`);
-      setDeleteCamp(null);
-      if (selectedAccountId) loadCampaigns(selectedAccountId);
-    } catch (err: any) {
-      setDeleteCamp(null);
-      setSyncMsg(`❌ Delete failed: ${err?.response?.data?.message || err.message}`);
-    } finally { setDeleteSaving(false); }
   };
 
   // ─── Warmup actions ───
@@ -339,6 +285,22 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Quick Actions */}
+            <div className="flex gap-3 mb-6">
+              <a href="/dashboard/campaigns?new=1"
+                className="btn-primary btn-sm">
+                ✨ New Campaign
+              </a>
+              <a href="/dashboard/campaigns"
+                className="btn-secondary btn-sm">
+                📋 View Campaigns
+              </a>
+              <button onClick={triggerSync} disabled={syncing}
+                className="btn-secondary btn-sm disabled:opacity-50">
+                {syncing ? 'Syncing...' : '🔄 Sync Now'}
+              </button>
+            </div>
+
             {/* Sync Status */}
             {syncStatus && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -404,78 +366,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Ad Accounts + Campaigns */}
-            <div className="card mb-6">
-              <div className="px-5 py-3.5 border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink">Ad Accounts</h3>
-              </div>
-              {accounts.length === 0 ? (
-                <div className="px-5 py-8 text-center text-ink-300 text-sm">No ad accounts yet. Click "Sync Now" to import.</div>
-              ) : (
-                <div>
-                  {accounts.map((acct) => (
-                    <div key={acct.id}>
-                      <div
-                        className="px-5 py-3.5 cursor-pointer transition-colors hover:bg-surface-100 border-b border-surface-300"
-                        onClick={() => loadCampaigns(acct.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-ink">{acct.name}</p>
-                            <p className="text-xs text-ink-200 mt-0.5">ID: {acct.accountId} · {acct.currency} · {fmtCurr(acct.balance, acct.currency)}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-ink-200">{acct._count.campaigns} campaigns</span>
-                            <span className={`badge-${acct.status === 'ACTIVE' ? 'success' : 'warning'}`}>{acct.status}</span>
-                            {acct.isWarmingUp ? (
-                              <span className="badge-warning">
-                                Warmup D{acct.warmupDay}
-                              </span>
-                            ) : (
-                              <button onClick={(e) => { e.stopPropagation(); setWarmupStart({ accountId: acct.id, accountName: acct.name, currency: acct.currency }); setWarmupTarget(200); }}
-                                className="badge-warning">
-                                🔥 Warmup
-                              </button>
-                            )}
-                            <svg className={`w-4 h-4 text-ink-200 transition-transform ${selectedAccountId === acct.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                          </div>
-                        </div>
-                      </div>
-                      {selectedAccountId === acct.id && (
-                        <div className="bg-surface-200">
-                          {campaigns.length === 0 ? (
-                            <div className="px-5 py-4 text-sm text-ink-200 text-center">No campaigns found</div>
-                          ) : (
-                            <div>
-                              {campaigns.map((camp) => (
-                                <div key={camp.id} className="px-5 py-3 ml-4 border-b border-surface-300">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-sm font-medium text-ink">{camp.name}</p>
-                                      <p className="text-xs text-ink-200 mt-0.5">{objLabel(camp.objective)} · {camp.dailyBudget ? fmtCurr(camp.dailyBudget, acct.currency) + '/day' : 'No daily budget'}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <span className={`badge-${camp.status === 'ACTIVE' ? 'success' : camp.status === 'PAUSED' ? 'warning' : 'ink'}`}>{camp.status}</span>
-                                      <button onClick={(e) => { e.stopPropagation(); openEdit(camp); }} className="btn-ghost btn-xs text-accent">Edit</button>
-                                      <button onClick={(e) => { e.stopPropagation(); setDeleteCamp(camp); }} className="btn-ghost btn-xs text-danger">Del</button>
-                                      <a href={`${axios.defaults.baseURL || ''}/api/reports/campaigns/${camp.id}/excel`} download onClick={(e) => e.stopPropagation()}
-                                        className="btn-ghost btn-xs text-accent">📥 CSV</a>
-                                      <a href={`${axios.defaults.baseURL || ''}/api/reports/campaigns/${camp.id}/html`} target="_blank" onClick={(e) => e.stopPropagation()}
-                                        className="btn-ghost btn-xs text-accent">📄 HTML</a>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Warmup Section */}
             <div className="card mb-6">
               <div className="px-5 py-3.5 flex items-center justify-between border-b border-surface-300">
@@ -522,64 +412,6 @@ export default function DashboardPage() {
           <div className="msg-info">
             <p className="text-sm font-medium">Getting Started</p>
             <p className="text-xs mt-1">Connect your Facebook account above to start managing ads.</p>
-          </div>
-        )}
-
-        {/* Edit Modal */}
-        {editCamp && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setEditCamp(null)}>
-            <div className="card p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-              <h3 className="text-sm font-semibold text-ink mb-4">✏️ Edit Campaign</h3>
-              {editError && (
-                <div className="mb-3 msg-error">
-                  {editError}
-                </div>
-              )}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-ink-200 mb-1">Name</label>
-                  <input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})}
-                    className="w-full" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-ink-200 mb-1">Status</label>
-                  <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}
-                    className="w-full">
-                    <option value="ACTIVE">Active</option>
-                    <option value="PAUSED">Paused</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-ink-200 mb-1">Daily Budget</label>
-                  <input type="number" value={editForm.dailyBudget} onChange={e => setEditForm({...editForm, dailyBudget: Number(e.target.value) || 0})}
-                    className="w-full" min={1} />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <button onClick={() => setEditCamp(null)} className="btn-secondary btn-sm">Cancel</button>
-                <button onClick={saveEdit} disabled={editSaving}
-                  className="btn-primary btn-sm">
-                  {editSaving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Modal */}
-        {deleteCamp && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setDeleteCamp(null)}>
-            <div className="card p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-              <h3 className="text-sm font-semibold text-ink mb-2">🗑️ Delete Campaign</h3>
-              <p className="text-sm text-ink-200 mb-4">Are you sure you want to delete <strong className="text-ink">{deleteCamp.name}</strong>? This will also delete it on Facebook.</p>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setDeleteCamp(null)} className="btn-secondary btn-sm">Cancel</button>
-                <button onClick={confirmDelete} disabled={deleteSaving}
-                  className="btn-danger btn-sm">
-                  {deleteSaving ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
