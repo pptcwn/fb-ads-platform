@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Timer, Play, DollarSign, BarChart3, Pencil, Clock, RefreshCw, Calendar, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
@@ -32,11 +33,11 @@ interface AccountOption {
   name: string;
 }
 
-const ACTION_LABELS: Record<string, string> = {
-  PAUSE: '⏸ Pause',
-  RESUME: '▶️ Resume',
-  SET_BUDGET: '💰 Set Budget',
-  ADJUST_PERCENT: '📊 Adjust %',
+const ACTION_LABELS: Record<string, any> = {
+  PAUSE: <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> Pause</span>,
+  RESUME: <span className="inline-flex items-center gap-1"><Play className="w-3 h-3" /> Resume</span>,
+  SET_BUDGET: <span className="inline-flex items-center gap-1"><DollarSign className="w-3 h-3" /> Set Budget</span>,
+  ADJUST_PERCENT: <span className="inline-flex items-center gap-1"><BarChart3 className="w-3 h-3" /> Adjust %</span>,
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -282,19 +283,19 @@ export default function BudgetPage() {
         {msg && (
           <div className={`${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>
             {msg}
-            <button className="float-right" onClick={() => setMsg('')}>✕</button>
+            <button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button>
           </div>
         )}
         {error && (
           <div className="msg-error">
             {error}
-            <button className="float-right" onClick={() => setError('')}>✕</button>
+            <button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button>
           </div>
         )}
 
         {schedules.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-4xl mb-3">⏰</p>
+            <Clock className="w-12 h-12 mx-auto mb-3 text-ink-200" />
             <p className="text-ink-300 text-lg mb-4">No budget schedules yet</p>
             <p className="text-ink-300 text-sm mb-4">
               Schedule automatic budget changes for your campaigns — pause at night, increase on weekends, and more.
@@ -331,8 +332,8 @@ export default function BudgetPage() {
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => openEdit(s)}
-                        className="btn-secondary btn-xs">
-                        ✏️ Edit
+                        className="btn-secondary btn-xs inline-flex items-center gap-1">
+                        <Pencil className="w-3 h-3" /> Edit
                       </button>
                       <button onClick={() => toggleSchedule(s.id)}
                         className={`btn-xs ${
@@ -351,12 +352,12 @@ export default function BudgetPage() {
 
                   {/* Schedule details */}
                   <div className="mt-3 flex items-center gap-4 text-xs text-ink-300">
-                    <span className="font-mono bg-surface-50 px-2 py-1 rounded text-ink">
-                      ⏱ {s.cronExpr}
+                    <span className="font-mono bg-surface-50 px-2 py-1 rounded text-ink inline-flex items-center gap-1">
+                      <Timer className="w-3 h-3" /> {s.cronExpr}
                     </span>
-                    <span>🕐 {s.timezone}</span>
-                    <span>🔄 Last run: {fmtDate(s.lastRunAt)}</span>
-                    <span>📅 Created: {fmtDate(s.createdAt)}</span>
+                    <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {s.timezone}</span>
+                    <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Last run: {fmtDate(s.lastRunAt)}</span>
+                    <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> Created: {fmtDate(s.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -380,10 +381,10 @@ export default function BudgetPage() {
             <label className="block text-sm font-medium text-ink mb-1">Action</label>
             <select value={form.action} onChange={e => setForm({...form, action: e.target.value})}
               className="w-full px-3 py-2 text-sm bg-surface-50 text-ink">
-              <option value="PAUSE">⏸ Pause Campaign(s)</option>
-              <option value="RESUME">▶️ Resume Campaign(s)</option>
-              <option value="SET_BUDGET">💰 Set Budget</option>
-              <option value="ADJUST_PERCENT">📊 Adjust Budget by %</option>
+              <option value="PAUSE"><Timer className="w-4 h-4 inline" /> Pause Campaign(s)</option>
+              <option value="RESUME"><Play className="w-4 h-4 inline" /> Resume Campaign(s)</option>
+              <option value="SET_BUDGET"><DollarSign className="w-4 h-4 inline" /> Set Budget</option>
+              <option value="ADJUST_PERCENT"><BarChart3 className="w-4 h-4 inline" /> Adjust Budget by %</option>
             </select>
           </div>
 
@@ -491,7 +492,7 @@ export default function BudgetPage() {
           </button>
           <button onClick={saveSchedule} disabled={saving}
             className="btn-primary btn-sm">
-            {saving ? 'Saving...' : editId ? '💾 Update' : '💾 Create'}
+            {saving ? 'Saving...' : editId ? <><Save className="w-4 h-4" /> Update</> : <><Save className="w-4 h-4" /> Create</>}
           </button>
         </div>
       </Modal>

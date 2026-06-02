@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
+import { Calendar, Plus, Pencil, Trash2, Clock, RefreshCw, AlertTriangle, StopCircle, Play, Timer, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
@@ -176,16 +177,16 @@ export default function SchedulesPage() {
           title="📅 Campaign Schedules"
           subtitle={`${schedules.length} schedules`}
           actions={
-            <button onClick={openCreate} className="btn-primary btn-sm">➕ New Schedule</button>
+            <button onClick={openCreate} className="btn-primary btn-sm inline-flex items-center gap-1"><Plus className="w-4 h-4" /> New Schedule</button>
           }
         />
 
-        {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}>✕</button></div>}
-        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}>✕</button></div>}
+        {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
+        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
 
         {schedules.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-4xl mb-3">📅</p>
+            <Calendar className="w-12 h-12 mx-auto mb-3 text-ink-200" />
             <p className="text-lg font-medium mb-1 text-ink">No schedules yet</p>
             <p className="text-sm text-ink-300">Create a schedule to auto start/stop campaigns.</p>
           </div>
@@ -203,22 +204,22 @@ export default function SchedulesPage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button onClick={() => runNow(s.id)}
-                      className="btn-secondary btn-xs">▶ Run</button>
+                      className="btn-secondary btn-xs inline-flex items-center gap-1"><Play className="w-3 h-3" /> Run</button>
                     <button onClick={() => toggleSchedule(s.id)}
                       className={`btn-xs rounded border ${s.enabled ? 'bg-warning-muted text-warning border-warning-border' : 'bg-success-muted text-success border-success-border'}`}>
-                      {s.enabled ? '⏸ Pause' : '▶ Resume'}
+                      {s.enabled ? <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> Pause</span> : <span className="inline-flex items-center gap-1"><Play className="w-3 h-3" /> Resume</span>}
                     </button>
                     <button onClick={() => openEdit(s)}
-                      className="btn-ghost btn-xs text-ink-300 hover:text-ink">✏️</button>
+                      className="btn-ghost btn-xs text-ink-300 hover:text-ink"><Pencil className="w-3 h-3" /></button>
                     <button onClick={() => setDeleteConfirm(s)}
-                      className="btn-ghost btn-xs text-ink-300 hover:text-danger">🗑</button>
+                      className="btn-ghost btn-xs text-ink-300 hover:text-danger"><Trash2 className="w-3 h-3" /></button>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-ink-300">
-                  <span>⏰ {s.scheduleType === 'ONCE' ? fmtDate(s.executeAt) : fmtTime(s.timeOfDay)}{s.daysOfWeek ? ` (${s.daysOfWeek.map(d => DAYS[d]).join(', ')})` : ''}</span>
-                  <span>🔄 {s.runCount}x</span>
-                  <span>📅 {fmtDate(s.lastRunAt)}</span>
-                  {s.lastError && <span className="text-danger">⚠️ {s.lastError}</span>}
+                  <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {s.scheduleType === 'ONCE' ? fmtDate(s.executeAt) : fmtTime(s.timeOfDay)}{s.daysOfWeek ? ` (${s.daysOfWeek.map(d => DAYS[d]).join(', ')})` : ''}</span>
+                  <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> {s.runCount}x</span>
+                  <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> {fmtDate(s.lastRunAt)}</span>
+                  {s.lastError && <span className="text-danger inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {s.lastError}</span>}
                 </div>
               </div>
             ))}
@@ -245,13 +246,13 @@ export default function SchedulesPage() {
               <label className="block text-xs text-ink-300 mb-1">Action</label>
               <div className="flex gap-2">
                 <button onClick={() => setForm({...form, action: 'STOP'})}
-                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors inline-flex items-center justify-center gap-1 ${
                     form.action === 'STOP' ? 'bg-danger text-white border-danger' : 'bg-surface-50 text-ink-300 border-surface-200'
-                  }`}>⏹ STOP</button>
+                  }`}><StopCircle className="w-3 h-3" /> STOP</button>
                 <button onClick={() => setForm({...form, action: 'START'})}
-                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium border transition-colors inline-flex items-center justify-center gap-1 ${
                     form.action === 'START' ? 'bg-success text-white border-success' : 'bg-surface-50 text-ink-300 border-surface-200'
-                  }`}>▶ START</button>
+                  }`}><Play className="w-3 h-3" /> START</button>
               </div>
             </div>
             <div className="flex-1">
@@ -305,7 +306,7 @@ export default function SchedulesPage() {
           <button onClick={() => setShowModal(false)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={submitForm} disabled={formBusy || !form.campaignId || !form.action}
             className="btn-primary btn-sm">
-            {formBusy ? 'Saving...' : editId ? '💾 Update' : '📅 Create Schedule'}
+            {formBusy ? 'Saving...' : editId ? <><Save className="w-4 h-4" /> Update</> : <><Calendar className="w-4 h-4" /> Create Schedule</>}
           </button>
         </div>
       </Modal>

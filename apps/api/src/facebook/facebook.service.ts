@@ -366,6 +366,106 @@ export class FacebookService {
     }
   }
 
+  // ─── Targeting Search ───
+
+  async searchTargetingInterests(query: string, accessToken: string, limit = 25) {
+    try {
+      const { data } = await firstValueFrom(
+        this.http.get(`${this.baseUrl.replace('/v22.0', '/v22.0')}search`, {
+          params: {
+            type: 'adinterest',
+            q: query,
+            limit,
+            access_token: accessToken,
+          },
+        }),
+      );
+      return (data?.data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        audienceSize: item.audience_size_lower_bound || item.audience_size || null,
+        topic: item.topic || null,
+        path: item.path || [],
+      }));
+    } catch (err: any) {
+      this.logger.error(`Failed to search interests: ${err?.response?.data?.error?.message || err.message}`);
+      throw new InternalServerErrorException('Failed to search targeting interests');
+    }
+  }
+
+  async searchTargetingLocations(query: string, accessToken: string, locationTypes: string[] = ['country', 'region', 'city'], limit = 25) {
+    try {
+      const { data } = await firstValueFrom(
+        this.http.get(`${this.baseUrl.replace('/v22.0', '/v22.0')}search`, {
+          params: {
+            type: 'adgeolocation',
+            q: query,
+            location_types: JSON.stringify(locationTypes),
+            limit,
+            access_token: accessToken,
+          },
+        }),
+      );
+      return (data?.data || []).map((item: any) => ({
+        key: item.key,
+        name: item.name,
+        type: item.type,
+        countryCode: item.country_code || null,
+        countryName: item.country_name || null,
+        region: item.region || null,
+        regionId: item.region_id || null,
+      }));
+    } catch (err: any) {
+      this.logger.error(`Failed to search locations: ${err?.response?.data?.error?.message || err.message}`);
+      throw new InternalServerErrorException('Failed to search locations');
+    }
+  }
+
+  async searchTargetingDemographics(query: string, accessToken: string, limit = 25) {
+    try {
+      const { data } = await firstValueFrom(
+        this.http.get(`${this.baseUrl.replace('/v22.0', '/v22.0')}search`, {
+          params: {
+            type: 'addemographic',
+            q: query,
+            limit,
+            access_token: accessToken,
+          },
+        }),
+      );
+      return (data?.data || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        type: item.type || null,
+        audienceSize: item.audience_size_lower_bound || item.audience_size || null,
+      }));
+    } catch (err: any) {
+      this.logger.error(`Failed to search demographics: ${err?.response?.data?.error?.message || err.message}`);
+      throw new InternalServerErrorException('Failed to search demographics');
+    }
+  }
+
+  async estimateAudienceSize(targeting: any, accessToken: string, adAccountId: string) {
+    try {
+      const { data } = await firstValueFrom(
+        this.http.post(`${this.baseUrl}/act_${adAccountId}/delivery_estimate`, null, {
+          params: {
+            targeting: JSON.stringify(targeting),
+            optimization_goal: 'REACH',
+            access_token: accessToken,
+          },
+        }),
+      );
+      return {
+        dailyUniqueReach: data?.data?.[0]?.estimate_dau || 0,
+        monthlyUniqueReach: data?.data?.[0]?.estimate_mau || 0,
+      };
+    } catch (err: any) {
+      this.logger.warn(`Failed to estimate audience: ${err?.response?.data?.error?.message || err.message}`);
+      return { dailyUniqueReach: 0, monthlyUniqueReach: 0 };
+    }
+  }
+
   async createCreative(
     adAccountId: string,
     pageId: string | null,

@@ -1,167 +1,114 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
+import { useState, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
+import Skeleton from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 import { fmtCurr, fmtNum } from '@/lib/utils';
+import { RefreshCw, BarChart3, Link, Sparkles, ClipboardList, TrendingUp, Flame, SkipForward } from 'lucide-react';
+import { useFbStatus, useFbAuthUrl, useFbDisconnect, useSyncStatus, useTriggerSync, useInsights, useSyncInsights, useDashboardSummary, useWarmupStatus, useWarmupActions } from '@/hooks/use-dashboard';
+import { useAdAccounts } from '@/hooks/use-accounts';
 
 // ─── Types ───
 
-interface FbAccount { id: string; facebookUserId: string; facebookName: string; facebookEmail: string | null; tokenExpiresAt: string; status: string; createdAt: string }
-interface FbStatus { connected: boolean; data: FbAccount | null }
-interface SyncStatus { accounts: number; campaigns: number; adsets: number; ads: number; lastSync: string | null }
-interface AdAccount { id: string; accountId: string; name: string; currency: string; timezone: string; status: string; balance: number; spentToday: number; isWarmingUp: boolean; warmupDay: number; createdAt: string; _count: { campaigns: number } }
 interface InsightRow { id: string; date: string; impressions: number; clicks: number; spend: number; conversions: number; ctr: number; cpc: number; cpm?: number; reach?: number; frequency?: number; cpa?: number; roas?: number }
 interface ChartData { date: string; spend: number; impressions: number; clicks: number; ctr: number }
-interface WarmupStatus { id: string; name: string; day: number; totalDays: number; progress: number; targetBudget: number; currentBudget: number }
 
 export default function DashboardPage() {
-  const [fbStatus, setFbStatus] = useState<FbStatus | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
-  const [accounts, setAccounts] = useState<AdAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [insightSyncing, setInsightSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState('');
-  const [error, setError] = useState('');
+  const toast = useToast();
 
-  // Insight data
-  const [insights, setInsights] = useState<InsightRow[]>([]);
-  const [insightAccountId, setInsightAccountId] = useState<string | null>(null);
-  const [insightDays, setInsightDays] = useState(7);
+  // ─── Queries ───
+  const { data: fbStatus, isLoading: fbLoading } = useFbStatus();
+  const { data: syncStatus } = useSyncStatus();
+  const { data: accounts = [] } = useAdAccounts();
+  const { data: summary } = useDashboardSummary();
+  const { data: warmups = [] } = useWarmupStatus();
 
-  // Summary
-  const [summary, setSummary] = useState<{ accounts: number; totalCampaigns: number; activeCampaigns: number; totalSpend: number } | null>(null);
+  // ─── Mutations ───
+  const triggerSync = useTriggerSync();
+  const syncInsightsMutation = useSyncInsights();
+  const fbDisconnect = useFbDisconnect();
+  const warmupActions = useWarmupActions();
 
-  // Warmup
-  const [warmups, setWarmups] = useState<WarmupStatus[]>([]);
-  const [warmupBusy, setWarmupBusy] = useState(false);
-
-  // Auto-refresh
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const refreshRef = useRef<NodeJS.Timeout | null>(null);
-  const [refreshCountdown, setRefreshCountdown] = useState(30);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-    // Handle Facebook OAuth redirect result
-    const params = new URLSearchParams(window.location.search);
-    const fbResult = params.get('fb');
-    if (fbResult === 'success') {
-      setSyncMsg('✅ Facebook account connected successfully!');
-      window.history.replaceState({}, '', '/dashboard');
-    } else if (fbResult === 'error') {
-      const reason = params.get('reason') || 'Unknown error';
-      setSyncMsg(`❌ Facebook connection failed: ${reason}`);
-      window.history.replaceState({}, '', '/dashboard');
-    }
-
-    fetchAll();
-    
-    // Auto-refresh every 30 seconds
-    const refreshData = () => {
-      if (autoRefresh) {
-        fetchAll();
-        setLastUpdated(new Date().toLocaleTimeString('th', { hour: '2-digit', minute: '2-digit' }));
-      }
-    };
-    const interval = setInterval(refreshData, 30000);
-    const countdown = setInterval(() => {
-      setRefreshCountdown(c => (c <= 1 ? 30 : c - 1));
-    }, 1000);
-    return () => { clearInterval(interval); clearInterval(countdown); };
-  }, [autoRefresh]);
-
+  // ─── Facebook auth URL (manual fetch) ───
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
   const connectFacebook = async () => {
     try {
-      const { data } = await axios.get('/api/facebook/auth');
-      window.location.href = data.url;
+      const res = await import('@/lib/api-client').then(m => m.facebookApi.getAuthUrl());
+      window.location.href = res.data.url;
     } catch (err: any) {
-      setError(`Failed to get Facebook auth URL: ${err?.response?.data?.message || err.message}`);
+      toast.error(`Failed to get Facebook auth URL: ${err?.response?.data?.message || err.message}`);
     }
   };
 
-  const fetchAll = async () => {
-    try {
-      const [fb, sync, accts, summ, warm] = await Promise.all([
-        axios.get('/api/facebook/me'),
-        axios.get('/api/sync/status').catch(() => ({ data: null })),
-        axios.get('/api/adaccounts').catch(() => ({ data: [] })),
-        axios.get('/api/insights/summary').catch(() => ({ data: null })),
-        axios.get('/api/warmup/status').catch(() => ({ data: [] })),
-      ]);
-      setFbStatus(fb.data);
-      setSyncStatus(sync.data);
-      setAccounts(accts.data);
-      setSummary(summ.data);
-      setWarmups(warm.data);
-    } catch { setError('Failed to load data'); }
-    finally { setLoading(false); }
-  };
+  // ─── Insights (lazy — when account selected) ───
+  const [insightAccountId, setInsightAccountId] = useState<string | null>(null);
+  const [insightDays, setInsightDays] = useState(7);
+  const { data: insights = [] } = useInsights(insightAccountId, insightDays);
 
-  const triggerSync = async () => {
-    setSyncing(true); setSyncMsg('');
+  // ─── UI state ───
+  const [syncMsg, setSyncMsg] = useState('');
+
+  // ─── Actions ───
+  const handleSync = async () => {
+    setSyncMsg('');
     try {
-      const { data } = await axios.post('/api/sync/trigger');
+      const data = await triggerSync.mutateAsync();
       setSyncMsg(`✅ Synced ${data.accountsSynced} accounts, ${data.campaignsSynced} campaigns`);
-      await fetchAll();
     } catch (err: any) {
       setSyncMsg(`❌ Sync failed: ${err?.response?.data?.message || err.message}`);
-    } finally { setSyncing(false); }
+    }
   };
 
-  const syncInsights = async () => {
-    setInsightSyncing(true); setSyncMsg('');
+  const handleSyncInsights = async () => {
+    setSyncMsg('');
     try {
-      const { data } = await axios.post('/api/insights/sync');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const data = await syncInsightsMutation.mutateAsync(undefined as any);
       setSyncMsg(`✅ Insights synced: ${data.campaignDays} campaign-days, ${data.accountInsightDays} account-days`);
-      if (insightAccountId) await loadInsights(insightAccountId);
-      await fetchAll();
     } catch (err: any) {
       setSyncMsg(`❌ Insights sync failed: ${err?.response?.data?.message || err.message}`);
-    } finally { setInsightSyncing(false); }
+    }
   };
 
-  const loadInsights = async (accountId: string) => {
+  const handleLoadInsights = (accountId: string) => {
     setInsightAccountId(accountId);
-    try {
-      const { data } = await axios.get(`/api/insights/accounts/${accountId}?days=${insightDays}`);
-      setInsights(data);
-    } catch { setInsights([]); }
   };
 
-  // ─── Warmup actions ───
-
-  const stopWarmup = async (accountId: string) => {
-    setWarmupBusy(true);
+  const handleStopWarmup = async (accountId: string) => {
     try {
-      await axios.post(`/api/warmup/stop/${accountId}`);
-      setSyncMsg('✅ Warmup stopped');
-      await fetchAll();
+      await warmupActions.stop.mutateAsync(accountId);
+      toast.success('Warmup stopped');
     } catch (err: any) {
       setSyncMsg(`❌ Warmup stop failed: ${err?.response?.data?.message || err.message}`);
-    } finally { setWarmupBusy(false); }
+    }
   };
 
-  const warmupTick = async () => {
-    setWarmupBusy(true);
+  const handleWarmupTick = async () => {
     try {
-      const { data } = await axios.post('/api/warmup/tick');
-      if (data.message) { setSyncMsg(`ℹ️ ${data.message}`); }
-      else { setSyncMsg(`✅ Warmup advanced — ${data.results?.map((r: any) => `${r.name}: ${r.status}`).join(', ') || 'done'}`); }
-      await fetchAll();
+      const data = await warmupActions.tick.mutateAsync();
+      if (data.message) setSyncMsg(`ℹ️ ${data.message}`);
+      else setSyncMsg(`✅ Warmup advanced — ${data.results?.map((r: any) => `${r.name}: ${r.status}`).join(', ') || 'done'}`);
     } catch (err: any) {
       setSyncMsg(`❌ Warmup tick failed: ${err?.response?.data?.message || err.message}`);
-    } finally { setWarmupBusy(false); }
+    }
   };
 
-  const chartData: ChartData[] = insights.map(r => ({
+  const handleDisconnect = async () => {
+    if (!confirm('Disconnect Facebook account? This will remove all synced accounts and pages.')) return;
+    try {
+      await fbDisconnect.mutateAsync();
+      toast.success('Disconnected. Refresh to reconnect with new permissions.');
+      setTimeout(() => { window.location.reload(); }, 1500);
+    } catch (err: any) {
+      setSyncMsg('❌ Disconnect failed: ' + (err?.response?.data?.message || err.message));
+    }
+  };
+
+  // ─── Chart data ───
+  const chartData: ChartData[] = (insights as any[]).map((r: any) => ({
     date: new Date(r.date).toLocaleDateString('th', { month: 'short', day: 'numeric' }),
     spend: Number(r.spend),
     impressions: r.impressions,
@@ -176,10 +123,19 @@ export default function DashboardPage() {
     ctr: chartData.length > 0 ? chartData.reduce((s, d) => s + d.ctr, 0) / chartData.length : 0,
   }), { spend: 0, impressions: 0, clicks: 0, ctr: 0 });
 
-  if (loading) return (
+  // ─── Loading skeleton ───
+  if (fbLoading) return (
     <Shell>
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-ink-200">Loading...</p>
+      <div className="p-6">
+        <PageHeader title="Dashboard" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card p-4 space-y-2">
+              <Skeleton variant="text" count={2} />
+            </div>
+          ))}
+        </div>
+        <Skeleton variant="card" count={6} />
       </div>
     </Shell>
   );
@@ -191,29 +147,23 @@ export default function DashboardPage() {
           <PageHeader title="Dashboard" />
           {fbStatus?.connected && (
             <div className="flex gap-2">
-              <button onClick={triggerSync} disabled={syncing}
+              <button onClick={handleSync} disabled={triggerSync.isPending}
                 className="btn-primary btn-sm">
-                {syncing ? 'Syncing...' : '🔄 Sync Now'}
+                {triggerSync.isPending ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync Now</>}
               </button>
-              <button onClick={syncInsights} disabled={insightSyncing}
+              <button onClick={handleSyncInsights} disabled={syncInsightsMutation.isPending}
                 className="btn-secondary btn-sm">
-                {insightSyncing ? 'Loading...' : '📊 Get Insights'}
+                {syncInsightsMutation.isPending ? 'Loading...' : <><BarChart3 className="w-4 h-4" /> Get Insights</>}
               </button>
             </div>
           )}
         </div>
+
         {syncMsg && (
-          <div className={`mb-4 ${
-            syncMsg.includes('✅')
-              ? 'msg-success'
-              : syncMsg.includes('❌')
-              ? 'msg-error'
-              : 'msg-info'
-          }`}>
+          <div className={`mb-4 ${syncMsg.includes('✅') ? 'msg-success' : syncMsg.includes('❌') ? 'msg-error' : 'msg-info'}`}>
             {syncMsg}
           </div>
         )}
-        {error && <div className="mb-4 msg-error">{error}</div>}
 
         {/* FB Connection */}
         <div className="card p-5 mb-6">
@@ -228,16 +178,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-ink-200">{fbStatus.data?.facebookEmail || 'No email'}</p>
               </div>
               <span className="badge-success">Connected</span>
-              <button onClick={async () => {
-                if (!confirm('Disconnect Facebook account? This will remove all synced accounts and pages.')) return;
-                try {
-                  await axios.post('/api/facebook/disconnect');
-                  setSyncMsg('✅ Disconnected. Refresh to reconnect with new permissions.');
-                  setTimeout(() => { window.location.reload(); }, 1500);
-                } catch (err: any) {
-                  setSyncMsg('❌ Disconnect failed: ' + (err?.response?.data?.message || err.message));
-                }
-              }} className="btn-ghost btn-sm text-danger">
+              <button onClick={handleDisconnect} className="btn-ghost btn-sm text-danger">
                 Disconnect
               </button>
             </div>
@@ -245,7 +186,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <p className="text-sm text-ink-200">Connect Facebook to manage ad accounts.</p>
               <button onClick={connectFacebook} className="btn-primary btn-sm">
-                🔗 Connect Facebook
+                <Link className="w-4 h-4" /> Connect Facebook
               </button>
             </div>
           )}
@@ -272,17 +213,15 @@ export default function DashboardPage() {
 
             {/* Quick Actions */}
             <div className="flex gap-3 mb-6">
-              <a href="/dashboard/campaigns?new=1"
-                className="btn-primary btn-sm">
-                ✨ New Campaign
+              <a href="/dashboard/campaigns?new=1" className="btn-primary btn-sm">
+                <Sparkles className="w-4 h-4" /> New Campaign
               </a>
-              <a href="/dashboard/campaigns"
-                className="btn-secondary btn-sm">
-                📋 View Campaigns
+              <a href="/dashboard/campaigns" className="btn-secondary btn-sm">
+                <ClipboardList className="w-4 h-4" /> View Campaigns
               </a>
-              <button onClick={triggerSync} disabled={syncing}
+              <button onClick={handleSync} disabled={triggerSync.isPending}
                 className="btn-secondary btn-sm disabled:opacity-50">
-                {syncing ? 'Syncing...' : '🔄 Sync Now'}
+                {triggerSync.isPending ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync Now</>}
               </button>
             </div>
 
@@ -312,7 +251,7 @@ export default function DashboardPage() {
             {insights.length > 0 && (
               <div className="card p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-ink">📈 Performance (last {insightDays} days)</h3>
+                  <h3 className="text-sm font-semibold text-ink"><TrendingUp className="w-4 h-4 inline" /> Performance (last {insightDays} days)</h3>
                   <div className="grid grid-cols-4 gap-6 text-center text-sm">
                     <div><p className="text-ink-200 text-xs">Spend</p><p className="font-semibold text-ink">${fmtNum(totals.spend)}</p></div>
                     <div><p className="text-ink-200 text-xs">Impressions</p><p className="font-semibold text-ink">{fmtNum(totals.impressions)}</p></div>
@@ -354,12 +293,12 @@ export default function DashboardPage() {
             {/* Warmup Section */}
             <div className="card mb-6">
               <div className="px-5 py-3.5 flex items-center justify-between border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink">🔥 Account Warmup</h3>
+                <h3 className="text-sm font-semibold text-ink"><Flame className="w-4 h-4 inline" /> Account Warmup</h3>
                 <div className="flex gap-2">
                   {warmups.length > 0 && (
-                    <button onClick={warmupTick} disabled={warmupBusy}
+                    <button onClick={handleWarmupTick} disabled={warmupActions.tick.isPending}
                       className="badge-info cursor-pointer disabled:opacity-50">
-                      ⏭️ Advance Day (Manual)
+                      <SkipForward className="w-4 h-4" /> Advance Day (Manual)
                     </button>
                   )}
                 </div>
@@ -370,14 +309,14 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div>
-                  {warmups.map((w) => (
+                  {warmups.map((w: any) => (
                     <div key={w.id} className="px-5 py-4 border-b border-surface-300">
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <p className="text-sm font-medium text-ink">{w.name}</p>
                           <p className="text-xs text-ink-200 mt-0.5">Day {w.day}/{w.totalDays} · ${w.currentBudget}/day → Target ${w.targetBudget}/day</p>
                         </div>
-                        <button onClick={() => stopWarmup(w.id)} disabled={warmupBusy}
+                        <button onClick={() => handleStopWarmup(w.id)} disabled={warmupActions.stop.isPending}
                           className="btn-ghost btn-xs text-danger">
                           Stop Warmup
                         </button>

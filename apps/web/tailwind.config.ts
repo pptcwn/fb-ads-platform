@@ -8,6 +8,9 @@ const config: Config = {
   darkMode: 'class',
   theme: {
     extend: {
+      borderColor: {
+        border: 'var(--border)',
+      },
       fontFamily: {
         sans: ['Geist', 'system-ui', 'sans-serif'],
         mono: ['Geist Mono', 'SF Mono', 'monospace'],

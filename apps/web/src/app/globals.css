@@ -4,6 +4,8 @@
 
 @import url('https://fonts.cdnfonts.com/css/geist');
 @import url('https://fonts.cdnfonts.com/css/geist-mono');
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 /* ─── Vercel Minimalism Design Tokens ─── */
 :root {
@@ -199,6 +201,44 @@ body {
   button:focus-visible {
     @apply outline-none;
   }
+  /* ─── Shadcn UI Theme → Mapped to Vercel Minimalism Design Tokens ─── */
+  :root {
+    --background: #000000;
+    --foreground: #f5f5f5;
+    --card: #0f0f0f;
+    --card-foreground: #f5f5f5;
+    --popover: #0f0f0f;
+    --popover-foreground: #f5f5f5;
+    --primary: #0070f3;
+    --primary-foreground: #ffffff;
+    --secondary: #1a1a1a;
+    --secondary-foreground: #f5f5f5;
+    --muted: #1a1a1a;
+    --muted-foreground: #b0b0b0;
+    --accent-foreground: #f5f5f5;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: rgba(255,255,255,0.06);
+    --input: #0f0f0f;
+    --ring: rgba(0,112,243,0.3);
+    --chart-1: #0070f3;
+    --chart-2: #22c55e;
+    --chart-3: #f59e0b;
+    --chart-4: #ef4444;
+    --chart-5: #8b5cf6;
+    --radius: 0.5rem;
+    --sidebar: #0a0a0a;
+    --sidebar-foreground: #f5f5f5;
+    --sidebar-primary: #0070f3;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #1a1a1a;
+    --sidebar-accent-foreground: #f5f5f5;
+    --sidebar-border: rgba(255,255,255,0.06);
+    --sidebar-ring: rgba(0,112,243,0.3);
+  }
+  * {
+    border-color: var(--border);
+  }
 }
 
 /* ─── Animations ─── */
@@ -218,4 +258,22 @@ body {
 
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.2s ease-in forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(12px); }
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

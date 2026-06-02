@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Package, Plus, Target, RefreshCw, Pencil, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
@@ -145,7 +146,7 @@ export default function TemplatesPage() {
           title="📦 Campaign Templates"
           subtitle={`${templates.length} template${templates.length !== 1 ? 's' : ''}`}
           actions={
-            <button onClick={openCreate} className="btn-primary btn-sm">➕ New Template</button>
+            <button onClick={openCreate} className="btn-primary btn-sm inline-flex items-center gap-1"><Plus className="w-4 h-4" /> New Template</button>
           }
         />
 
@@ -153,24 +154,24 @@ export default function TemplatesPage() {
         {msg && (
           <div className="msg-success mb-4">
             {msg}
-            <button className="float-right" onClick={() => setMsg('')}>✕</button>
+            <button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button>
           </div>
         )}
         {error && (
           <div className="msg-error mb-4">
             {error}
-            <button className="float-right" onClick={() => setError('')}>✕</button>
+            <button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button>
           </div>
         )}
 
         {/* Grid */}
         {templates.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-4xl mb-3">📦</p>
+            <Package className="w-12 h-12 mx-auto mb-3 text-ink-200" />
             <p className="text-lg font-medium mb-1 text-ink">No templates yet</p>
             <p className="text-sm text-ink-300">Save your campaign settings as templates and reuse them instantly.</p>
             <button onClick={openCreate}
-              className="mt-4 btn-primary">➕ Create First Template</button>
+              className="mt-4 btn-primary inline-flex items-center gap-1"><Plus className="w-4 h-4" /> Create First Template</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -195,20 +196,20 @@ export default function TemplatesPage() {
                     </span>
                   )}
                   {t.optimizationGoal && (
-                    <span className="text-[10px] px-2 py-0.5 bg-accent-muted text-accent rounded-full border border-accent-border">
-                      🎯 {t.optimizationGoal}
+                    <span className="text-[10px] px-2 py-0.5 bg-accent-muted text-accent rounded-full border border-accent-border inline-flex items-center gap-1">
+                      <Target className="w-3 h-3" /> {t.optimizationGoal}
                     </span>
                   )}
                   {t.adSetName && (
-                    <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-200">
-                      📦 {t.adSetName}
+                    <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-200 inline-flex items-center gap-1">
+                      <Package className="w-3 h-3" /> {t.adSetName}
                     </span>
                   )}
                 </div>
 
                 {/* Stats */}
                 <div className="flex items-center gap-3 text-xs text-ink-300 mb-4">
-                  <span>🔄 Used {t.useCount}x</span>
+                  <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Used {t.useCount}x</span>
                   {t.lastUsedAt && (
                     <span>Last: {new Date(t.lastUsedAt).toLocaleDateString('th')}</span>
                   )}
@@ -217,16 +218,16 @@ export default function TemplatesPage() {
                 {/* Actions */}
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => applyTemplate(t)}
-                    className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-accent text-white hover:bg-accent/90">
-                    🔄 Apply
+                    className="flex-1 text-xs px-3 py-1.5 rounded-lg font-medium bg-accent text-white hover:bg-accent/90 inline-flex items-center justify-center gap-1">
+                    <RefreshCw className="w-3 h-3" /> Apply
                   </button>
                   <button onClick={() => openEdit(t)}
-                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-accent-muted text-accent hover:bg-accent/20">
-                    ✏️ Edit
+                    className="text-xs px-3 py-1.5 rounded-lg font-medium bg-accent-muted text-accent hover:bg-accent/20 inline-flex items-center gap-1">
+                    <Pencil className="w-3 h-3" /> Edit
                   </button>
                   <button onClick={() => setDeleteTpl(t)}
                     className="text-xs px-3 py-1.5 rounded-lg font-medium bg-danger-muted text-danger hover:bg-danger/20">
-                    🗑
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -311,7 +312,7 @@ export default function TemplatesPage() {
           <button onClick={() => setEditModal(null)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={saveTemplate} disabled={editSaving}
             className="btn-primary btn-sm">
-            {editSaving ? 'Saving...' : editModal?.template ? '💾 Update' : '➕ Create'}
+            {editSaving ? 'Saving...' : editModal?.template ? <><Save className="w-4 h-4" /> Update</> : <><Plus className="w-4 h-4" /> Create</>}
           </button>
         </div>
       </Modal>

@@ -6,6 +6,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import { objLabel, fmtCurr, fmtNum, daysAgo } from '@/lib/utils';
+import { BarChart3, TrendingUp, DollarSign, Eye, Trophy, Building2 } from 'lucide-react';
 
 // ─── Types ───
 
@@ -103,7 +104,7 @@ export default function AnalyticsPage() {
       <div className="px-6 py-6 space-y-6">
         {/* Header + Date Range */}
         <PageHeader
-          title="📊 Analytics"
+          title={<><BarChart3 className="w-4 h-4" /> Analytics</>}
           actions={
             <div className="flex gap-2">
               {DAY_OPTIONS.map(opt => (
@@ -171,7 +172,7 @@ export default function AnalyticsPage() {
         {/* Comparison */}
         {comparison && (
           <div className="card p-4">
-            <h3 className="text-sm font-semibold mb-3 text-ink">📈 Period Comparison (vs previous {comparison.period})</h3>
+            <h3 className="text-sm font-semibold mb-3 text-ink"><TrendingUp className="w-4 h-4 inline" /> Period Comparison (vs previous {comparison.period})</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: 'Spend', curVal: fmtCurr(comparison.current.spend), prevVal: fmtCurr(comparison.previous.spend), change: comparison.changes.spend, color: comparison.changes.spend > 0 ? 'text-danger' : 'text-success' },
@@ -199,7 +200,7 @@ export default function AnalyticsPage() {
           {/* Spend Trend */}
           <div className="card p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-ink">💰 Spend Trend</h3>
+              <h3 className="text-sm font-semibold text-ink"><DollarSign className="w-4 h-4 inline" /> Spend Trend</h3>
               <select value={granularity} onChange={e => setGranularity(e.target.value)}
                 className="bg-surface-200 text-ink border border-ink-200 rounded px-2 py-1 text-xs">
                 <option value="day" className="text-ink">Daily</option>
@@ -228,7 +229,7 @@ export default function AnalyticsPage() {
 
           {/* Impressions + Clicks */}
           <div className="card p-4">
-            <h3 className="text-sm font-semibold mb-3 text-ink">👁️ Impressions & Clicks</h3>
+            <h3 className="text-sm font-semibold mb-3 text-ink"><Eye className="w-4 h-4 inline" /> Impressions & Clicks</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={trends}>
@@ -246,7 +247,7 @@ export default function AnalyticsPage() {
 
           {/* CTR Trend */}
           <div className="card p-4">
-            <h3 className="text-sm font-semibold mb-3 text-ink">📈 CTR Trend (%)</h3>
+            <h3 className="text-sm font-semibold mb-3 text-ink"><TrendingUp className="w-4 h-4 inline" /> CTR Trend (%)</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trends}>
@@ -263,7 +264,7 @@ export default function AnalyticsPage() {
 
           {/* CPC Trend */}
           <div className="card p-4">
-            <h3 className="text-sm font-semibold mb-3 text-ink">💵 CPC Trend</h3>
+            <h3 className="text-sm font-semibold mb-3 text-ink"><DollarSign className="w-4 h-4 inline" /> CPC Trend</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trends}>
@@ -281,7 +282,7 @@ export default function AnalyticsPage() {
         {/* Campaign Ranking */}
         <div className="card overflow-hidden">
           <div className="p-4 flex items-center justify-between border-b border-surface-300">
-            <h3 className="text-sm font-semibold text-ink">🏆 Campaign Ranking</h3>
+            <h3 className="text-sm font-semibold text-ink"><Trophy className="w-4 h-4 inline" /> Campaign Ranking</h3>
             <select value={sortBy} onChange={e => setSortBy(e.target.value)}
               className="bg-surface-200 text-ink border border-ink-200 rounded px-2 py-1 text-xs">
               <option value="spend" className="text-ink">By Spend</option>
@@ -338,7 +339,7 @@ export default function AnalyticsPage() {
         {/* Account Summary */}
         <div className="card overflow-hidden">
           <div className="p-4 border-b border-surface-300">
-            <h3 className="text-sm font-semibold text-ink">🏦 Account Summary</h3>
+            <h3 className="text-sm font-semibold text-ink"><Building2 className="w-4 h-4 inline" /> Account Summary</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
             {accounts.map(acc => (
