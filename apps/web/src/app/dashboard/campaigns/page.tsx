@@ -6,6 +6,7 @@ import axios from 'axios';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal, { ConfirmModal } from '@/components/Modal';
+import TargetingBuilder from '@/components/TargetingBuilder';
 import { objLabel, fmtCurr, fmtPct, STATUS_COLORS } from '@/lib/utils';
 
 // ─── Types ───
@@ -153,6 +154,7 @@ function CampaignsPageInner() {
     creativeLink: '',
     pageId: '',
     createAd: false,
+    targeting: {} as Record<string, any>,
   });
 
   useEffect(() => {
@@ -337,7 +339,7 @@ function CampaignsPageInner() {
     setSaving(true); setDrawerError(''); setDrawerMsg('');
     try {
       const dto: any = { adAccountId: form.adAccountId, name: form.name, objective: form.objective, dailyBudget: form.dailyBudget, status: form.status };
-      if (form.adSetName) { dto.adSetName = form.adSetName; dto.optimizationGoal = form.optimizationGoal; dto.billingEvent = form.billingEvent; }
+      if (form.adSetName) { dto.adSetName = form.adSetName; dto.optimizationGoal = form.optimizationGoal; dto.billingEvent = form.billingEvent; dto.targeting = form.targeting; }
       if (form.createAd && form.adName) { dto.adName = form.adName; dto.creativeMessage = form.creativeMessage || 'Check this out!'; dto.creativeLink = form.creativeLink || 'https://example.com'; }
       await axios.post('/api/campaigns', dto);
       setDrawerMsg('Campaign created!');
@@ -539,6 +541,10 @@ function CampaignsPageInner() {
                       <div><p className="text-ink-200 text-xs">Est. CPM</p><p className="font-bold text-ink">฿{budgetPreview.estimatedCpm}</p></div>
                     </div>
                   </div>
+                  {/* Quick Mode Targeting */}
+                  <TargetingBuilder value={form.targeting || {}}
+                    onChange={(v: Record<string, any>) => setForm({ ...form, targeting: v })}
+                    adAccountId={form.adAccountId} />
                   <button onClick={createCampaign} disabled={saving} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
                     {saving ? <><Spinner /> Creating...</> : '🚀 Launch Campaign'}
                   </button>
@@ -604,6 +610,19 @@ function CampaignsPageInner() {
                           <div><p className="text-ink-200 text-xs">Est. CPM</p><p className="font-bold text-ink">฿{budgetPreview.estimatedCpm}</p></div>
                         </div>
                       </div>
+                      {/* Ad Set & Targeting */}
+                      <label className="flex items-center gap-2 text-sm font-medium text-ink mb-3">
+                        <input type="checkbox" checked={!!form.adSetName}
+                          onChange={e => setForm({ ...form, adSetName: e.target.checked ? 'Ad Set 1' : '', optimizationGoal: e.target.checked ? (form.optimizationGoal || 'REACH') : '' })} />
+                        Create Ad Set with targeting
+                      </label>
+                      {form.adSetName && (
+                        <div className="mb-4">
+                          <TargetingBuilder value={form.targeting || {}}
+                            onChange={(v: Record<string, any>) => setForm({ ...form, targeting: v })}
+                            adAccountId={form.adAccountId} />
+                        </div>
+                      )}
                       <div className="flex gap-3">
                         <button onClick={() => setDrawerStep(1)} className="btn-secondary flex-1">← Back</button>
                         <button onClick={() => validateStep(2) && setDrawerStep(3)} className="btn-primary flex-1">Next: Creative →</button>

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
+import { TargetingSchema } from './dto/targeting.schema';
 
 @Injectable()
 export class CampaignsService {
@@ -51,6 +52,10 @@ export class CampaignsService {
     let adSetId: string | null = null;
     let adId: string | null = null;
 
+    const targeting = dto.targeting
+      ? TargetingSchema.parse(dto.targeting)
+      : { geo_locations: { countries: ['TH'] } };
+
     // 2. Create AdSet (optional)
     if (dto.adSetName) {
       const adSet = await this.facebookService.createAdSet(
@@ -61,7 +66,7 @@ export class CampaignsService {
         dto.optimizationGoal || 'REACH',
         dto.billingEvent || 'IMPRESSIONS',
         null, // bidAmount — let FB use lowest cost
-        dto.targeting || { geo_locations: { countries: ['TH'] } },
+        targeting,
         'ACTIVE',
         accessToken,
         'LOWEST_COST_NO_BID', // explicitly set bid strategy without bid cap
@@ -73,7 +78,7 @@ export class CampaignsService {
           campaignId: savedCampaign.id,
           name: dto.adSetName,
           status: 'ACTIVE',
-          targeting: dto.targeting || { geo_locations: { countries: ['TH'] } },
+          targeting,
           dailyBudget: dto.dailyBudget * 0.8,
           optimizationGoal: dto.optimizationGoal || 'REACH',
         },
