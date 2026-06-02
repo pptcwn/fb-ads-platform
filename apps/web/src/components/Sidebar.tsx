@@ -41,7 +41,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   const isActive = (href: string, exact: boolean) =>
-    exact ? pathname === href : pathname === href || pathname.startsWith(href + '/') || pathname.startsWith(href + '?');
+    exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
 
   return (
     <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col bg-surface-50 border-r border-surface-300">
