@@ -225,7 +225,7 @@ export class WarmupService {
         const fbCampaign = await this.facebookService.createCampaign(
           fbAccountId,
           campaignName,
-          'OUTCOME_REACH',
+          'OUTCOME_AWARENESS',
           'ACTIVE',
           dayBudget,
           accessToken,
@@ -235,7 +235,7 @@ export class WarmupService {
           data: {
             campaignId: fbCampaign.id,
             name: campaignName,
-            objective: 'OUTCOME_REACH' as any,
+            objective: 'OUTCOME_AWARENESS',
             status: 'ACTIVE' as any,
             dailyBudget: dayBudget,
             adAccountId: account.id,
