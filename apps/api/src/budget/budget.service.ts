@@ -332,9 +332,6 @@ export class BudgetService {
   }
 
   private shouldRunNow(cronExpr: string, timezone: string, lastRunAt: Date | null): boolean {
-    // Simple cron match — check the current minute matches the cron pattern
-    // Supports: */N * * * *, 0 * * * *, 30 * * * *, etc.
-    const now = new Date();
     const parts = cronExpr.trim().split(/\s+/);
     if (parts.length !== 5) {
       this.logger.warn(`Invalid cron expression: ${cronExpr}`);
@@ -342,11 +339,7 @@ export class BudgetService {
     }
 
     const [minutePart, hourPart, dayOfMonthPart, monthPart, dayOfWeekPart] = parts;
-    const minute = now.getUTCMinutes();
-    const hour = now.getUTCHours();
-    const dayOfMonth = now.getUTCDate();
-    const month = now.getUTCMonth() + 1;
-    const dayOfWeek = now.getUTCDay();
+    const { minute, hour, dayOfMonth, month, dayOfWeek } = this.getNowInTimezone(timezone ?? 'UTC');
 
     if (!this.cronPartMatches(minutePart, minute)) return false;
     if (!this.cronPartMatches(hourPart, hour)) return false;
@@ -354,18 +347,44 @@ export class BudgetService {
     if (!this.cronPartMatches(monthPart, month)) return false;
     if (!this.cronPartMatches(dayOfWeekPart, dayOfWeek)) return false;
 
-    // Prevent re-running in the same hour
+    // Prevent re-running in the same hour (using timezone-aware comparison)
     if (lastRunAt) {
-      const lastRun = new Date(lastRunAt);
-      if (lastRun.getUTCHours() === now.getUTCHours() &&
-          lastRun.getUTCDate() === now.getUTCDate() &&
-          lastRun.getUTCMonth() === now.getUTCMonth() &&
-          lastRun.getUTCFullYear() === now.getUTCFullYear()) {
-        return false;
-      }
+      const lastParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone ?? 'UTC',
+        hour: 'numeric', day: 'numeric', month: 'numeric', hour12: false,
+      }).formatToParts(new Date(lastRunAt));
+      const getL = (type: string) => lastParts.find(p => p.type === type)?.value ?? '0';
+      if (
+        parseInt(getL('hour')) % 24 === hour &&
+        parseInt(getL('day')) === dayOfMonth &&
+        parseInt(getL('month')) === month
+      ) return false;
     }
 
     return true;
+  }
+
+  private getNowInTimezone(tz: string): { minute: number; hour: number; dayOfMonth: number; month: number; dayOfWeek: number } {
+    const now = new Date();
+    const safeZone = (() => {
+      try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return tz; } catch { return 'UTC'; }
+    })();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: safeZone,
+      hour: 'numeric', minute: 'numeric',
+      day: 'numeric', month: 'numeric',
+      weekday: 'short',
+      hour12: false,
+    }).formatToParts(now);
+    const get = (type: string) => parts.find(p => p.type === type)?.value ?? '0';
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return {
+      minute: parseInt(get('minute')),
+      hour: parseInt(get('hour')) % 24,
+      dayOfMonth: parseInt(get('day')),
+      month: parseInt(get('month')),
+      dayOfWeek: weekdays.indexOf(get('weekday')),
+    };
   }
 
   private cronPartMatches(pattern: string, value: number): boolean {
