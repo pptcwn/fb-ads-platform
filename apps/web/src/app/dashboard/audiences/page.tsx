@@ -1,15 +1,13 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import axios from 'axios';
+import { useState, useRef } from 'react';
 import { Target, Users, Save, Plus, RefreshCw, Trash2, Folder, BarChart3, Upload, X, FileText, Check, AlertTriangle, Ban } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
-import Modal from '@/components/Modal';
-import { ConfirmModal } from '@/components/Modal';
-
-interface AdAccount { id: string; accountId: string; name: string; currency: string; }
-interface Audience { id: string; adAccountId: string; accountName: string; fbAudienceId: string; name: string; type: string; subtype: string | null; description: string | null; approximateCount: number | null; status: string; sourceAudienceId: string | null; lookalikeRatio: number | null; createdAt: string; }
+import Modal, { ConfirmModal } from '@/components/Modal';
+import { useAudiences, useCreateCustomAudience, useCreateLookalikeAudience, useDeleteAudience, useSyncAudiences, useUploadAudienceCsv } from '@/hooks/use-audiences';
+import { useAdAccounts } from '@/hooks/use-accounts';
+import type { Audience } from '@/lib/api-client';
 
 const fmtNum = (n: number | null) => n ? (n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString()) : '-';
 
@@ -25,106 +23,77 @@ const STATUS_COLORS: Record<string, string> = {
 const RATIO_OPTIONS = [1, 2, 3, 5, 10];
 
 export default function AudiencesPage() {
-  const [audiences, setAudiences] = useState<Audience[]>([]);
-  const [accounts, setAccounts] = useState<AdAccount[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ─── React Query ───
+  const { data: audiences = [], isLoading, refetch } = useAudiences();
+  const { data: accounts = [] } = useAdAccounts();
+  const createCustom = useCreateCustomAudience();
+  const createLookalike = useCreateLookalikeAudience();
+  const deleteAudienceMutation = useDeleteAudience();
+  const syncAudiencesMutation = useSyncAudiences();
+  const uploadMutation = useUploadAudienceCsv();
+
+  // ─── UI state ───
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
-  const [syncing, setSyncing] = useState<string | null>(null);
-
-  // Create modals
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [showLookalikeModal, setShowLookalikeModal] = useState(false);
-  const [formBusy, setFormBusy] = useState(false);
-
-  // Custom form
   const [customForm, setCustomForm] = useState({ adAccountId: '', name: '', description: '' });
-  // Lookalike form
   const [lookalikeForm, setLookalikeForm] = useState({ adAccountId: '', name: '', sourceAudienceId: '', ratio: 1 });
-
-  // Delete
   const [deleteConfirm, setDeleteConfirm] = useState<Audience | null>(null);
 
-  // Upload CSV
+  // Upload state
   const [uploadTarget, setUploadTarget] = useState<Audience | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [uploadError, setUploadError] = useState('');
   const [csvPreview, setCsvPreview] = useState<any[] | null>(null);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [schemaMapping, setSchemaMapping] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    fetchAll();
-  }, []);
+  // ─── Mutations ───
 
-  const fetchAll = async () => {
-    setLoading(true);
-    try {
-      const [audRes, accRes] = await Promise.all([
-        axios.get('/api/audiences').catch(() => ({ data: [] })),
-        axios.get('/api/adaccounts').catch(() => ({ data: [] })),
-      ]);
-      setAudiences(audRes.data);
-      setAccounts(accRes.data);
-    } catch { setError('Failed to load data'); }
-    finally { setLoading(false); }
-  };
-
-  const syncAudiences = async (accountId: string) => {
-    setSyncing(accountId);
+  const handleSync = async (accountId: string) => {
     setMsg(''); setError('');
     try {
-      const { data } = await axios.get(`/api/audiences/sync/${accountId}`);
+      const data = await syncAudiencesMutation.mutateAsync(accountId);
       setMsg(data.message);
-      await fetchAll();
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setSyncing(null); }
   };
 
-  const createCustom = async () => {
+  const handleCreateCustom = async () => {
     if (!customForm.name || !customForm.adAccountId) return;
-    setFormBusy(true); setError(''); setMsg('');
+    setError(''); setMsg('');
     try {
-      const { data } = await axios.post('/api/audiences/create-custom', customForm);
+      const data = await createCustom.mutateAsync(customForm);
       setMsg(data.message);
       setShowCustomModal(false);
       setCustomForm({ adAccountId: '', name: '', description: '' });
-      await fetchAll();
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setFormBusy(false); }
   };
 
-  const createLookalike = async () => {
+  const handleCreateLookalike = async () => {
     if (!lookalikeForm.name || !lookalikeForm.sourceAudienceId || !lookalikeForm.adAccountId) return;
-    setFormBusy(true); setError(''); setMsg('');
+    setError(''); setMsg('');
     try {
-      const { data } = await axios.post('/api/audiences/create-lookalike', lookalikeForm);
+      const data = await createLookalike.mutateAsync(lookalikeForm);
       setMsg(data.message);
       setShowLookalikeModal(false);
       setLookalikeForm({ adAccountId: '', name: '', sourceAudienceId: '', ratio: 1 });
-      await fetchAll();
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setFormBusy(false); }
   };
 
-  const deleteAudience = async () => {
+  const handleDelete = async () => {
     if (!deleteConfirm) return;
-    setFormBusy(true);
     try {
-      const { data } = await axios.delete(`/api/audiences/${deleteConfirm.id}`);
+      const data = await deleteAudienceMutation.mutateAsync(deleteConfirm.id);
       setMsg(data.message);
       setDeleteConfirm(null);
-      await fetchAll();
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setFormBusy(false); }
   };
 
-  // Upload CSV
+  // ─── CSV Upload ───
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !uploadTarget) return;
@@ -149,14 +118,14 @@ export default function AudiencesPage() {
       setCsvPreview(preview);
       const AUTO_MAP: Record<string, string> = {
         email: 'EMAIL', 'e-mail': 'EMAIL', mail: 'EMAIL',
-        phone: 'PHONE', mobile: 'PHONE', tel: 'PHONE', เบอร์: 'PHONE', โทร: 'PHONE',
+        phone: 'PHONE', mobile: 'PHONE', tel: 'PHONE',
         madid: 'MADID', device_id: 'MADID', adid: 'MADID',
         extern_id: 'EXTERN_ID', external_id: 'EXTERN_ID', user_id: 'EXTERN_ID', uid: 'EXTERN_ID', customer_id: 'EXTERN_ID',
         first_name: 'FIRST_NAME', firstname: 'FIRST_NAME', fname: 'FIRST_NAME',
         last_name: 'LAST_NAME', lastname: 'LAST_NAME', lname: 'LAST_NAME',
-        zip: 'ZIP', zipcode: 'ZIP', postcode: 'ZIP', รหัสไปรษณีย์: 'ZIP',
-        country: 'COUNTRY', ประเทศ: 'COUNTRY',
-        city: 'CITY', town: 'CITY', เมือง: 'CITY',
+        zip: 'ZIP', zipcode: 'ZIP', postcode: 'ZIP',
+        country: 'COUNTRY',
+        city: 'CITY', town: 'CITY',
       };
       const mapping: Record<string, string> = {};
       for (const h of headers) {
@@ -179,11 +148,8 @@ export default function AudiencesPage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('schema', JSON.stringify(schemaMapping));
-      const { data } = await axios.post(`/api/audiences/${uploadTarget.id}/upload-users`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const data = await uploadMutation.mutateAsync({ id: uploadTarget.id, formData });
       setUploadResult(data);
-      await fetchAll();
     } catch (err: any) { setUploadError(err?.response?.data?.message || err.message); }
     finally { setUploading(false); }
   };
@@ -197,13 +163,13 @@ export default function AudiencesPage() {
     setSchemaMapping({});
   };
 
-  // Compute available source audiences (custom audiences that are ready)
+  // ─── Derived ───
   const sourceAudiences = audiences.filter(a =>
     a.type === 'CUSTOM' && a.status === 'READY' &&
     (lookalikeForm.adAccountId ? a.adAccountId === lookalikeForm.adAccountId : true)
   );
 
-  if (loading) return (
+  if (isLoading) return (
     <Shell>
       <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">Loading audiences...</p>
@@ -215,32 +181,29 @@ export default function AudiencesPage() {
     <Shell>
       <div className="p-6 space-y-6">
         <PageHeader
-          title="🎯 Audience Management"
+          title={<><Users className="w-4 h-4 inline mr-1" />Audience Management</>}
           subtitle={`${audiences.length} audiences`}
           actions={
             <>
               <button onClick={() => setShowCustomModal(true)} className="btn-primary btn-sm inline-flex items-center gap-1"><Plus className="w-4 h-4" /> Custom</button>
               <button onClick={() => setShowLookalikeModal(true)} className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg inline-flex items-center gap-1"><Users className="w-4 h-4" /> Lookalike</button>
-              <button onClick={fetchAll} disabled={loading} className="btn-secondary btn-sm inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Refresh</button>
+              <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Refresh</button>
             </>
           }
         />
 
-        {/* Messages */}
         {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
         {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
 
-        {/* Accounts quick sync */}
         <div className="flex flex-wrap gap-2">
           {accounts.map(acc => (
-            <button key={acc.id} onClick={() => syncAudiences(acc.id)} disabled={syncing === acc.id}
+            <button key={acc.id} onClick={() => handleSync(acc.id)} disabled={syncAudiencesMutation.isPending}
               className="btn-secondary btn-xs">
-              {syncing === acc.id ? '⟳ Syncing...' : `⟳ Sync ${acc.name}`}
+              {syncAudiencesMutation.isPending ? '⟳ Syncing...' : `⟳ Sync ${acc.name}`}
             </button>
           ))}
         </div>
 
-        {/* Audience Grid */}
         {audiences.length === 0 ? (
           <div className="card p-12 text-center">
             <Target className="w-12 h-12 mx-auto mb-3 text-ink-200" />
@@ -287,8 +250,8 @@ export default function AudiencesPage() {
         )}
       </div>
 
-      {/* ─── Create Custom Audience Modal ─── */}
-      <Modal open={showCustomModal} onClose={() => setShowCustomModal(false)} title="Create Custom Audience" icon="🎯">
+      {/* ─── Create Custom ─── */}
+      <Modal open={showCustomModal} onClose={() => setShowCustomModal(false)} title="Create Custom Audience" icon={<Target className="w-4 h-4" />}>
         <div className="space-y-3">
           <div>
             <label className="block text-xs text-ink-300 mb-1">Ad Account</label>
@@ -312,15 +275,15 @@ export default function AudiencesPage() {
         </div>
         <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setShowCustomModal(false)} className="btn-secondary btn-sm">Cancel</button>
-          <button onClick={createCustom} disabled={formBusy || !customForm.adAccountId || !customForm.name}
+          <button onClick={handleCreateCustom} disabled={createCustom.isPending || !customForm.adAccountId || !customForm.name}
             className="btn-primary btn-sm">
-            {formBusy ? 'Creating...' : 'Create'}
+            {createCustom.isPending ? 'Creating...' : 'Create'}
           </button>
         </div>
       </Modal>
 
-      {/* ─── Create Lookalike Modal ─── */}
-      <Modal open={showLookalikeModal} onClose={() => setShowLookalikeModal(false)} title="Create Lookalike Audience" icon="👥">
+      {/* ─── Create Lookalike ─── */}
+      <Modal open={showLookalikeModal} onClose={() => setShowLookalikeModal(false)} title="Create Lookalike Audience" icon={<Users className="w-4 h-4" />}>
         <div className="space-y-3">
           <div>
             <label className="block text-xs text-ink-300 mb-1">Ad Account</label>
@@ -360,9 +323,9 @@ export default function AudiencesPage() {
         </div>
         <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
           <button onClick={() => setShowLookalikeModal(false)} className="btn-secondary btn-sm">Cancel</button>
-          <button onClick={createLookalike} disabled={formBusy || !lookalikeForm.adAccountId || !lookalikeForm.name || !lookalikeForm.sourceAudienceId}
+          <button onClick={handleCreateLookalike} disabled={createLookalike.isPending || !lookalikeForm.adAccountId || !lookalikeForm.name || !lookalikeForm.sourceAudienceId}
             className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg disabled:opacity-50">
-            {formBusy ? 'Creating...' : <><Users className="w-4 h-4" /> Create Lookalike</>}
+            {createLookalike.isPending ? 'Creating...' : <><Users className="w-4 h-4" /> Create Lookalike</>}
           </button>
         </div>
       </Modal>
@@ -371,22 +334,21 @@ export default function AudiencesPage() {
       <ConfirmModal
         open={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
-        onConfirm={deleteAudience}
+        onConfirm={handleDelete}
         title="Delete Audience"
         message={deleteConfirm ? `Are you sure you want to delete ${deleteConfirm.name}?` : ''}
         confirmLabel="Delete"
         danger
-        busy={formBusy}
-        icon="🗑"
+        busy={deleteAudienceMutation.isPending}
+        icon={<Trash2 className="w-4 h-4" />}
       />
 
       {/* ─── Upload CSV Modal ─── */}
-      <Modal open={!!uploadTarget} onClose={closeUploadModal} title="Upload Users to Audience" icon="📤" maxWidth="max-w-lg">
+      <Modal open={!!uploadTarget} onClose={closeUploadModal} title="Upload Users to Audience" icon={<Upload className="w-4 h-4" />} maxWidth="max-w-lg">
         <div className="space-y-3">
           <p className="text-sm text-ink font-medium">{uploadTarget?.name}</p>
           <p className="text-xs text-ink-300">Upload a CSV file with customer data. Supported columns: email, phone, MADID, extern_id, name, zip, country.</p>
 
-          {/* File picker */}
           {!csvPreview && (
             <div className="border-2 border-dashed border-surface-200 rounded-lg p-6 text-center">
               <input ref={fileInputRef} id="csv-file-input" type="file" accept=".csv" onChange={handleFileSelect}
@@ -401,7 +363,6 @@ export default function AudiencesPage() {
 
           {uploading && !csvPreview && <p className="text-xs text-ink-300 text-center animate-pulse">Reading file...</p>}
 
-          {/* Preview */}
           {csvPreview && csvPreview.length > 0 && (
             <div>
               <p className="text-xs text-ink-300 mb-1">Preview ({csvHeaders.length} columns, showing first rows)</p>
@@ -428,7 +389,6 @@ export default function AudiencesPage() {
             </div>
           )}
 
-          {/* Column Mapping */}
           {csvHeaders.length > 0 && (
             <div>
               <p className="text-xs text-ink-300 mb-1">Column Mapping (Facebook Schema)</p>
@@ -463,7 +423,6 @@ export default function AudiencesPage() {
             </div>
           )}
 
-          {/* Result */}
           {uploadResult && (
             <div className="msg-success space-y-1">
               <p className="inline-flex items-center gap-1"><Check className="w-4 h-4" /> {uploadResult.message}</p>

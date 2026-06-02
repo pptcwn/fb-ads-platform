@@ -1,60 +1,22 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
+import { useState, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import axios from 'axios';
 import { ClipboardList, RefreshCw, Sparkles, Pause, Play, Trash2, Download, Package, Shuffle, Save, X, Target, DollarSign, Palette, Rocket, BarChart3, Pencil } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal, { ConfirmModal } from '@/components/Modal';
 import TargetingBuilder from '@/components/TargetingBuilder';
 import { objLabel, fmtCurr, fmtPct, STATUS_COLORS } from '@/lib/utils';
+import { useCampaigns, useCreateCampaign, useDeleteCampaign, useCloneCampaign, useSaveTemplate, useBulkAction } from '@/hooks/use-campaigns';
+import { useAdSets, useToggleAdSet, useUpdateAdSetBudget } from '@/hooks/use-adsets';
+import { useAdAccounts } from '@/hooks/use-accounts';
+import type { AdSetItem } from '@/lib/api-client';
 
 // ─── Types ───
 
-interface CampaignItem {
-  id: string;
-  name: string;
-  campaignId: string;
-  objective: string;
-  status: string;
-  dailyBudget: number | null;
-  spent: number;
-  impressions: number;
-  clicks: number;
-  conversions: number;
-  ctr: number;
-}
-
-interface AdAccountWithCampaigns {
-  id: string;
-  name: string;
-  currency: string;
-  campaigns: CampaignItem[];
-}
-
 interface BulkResult {
-  id: string;
-  name: string;
-  success: boolean;
-  error?: string;
-  status?: string;
-}
-
-interface AdSetItem {
-  id: string;
-  adsetId: string;
-  name: string;
-  status: string;
-  dailyBudget: number;
-  impressions: number;
-  clicks: number;
-  spend: number;
-  conversions: number;
-  ctr: number;
-  optimizationGoal: string | null;
-  bidStrategy: string | null;
-  adCount: number;
+  id: string; name: string; success: boolean; error?: string; status?: string;
 }
 
 const AS_STATUS_COLORS: Record<string, string> = {
@@ -76,10 +38,7 @@ const OBJECTIVES = [
 type DrawerMode = 'wizard' | 'quick';
 
 interface FormErrors {
-  name?: string;
-  dailyBudget?: string;
-  adAccountId?: string;
-  adName?: string;
+  name?: string; dailyBudget?: string; adAccountId?: string; adName?: string;
 }
 
 function estimateBudgetBreakdown(budget: number) {
@@ -103,97 +62,67 @@ function Spinner() {
 function CampaignsPageInner() {
   const searchParams = useSearchParams();
 
-  // Campaign list state
-  const [accounts, setAccounts] = useState<AdAccountWithCampaigns[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // ─── React Query hooks ───
+  const { data: accounts = [], isLoading, error: queryError, refetch } = useCampaigns();
+  const { data: adAccounts = [] } = useAdAccounts();
+  const createCampaignMutation = useCreateCampaign();
+  const deleteCampaignMutation = useDeleteCampaign();
+  const cloneCampaignMutation = useCloneCampaign();
+  const saveTemplateMutation = useSaveTemplate();
+  const bulkActionMutation = useBulkAction();
+
+  // AdSet hooks (lazy — only when modal open)
+  const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+  const { data: adSets = [], isLoading: adSetLoading } = useAdSets(activeCampaignId);
+  const toggleAdSetMutation = useToggleAdSet();
+  const updateBudgetMutation = useUpdateAdSetBudget();
+
+  // ─── UI-only state ───
   const [msg, setMsg] = useState('');
+  const [error, setError] = useState('');
   const [checked, setChecked] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: 'pause' | 'resume' | 'delete'; ids: string[] } | null>(null);
 
-  // Ad Set modal state
   const [adSetModal, setAdSetModal] = useState<{ campaignId: string; campaignName: string; currency: string } | null>(null);
-  const [adSets, setAdSets] = useState<AdSetItem[]>([]);
-  const [adSetLoading, setAdSetLoading] = useState(false);
-  const [adSetBusy, setAdSetBusy] = useState<string | null>(null);
   const [editBudget, setEditBudget] = useState<{ id: string; name: string; budget: number } | null>(null);
 
-  // Clone modal state
   const [cloneModal, setCloneModal] = useState<{ id: string; name: string; type: 'campaign' | 'creative' } | null>(null);
   const [cloneName, setCloneName] = useState('');
-  const [cloneBusy, setCloneBusy] = useState(false);
 
-  // Template modal state
   const [saveTpl, setSaveTpl] = useState<{ id: string; name: string; objective: string; dailyBudget: number } | null>(null);
   const [tplName, setTplName] = useState('');
   const [tplNotes, setTplNotes] = useState('');
-  const [tplBusy, setTplBusy] = useState(false);
 
-  // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>('wizard');
   const [drawerStep, setDrawerStep] = useState(1);
-  const [adAccounts, setAdAccounts] = useState<any[]>([]);
-  const [saving, setSaving] = useState(false);
   const [drawerMsg, setDrawerMsg] = useState('');
   const [drawerError, setDrawerError] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({
     adAccountId: '',
-    name: '',
-    objective: 'OUTCOME_TRAFFIC',
-    dailyBudget: 300,
-    status: 'PAUSED',
-    adSetName: '',
-    optimizationGoal: 'REACH',
-    billingEvent: 'IMPRESSIONS',
-    adName: '',
-    creativeMessage: '',
-    creativeLink: '',
-    pageId: '',
-    createAd: false,
+    name: '', objective: 'OUTCOME_TRAFFIC', dailyBudget: 300,
+    status: 'PAUSED', adSetName: '', optimizationGoal: 'REACH',
+    billingEvent: 'IMPRESSIONS', adName: '', creativeMessage: '',
+    creativeLink: '', pageId: '', createAd: false,
     targeting: {} as Record<string, any>,
   });
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    fetchAll();
-    loadAdAccounts();
-    if (searchParams.get('new') === '1') setDrawerOpen(true);
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawerOpen(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const fetchAll = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { data } = await axios.get('/api/campaigns/accounts');
-      setAccounts(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err.message || 'Failed to load campaigns');
-    } finally {
-      setLoading(false);
+  // Init ad account from query data
+  useState(() => {
+    if (adAccounts.length > 0 && !form.adAccountId) {
+      setForm(f => ({ ...f, adAccountId: adAccounts[0].id }));
     }
-  };
+  });
 
-  const loadAdAccounts = async () => {
-    try {
-      const { data } = await axios.get('/api/adaccounts');
-      setAdAccounts(data);
-      if (data.length > 0) setForm(f => ({ ...f, adAccountId: data[0].id }));
-    } catch { /* silent */ }
-  };
+  // Open drawer from URL param
+  useState(() => {
+    if (searchParams.get('new') === '1') setDrawerOpen(true);
+  });
 
+  // ─── Derived ───
   const allCampaigns = accounts.flatMap((acct) =>
     acct.campaigns.map((camp) => ({ ...camp, _account: acct })),
   );
@@ -217,77 +146,64 @@ function CampaignsPageInner() {
   const checkedIds = Array.from(checked);
   const hasChecked = checkedIds.length > 0;
 
+  // ─── Bulk Action ───
   const executeBulkAction = useCallback(async (type: 'pause' | 'resume' | 'delete') => {
     const ids = confirmAction?.ids || checkedIds;
     if (ids.length === 0) return;
-    setBusy(true); setMsg(''); setError(''); setConfirmAction(null);
-    const endpoints: Record<string, string> = {
-      pause: '/api/campaigns/bulk/pause',
-      resume: '/api/campaigns/bulk/resume',
-      delete: '/api/campaigns/bulk/delete',
-    };
+    setConfirmAction(null);
+    setMsg(''); setError('');
     try {
-      const { data } = await axios.post(endpoints[type], { ids });
-      const succeeded = data.results.filter((r: BulkResult) => r.success).length;
-      const failed = data.results.filter((r: BulkResult) => !r.success).length;
+      const data = await bulkActionMutation.mutateAsync({ action: type, ids });
+      const succeeded = data.results?.filter((r: BulkResult) => r.success).length ?? 0;
+      const failed = (data.results?.length ?? 0) - succeeded;
       setMsg(`${succeeded} campaigns ${type === 'delete' ? 'deleted' : type === 'pause' ? 'paused' : 'resumed'}${failed > 0 ? ` (${failed} failed)` : ''}`);
       setChecked(new Set()); setSelectAll(false);
-      fetchAll();
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || `Bulk ${type} failed`);
-    } finally { setBusy(false); }
-  }, [confirmAction, checkedIds]);
+    }
+  }, [confirmAction, checkedIds, bulkActionMutation]);
 
-  const openAdSets = async (campaignId: string, campaignName: string, currency: string) => {
+  // ─── AdSet actions ───
+  const openAdSets = (campaignId: string, campaignName: string, currency: string) => {
     setAdSetModal({ campaignId, campaignName, currency });
-    setAdSetLoading(true);
-    try {
-      const { data } = await axios.get(`/api/adsets/campaign/${campaignId}`);
-      setAdSets(data.adsets || []);
-    } catch { setAdSets([]); }
-    finally { setAdSetLoading(false); }
+    setActiveCampaignId(campaignId);
   };
 
   const toggleAdsetStatus = async (adset: AdSetItem, action: 'pause' | 'resume') => {
-    setAdSetBusy(adset.id);
     try {
-      await axios.post(`/api/adsets/${adset.id}/${action}`);
-      setAdSets(prev => prev.map(a => a.id === adset.id ? { ...a, status: action === 'pause' ? 'PAUSED' : 'ACTIVE' } : a));
+      await toggleAdSetMutation.mutateAsync({ id: adset.id, action });
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setAdSetBusy(null); }
   };
 
   const saveBudget = async () => {
     if (!editBudget) return;
-    setAdSetBusy(editBudget.id);
     try {
-      await axios.patch(`/api/adsets/${editBudget.id}/budget`, { dailyBudget: editBudget.budget });
-      setAdSets(prev => prev.map(a => a.id === editBudget.id ? { ...a, dailyBudget: editBudget.budget } : a));
+      await updateBudgetMutation.mutateAsync({ id: editBudget.id, dailyBudget: editBudget.budget });
       setEditBudget(null); setMsg('Budget updated');
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setAdSetBusy(null); }
   };
 
+  // ─── Clone ───
   const cloneCampaign = async () => {
     if (!cloneModal || cloneModal.type !== 'campaign') return;
-    setCloneBusy(true); setMsg(''); setError('');
+    setMsg(''); setError('');
     try {
-      const { data } = await axios.post(`/api/campaigns/${cloneModal.id}/clone`, { name: cloneName || undefined });
-      setMsg(data.message); setCloneModal(null); setCloneName(''); fetchAll();
+      const data = await cloneCampaignMutation.mutateAsync({ id: cloneModal.id, name: cloneName || undefined });
+      setMsg(data.message); setCloneModal(null); setCloneName('');
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setCloneBusy(false); }
   };
 
+  // ─── Save template ───
   const saveAsTemplate = async () => {
     if (!saveTpl || !tplName.trim()) return;
-    setTplBusy(true); setMsg(''); setError('');
+    setMsg(''); setError('');
     try {
-      await axios.post('/api/templates', { name: tplName, notes: tplNotes || null, objective: saveTpl.objective, dailyBudget: saveTpl.dailyBudget || null });
+      await saveTemplateMutation.mutateAsync({ name: tplName, notes: tplNotes || undefined, objective: saveTpl.objective, dailyBudget: saveTpl.dailyBudget || undefined });
       setMsg('Template saved'); setSaveTpl(null); setTplName(''); setTplNotes('');
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
-    finally { setTplBusy(false); }
   };
 
+  // ─── Export CSV ───
   const exportCsv = () => {
     const rows = allCampaigns.map((c) => [
       c.name, c._account.name, objLabel(c.objective), c.status,
@@ -303,6 +219,7 @@ function CampaignsPageInner() {
     a.click(); URL.revokeObjectURL(url);
   };
 
+  // ─── Drawer ───
   const openDrawer = () => {
     setDrawerOpen(true);
     setDrawerStep(1); setDrawerMode('wizard');
@@ -337,21 +254,22 @@ function CampaignsPageInner() {
     setFormErrors(allErrs);
     setTouched({ name: true, dailyBudget: true, adAccountId: true, adName: true });
     if (Object.keys(allErrs).length > 0) return;
-    setSaving(true); setDrawerError(''); setDrawerMsg('');
+    setDrawerError(''); setDrawerMsg('');
     try {
       const dto: any = { adAccountId: form.adAccountId, name: form.name, objective: form.objective, dailyBudget: form.dailyBudget, status: form.status };
       if (form.adSetName) { dto.adSetName = form.adSetName; dto.optimizationGoal = form.optimizationGoal; dto.billingEvent = form.billingEvent; dto.targeting = form.targeting; }
       if (form.createAd && form.adName) { dto.adName = form.adName; dto.creativeMessage = form.creativeMessage || 'Check this out!'; dto.creativeLink = form.creativeLink || 'https://example.com'; }
-      await axios.post('/api/campaigns', dto);
+      await createCampaignMutation.mutateAsync(dto);
       setDrawerMsg('Campaign created!');
-      setTimeout(() => { setDrawerOpen(false); fetchAll(); }, 1200);
+      setTimeout(() => { setDrawerOpen(false); }, 1200);
     } catch (err: any) {
       setDrawerError(err?.response?.data?.message || err.message);
-    } finally { setSaving(false); }
+    }
   };
 
   const budgetPreview = useMemo(() => estimateBudgetBreakdown(form.dailyBudget), [form.dailyBudget]);
 
+  // ─── Render helpers ───
   const renderDrawerNameField = () => (
     <div className="mb-4">
       <label className="block text-sm font-medium text-ink mb-1">Campaign Name <span className="text-danger">*</span></label>
@@ -391,7 +309,10 @@ function CampaignsPageInner() {
   const confirmLabel = confirmAction?.type === 'pause' ? 'Pause' : confirmAction?.type === 'resume' ? 'Resume' : 'Delete';
   const confirmVariant = (confirmAction?.type === 'delete' ? 'danger' : confirmAction?.type === 'pause' ? 'warning' : 'primary') as 'danger' | 'warning' | 'primary';
 
-  if (loading) {
+  // ─── Query-derived error ───
+  const displayError = error || (queryError ? 'Failed to load campaigns' : '');
+
+  if (isLoading) {
     return (
       <Shell>
         <div className="flex items-center justify-center py-24">
@@ -409,22 +330,22 @@ function CampaignsPageInner() {
           subtitle={`${allCampaigns.length} campaigns across ${accounts.length} ad accounts`}
           actions={
             <div className="flex gap-2">
-              <button onClick={fetchAll} disabled={loading} className="btn-secondary btn-sm disabled:opacity-50 inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Refresh</button>
+              <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm disabled:opacity-50 inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Refresh</button>
               <button onClick={openDrawer} className="btn-primary btn-sm inline-flex items-center gap-1"><Sparkles className="w-4 h-4" /> New Campaign</button>
             </div>
           }
         />
 
         {msg && <div className="msg-success mb-4">{msg}<button className="float-right font-bold" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
-        {error && <div className="msg-error mb-4">{error}<button className="float-right font-bold" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
+        {displayError && <div className="msg-error mb-4">{displayError}<button className="float-right font-bold" onClick={() => { setError(''); }}><X className="w-4 h-4" /></button></div>}
 
         {hasChecked && (
           <div className="card px-5 py-3 mb-4 flex items-center justify-between">
             <span className="text-sm text-ink-200"><strong className="text-ink">{checkedIds.length}</strong> selected</span>
             <div className="flex gap-2">
-              <button onClick={() => setConfirmAction({ type: 'pause', ids: checkedIds })} disabled={busy} className="btn bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Pause className="w-4 h-4" /> Pause</button>
-              <button onClick={() => setConfirmAction({ type: 'resume', ids: checkedIds })} disabled={busy} className="btn bg-success-muted text-success border border-success-border hover:bg-success/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Play className="w-4 h-4" /> Resume</button>
-              <button onClick={() => setConfirmAction({ type: 'delete', ids: checkedIds })} disabled={busy} className="btn bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Trash2 className="w-4 h-4" /> Delete</button>
+              <button onClick={() => setConfirmAction({ type: 'pause', ids: checkedIds })} disabled={bulkActionMutation.isPending} className="btn bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Pause className="w-4 h-4" /> Pause</button>
+              <button onClick={() => setConfirmAction({ type: 'resume', ids: checkedIds })} disabled={bulkActionMutation.isPending} className="btn bg-success-muted text-success border border-success-border hover:bg-success/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Play className="w-4 h-4" /> Resume</button>
+              <button onClick={() => setConfirmAction({ type: 'delete', ids: checkedIds })} disabled={bulkActionMutation.isPending} className="btn bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Trash2 className="w-4 h-4" /> Delete</button>
               <button onClick={exportCsv} className="btn bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 text-sm font-medium px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Download className="w-4 h-4" /> CSV</button>
             </div>
           </div>
@@ -541,12 +462,9 @@ function CampaignsPageInner() {
                       <div><p className="text-ink-200 text-xs">Est. CPM</p><p className="font-bold text-ink">฿{budgetPreview.estimatedCpm}</p></div>
                     </div>
                   </div>
-                  {/* Quick Mode Targeting */}
-                  <TargetingBuilder value={form.targeting || {}}
-                    onChange={(v: Record<string, any>) => setForm({ ...form, targeting: v })}
-                    adAccountId={form.adAccountId} />
-                  <button onClick={createCampaign} disabled={saving} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
-                    {saving ? <><Spinner /> Creating...</> : <><Rocket className="w-3.5 h-3.5 mr-1" />Launch Campaign</>}
+                  <TargetingBuilder value={form.targeting || {}} onChange={(v: Record<string, any>) => setForm({ ...form, targeting: v })} adAccountId={form.adAccountId} />
+                  <button onClick={createCampaign} disabled={createCampaignMutation.isPending} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
+                    {createCampaignMutation.isPending ? <><Spinner /> Creating...</> : <><Rocket className="w-3.5 h-3.5 mr-1" />Launch Campaign</>}
                   </button>
                 </div>
               )}
@@ -557,11 +475,12 @@ function CampaignsPageInner() {
                     {[{ step: 1, label: 'Objective', icon: Target }, { step: 2, label: 'Budget', icon: DollarSign }, { step: 3, label: 'Creative', icon: Palette }].map((item, i) => {
                       const isActive = drawerStep === item.step;
                       const isComplete = drawerStep > item.step;
+                      const Icon = item.icon;
                       return (
                         <div key={item.step} className="flex items-center flex-1">
                           <div className="flex flex-col items-center">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${isComplete ? 'bg-success text-white' : isActive ? 'bg-accent text-white ring-4 ring-accent-muted' : 'bg-surface-200 text-ink-200'}`}>
-                              {isComplete ? '✓' : item.icon}
+                              {isComplete ? (<span>✓</span>) : (<Icon className="w-4 h-4" />)}
                             </div>
                             <span className={`text-xs mt-1 font-medium ${isActive ? 'text-accent' : isComplete ? 'text-success' : 'text-ink-200'}`}>{item.label}</span>
                           </div>
@@ -610,7 +529,6 @@ function CampaignsPageInner() {
                           <div><p className="text-ink-200 text-xs">Est. CPM</p><p className="font-bold text-ink">฿{budgetPreview.estimatedCpm}</p></div>
                         </div>
                       </div>
-                      {/* Ad Set & Targeting */}
                       <label className="flex items-center gap-2 text-sm font-medium text-ink mb-3">
                         <input type="checkbox" checked={!!form.adSetName}
                           onChange={e => setForm({ ...form, adSetName: e.target.checked ? 'Ad Set 1' : '', optimizationGoal: e.target.checked ? (form.optimizationGoal || 'REACH') : '' })} />
@@ -618,9 +536,7 @@ function CampaignsPageInner() {
                       </label>
                       {form.adSetName && (
                         <div className="mb-4">
-                          <TargetingBuilder value={form.targeting || {}}
-                            onChange={(v: Record<string, any>) => setForm({ ...form, targeting: v })}
-                            adAccountId={form.adAccountId} />
+                          <TargetingBuilder value={form.targeting || {}} onChange={(v: Record<string, any>) => setForm({ ...form, targeting: v })} adAccountId={form.adAccountId} />
                         </div>
                       )}
                       <div className="flex gap-3">
@@ -660,8 +576,8 @@ function CampaignsPageInner() {
                       )}
                       <div className="flex gap-3">
                         <button onClick={() => setDrawerStep(2)} className="btn-secondary flex-1">← Back</button>
-                        <button onClick={createCampaign} disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
-                          {saving ? <><Spinner /> Creating...</> : <><Rocket className="w-3.5 h-3.5 mr-1" />Launch</>}
+                        <button onClick={createCampaign} disabled={createCampaignMutation.isPending} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-50">
+                          {createCampaignMutation.isPending ? <><Spinner /> Creating...</> : <><Rocket className="w-3.5 h-3.5 mr-1" />Launch</>}
                         </button>
                       </div>
                     </div>
@@ -683,7 +599,7 @@ function CampaignsPageInner() {
           : `${confirmAction?.type === 'pause' ? 'Pause' : 'Resume'} ${confirmAction?.ids.length} campaign${(confirmAction?.ids.length ?? 0) > 1 ? 's' : ''}?`}
         confirmLabel={confirmLabel}
         confirmVariant={confirmVariant}
-        busy={busy}
+        busy={bulkActionMutation.isPending}
         icon={confirmAction?.type === 'pause' ? <Pause className="w-4 h-4" /> : confirmAction?.type === 'resume' ? <Play className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
         danger={confirmAction?.type === 'delete'}
       />
@@ -702,8 +618,8 @@ function CampaignsPageInner() {
                 </div>
                 <div className="flex gap-1">
                   {as.status === 'ACTIVE'
-                    ? <button onClick={() => toggleAdsetStatus(as, 'pause')} disabled={adSetBusy === as.id} className="text-xs px-2 py-1 rounded bg-warning-muted text-warning hover:bg-warning/20 disabled:opacity-50">{adSetBusy === as.id ? '...' : <><Pause className="w-3 h-3 mr-0.5 inline" />Pause</>}</button>
-                    : <button onClick={() => toggleAdsetStatus(as, 'resume')} disabled={adSetBusy === as.id} className="text-xs px-2 py-1 rounded bg-success-muted text-success hover:bg-success/20 disabled:opacity-50">{adSetBusy === as.id ? '...' : <><Play className="w-3 h-3 mr-0.5 inline" />Resume</>}</button>}
+                    ? <button onClick={() => toggleAdsetStatus(as, 'pause')} disabled={toggleAdSetMutation.isPending} className="text-xs px-2 py-1 rounded bg-warning-muted text-warning hover:bg-warning/20 disabled:opacity-50">{toggleAdSetMutation.isPending ? '...' : <><Pause className="w-3 h-3 mr-0.5 inline" />Pause</>}</button>
+                    : <button onClick={() => toggleAdsetStatus(as, 'resume')} disabled={toggleAdSetMutation.isPending} className="text-xs px-2 py-1 rounded bg-success-muted text-success hover:bg-success/20 disabled:opacity-50">{toggleAdSetMutation.isPending ? '...' : <><Play className="w-3 h-3 mr-0.5 inline" />Resume</>}</button>}
                 </div>
               </div>
               <div className="grid grid-cols-4 gap-2 text-xs mb-2">
@@ -716,7 +632,7 @@ function CampaignsPageInner() {
                 {editBudget?.id === as.id ? (
                   <div className="flex items-center gap-2">
                     <input type="number" value={editBudget.budget} min={1} onChange={e => setEditBudget({ ...editBudget, budget: Number(e.target.value) || 0 })} className="w-32 bg-surface-100 border border-ink-200 rounded px-2 py-1 text-xs text-ink" />
-                    <button onClick={saveBudget} disabled={adSetBusy === as.id} className="btn-primary btn-xs disabled:opacity-50">{adSetBusy === as.id ? '...' : 'Save'}</button>
+                    <button onClick={saveBudget} disabled={updateBudgetMutation.isPending} className="btn-primary btn-xs disabled:opacity-50">{updateBudgetMutation.isPending ? '...' : 'Save'}</button>
                     <button onClick={() => setEditBudget(null)} className="btn-secondary btn-xs">Cancel</button>
                   </div>
                 ) : (
@@ -737,7 +653,7 @@ function CampaignsPageInner() {
         </div>
         <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-surface-300">
           <button onClick={() => setSaveTpl(null)} className="btn-secondary btn-sm">Cancel</button>
-          <button onClick={saveAsTemplate} disabled={tplBusy || !tplName.trim()} className="btn-success btn-sm disabled:opacity-50">{tplBusy ? 'Saving...' : <><Save className="w-3 h-3 mr-0.5 inline" />Save Template</>}</button>
+          <button onClick={saveAsTemplate} disabled={saveTemplateMutation.isPending || !tplName.trim()} className="btn-success btn-sm disabled:opacity-50">{saveTemplateMutation.isPending ? 'Saving...' : <><Save className="w-3 h-3 mr-0.5 inline" />Save Template</>}</button>
         </div>
       </Modal>
 
@@ -749,7 +665,7 @@ function CampaignsPageInner() {
         </div>
         <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-surface-300">
           <button onClick={() => setCloneModal(null)} className="btn-secondary btn-sm">Cancel</button>
-          <button onClick={cloneCampaign} disabled={cloneBusy || !cloneName.trim()} className="btn-primary btn-sm disabled:opacity-50">{cloneBusy ? 'Cloning...' : <><Shuffle className="w-3 h-3 mr-0.5 inline" />Clone</>}</button>
+          <button onClick={cloneCampaign} disabled={cloneCampaignMutation.isPending || !cloneName.trim()} className="btn-primary btn-sm disabled:opacity-50">{cloneCampaignMutation.isPending ? 'Cloning...' : <><Shuffle className="w-3 h-3 mr-0.5 inline" />Clone</>}</button>
         </div>
       </Modal>
     </Shell>
