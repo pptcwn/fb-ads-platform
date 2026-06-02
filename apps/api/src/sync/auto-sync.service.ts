@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { SyncService } from './sync.service';
@@ -48,7 +47,6 @@ export class AutoSyncService {
   ) {}
 
   /** Sync campaigns every 15 minutes */
-  @Cron('*/15 * * * *', { name: 'auto-sync-campaigns' })
   async autoSyncCampaigns() {
     const fbUsers = await this.prisma.fbUser.findMany({
       include: { adAccounts: true },
@@ -107,7 +105,6 @@ export class AutoSyncService {
   }
 
   /** Sync insights every hour */
-  @Cron('0 * * * *', { name: 'auto-sync-insights' })
   async autoSyncInsights() {
     const fbUsers = await this.prisma.fbUser.findMany({
       include: { adAccounts: true },
