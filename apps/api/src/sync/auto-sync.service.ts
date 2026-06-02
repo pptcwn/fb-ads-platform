@@ -7,6 +7,7 @@ import { CampaignObjective } from '@prisma/client';
 
 const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
 const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
+const STATUS_OVERRIDE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 @Injectable()
 export class AutoSyncService {
@@ -84,7 +85,7 @@ export class AutoSyncService {
 
     const overrideRecent =
       existing?.statusOverriddenAt != null &&
-      Date.now() - existing.statusOverriddenAt.getTime() < 10 * 60 * 1000;
+      Date.now() - existing.statusOverriddenAt.getTime() < STATUS_OVERRIDE_WINDOW_MS;
 
     await this.prisma.campaign.upsert({
       where: { campaignId: camp.id },
