@@ -21,11 +21,13 @@ import { AdsetsModule } from './adsets/adsets.module';
 import { AudiencesModule } from './audiences/audiences.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { TemplatesModule } from './templates/templates.module';
+import { CampaignLockModule } from './campaign-lock/campaign-lock.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     PrismaModule,
+    CampaignLockModule,
     AuthModule,
     FacebookModule,
     SyncModule,
