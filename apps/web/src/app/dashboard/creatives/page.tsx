@@ -15,6 +15,7 @@ interface Creative {
   headline: string | null;
   description: string | null;
   callToAction: string | null;
+  linkUrl: string | null;
   imageUrl: string | null;
   fbCreativeId: string | null;
   usedCount: number;
