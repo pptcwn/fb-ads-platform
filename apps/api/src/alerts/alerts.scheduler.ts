@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { TelegramService } from './telegram.service';
@@ -14,14 +13,9 @@ export class AlertsScheduler {
     private readonly telegramService: TelegramService,
   ) {}
 
-  /**
-   * Run alert checks every 5 minutes
-   */
-  @Cron('*/5 * * * *')
   async checkAlerts() {
     this.logger.log('🔔 Checking alerts...');
 
-    // Get all enabled configs grouped by user
     const configs = await this.prisma.alertConfig.findMany({
       where: { enabled: true },
       include: {
@@ -30,7 +24,7 @@ export class AlertsScheduler {
             fbUsers: {
               include: { adAccounts: { include: { campaigns: true } } },
             },
-            abTests: { where: { status: 'ACTIVE' } },
+            abTests: { where: { status: 'COMPLETED' } },
           },
         },
       },
