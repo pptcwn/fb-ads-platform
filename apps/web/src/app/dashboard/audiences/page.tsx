@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import { Target, Users, Save, Plus, RefreshCw, Trash2, Folder, BarChart3, Upload, X, FileText, Check, AlertTriangle, Ban } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
@@ -12,7 +13,7 @@ interface Audience { id: string; adAccountId: string; accountName: string; fbAud
 
 const fmtNum = (n: number | null) => n ? (n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString()) : '-';
 
-const TYPE_ICONS: Record<string, string> = { CUSTOM: '🎯', LOOKALIKE: '👥', SAVED: '💾' };
+const TYPE_ICONS: Record<string, any> = { CUSTOM: <Target className="w-4 h-4" />, LOOKALIKE: <Users className="w-4 h-4" />, SAVED: <Save className="w-4 h-4" /> };
 const TYPE_LABELS: Record<string, string> = { CUSTOM: 'Custom', LOOKALIKE: 'Lookalike', SAVED: 'Saved Audience' };
 const STATUS_COLORS: Record<string, string> = {
   READY: 'badge-success',
@@ -218,16 +219,16 @@ export default function AudiencesPage() {
           subtitle={`${audiences.length} audiences`}
           actions={
             <>
-              <button onClick={() => setShowCustomModal(true)} className="btn-primary btn-sm">➕ Custom</button>
-              <button onClick={() => setShowLookalikeModal(true)} className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg">👥 Lookalike</button>
-              <button onClick={fetchAll} disabled={loading} className="btn-secondary btn-sm">🔄 Refresh</button>
+              <button onClick={() => setShowCustomModal(true)} className="btn-primary btn-sm inline-flex items-center gap-1"><Plus className="w-4 h-4" /> Custom</button>
+              <button onClick={() => setShowLookalikeModal(true)} className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg inline-flex items-center gap-1"><Users className="w-4 h-4" /> Lookalike</button>
+              <button onClick={fetchAll} disabled={loading} className="btn-secondary btn-sm inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Refresh</button>
             </>
           }
         />
 
         {/* Messages */}
-        {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}>✕</button></div>}
-        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}>✕</button></div>}
+        {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
+        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
 
         {/* Accounts quick sync */}
         <div className="flex flex-wrap gap-2">
@@ -242,7 +243,7 @@ export default function AudiencesPage() {
         {/* Audience Grid */}
         {audiences.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-4xl mb-3">🎯</p>
+            <Target className="w-12 h-12 mx-auto mb-3 text-ink-200" />
             <p className="text-lg font-medium mb-1 text-ink">No audiences yet</p>
             <p className="text-sm text-ink-300">Sync your ad accounts or create a new audience.</p>
           </div>
@@ -252,14 +253,14 @@ export default function AudiencesPage() {
               <div key={a.id} className="card p-4 hover:border-surface-300 transition-colors">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-lg">{TYPE_ICONS[a.type] || '🎯'}</span>
+                    <span className="text-lg">{TYPE_ICONS[a.type] || <Target className="w-4 h-4" />}</span>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-ink truncate max-w-[180px]">{a.name}</p>
                       <p className="text-[10px] text-ink-300">{TYPE_LABELS[a.type] || a.type} · {a.accountName}</p>
                     </div>
                   </div>
                   <button onClick={() => setDeleteConfirm(a)}
-                    className="text-ink-300 hover:text-danger text-xs shrink-0">🗑</button>
+                    className="text-ink-300 hover:text-danger text-xs shrink-0"><Trash2 className="w-4 h-4" /></button>
                 </div>
 
                 <div className="flex items-center gap-2 mb-2">
@@ -271,13 +272,13 @@ export default function AudiencesPage() {
                 {a.description && <p className="text-[11px] text-ink-300 mb-2 line-clamp-2">{a.description}</p>}
 
                 <div className="flex flex-wrap gap-1 text-[10px] text-ink-300">
-                  {a.subtype && <span className="bg-surface-50 px-1.5 py-0.5 rounded">📁 {a.subtype}</span>}
-                  {a.type === 'LOOKALIKE' && a.lookalikeRatio && <span className="bg-surface-50 px-1.5 py-0.5 rounded">📊 {a.lookalikeRatio}% ratio</span>}
+                  {a.subtype && <span className="bg-surface-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1"><Folder className="w-3 h-3" /> {a.subtype}</span>}
+                  {a.type === 'LOOKALIKE' && a.lookalikeRatio && <span className="bg-surface-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1"><BarChart3 className="w-3 h-3" /> {a.lookalikeRatio}% ratio</span>}
                 </div>
                 {a.type === 'CUSTOM' && a.status === 'READY' && (
                   <button onClick={() => setUploadTarget(a)}
-                    className="mt-2 w-full text-[10px] py-1 rounded-lg bg-surface-50 border border-surface-200/50 text-ink-300 hover:text-accent hover:border-accent-border transition-colors">
-                    📤 Upload CSV
+                    className="mt-2 w-full text-[10px] py-1 rounded-lg bg-surface-50 border border-surface-200/50 text-ink-300 hover:text-accent hover:border-accent-border transition-colors inline-flex items-center justify-center gap-1">
+                    <Upload className="w-3 h-3" /> Upload CSV
                   </button>
                 )}
               </div>
@@ -361,7 +362,7 @@ export default function AudiencesPage() {
           <button onClick={() => setShowLookalikeModal(false)} className="btn-secondary btn-sm">Cancel</button>
           <button onClick={createLookalike} disabled={formBusy || !lookalikeForm.adAccountId || !lookalikeForm.name || !lookalikeForm.sourceAudienceId}
             className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg disabled:opacity-50">
-            {formBusy ? 'Creating...' : '👥 Create Lookalike'}
+            {formBusy ? 'Creating...' : <><Users className="w-4 h-4" /> Create Lookalike</>}
           </button>
         </div>
       </Modal>
@@ -391,7 +392,7 @@ export default function AudiencesPage() {
               <input ref={fileInputRef} id="csv-file-input" type="file" accept=".csv" onChange={handleFileSelect}
                 className="hidden" />
               <label htmlFor="csv-file-input" className="cursor-pointer flex flex-col items-center gap-2">
-                <span className="text-3xl">📄</span>
+                <span className="text-3xl"><FileText className="w-8 h-8" /></span>
                 <span className="text-sm text-ink-300 hover:text-ink">Click to select CSV file</span>
                 <span className="text-[10px] text-ink-400">First row must be column headers</span>
               </label>
@@ -465,10 +466,10 @@ export default function AudiencesPage() {
           {/* Result */}
           {uploadResult && (
             <div className="msg-success space-y-1">
-              <p>✅ {uploadResult.message}</p>
-              <p>📊 Total: {uploadResult.totalRows} rows</p>
-              {uploadResult.invalid > 0 && <p>⚠️ Invalid: {uploadResult.invalid}</p>}
-              {uploadResult.rejected > 0 && <p>⛔ Rejected: {uploadResult.rejected}</p>}
+              <p className="inline-flex items-center gap-1"><Check className="w-4 h-4" /> {uploadResult.message}</p>
+              <p className="inline-flex items-center gap-1"><BarChart3 className="w-4 h-4" /> Total: {uploadResult.totalRows} rows</p>
+              {uploadResult.invalid > 0 && <p className="inline-flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> Invalid: {uploadResult.invalid}</p>}
+              {uploadResult.rejected > 0 && <p className="inline-flex items-center gap-1"><Ban className="w-4 h-4" /> Rejected: {uploadResult.rejected}</p>}
             </div>
           )}
 
@@ -483,7 +484,7 @@ export default function AudiencesPage() {
           {csvPreview && !uploadResult && (
             <button onClick={submitUpload} disabled={uploading || Object.values(schemaMapping).filter(Boolean).length === 0}
               className="btn-primary btn-sm">
-              {uploading ? 'Uploading...' : '📤 Upload to Facebook'}
+              {uploading ? 'Uploading...' : <><Upload className="w-4 h-4" /> Upload to Facebook</>}
             </button>
           )}
         </div>

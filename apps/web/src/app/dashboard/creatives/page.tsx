@@ -5,6 +5,7 @@ import axios from 'axios';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
+import { Sparkles, Download, Image, Video, FileText, Copy, Camera, Megaphone, Pencil, Palette, RefreshCw } from 'lucide-react';
 
 interface Creative {
   id: string;
@@ -280,13 +281,13 @@ export default function CreativesPage() {
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 tab === 'creatives' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
               }`}>
-              ✨ My Creatives
+                            <Sparkles className="w-4 h-4" /> My Creatives
             </button>
             <button onClick={() => setTab('import')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 tab === 'import' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
               }`}>
-              📥 Import from Page
+                            <Download className="w-4 h-4" /> Import from Page
             </button>
           </div>
           {tab === 'creatives' && (
@@ -364,7 +365,7 @@ export default function CreativesPage() {
                           <button onClick={() => importPost(selectedPage, post)}
                             disabled={importing === post.postId}
                             className="w-full text-sm bg-accent text-white px-3 py-2 rounded-lg hover:bg-accent/90 disabled:opacity-50">
-                            {importing === post.postId ? 'Importing...' : '📥 Import as Creative'}
+                            {importing === post.postId ? 'Importing...' : <><Download className="w-4 h-4" /> Import as Creative</>}
                           </button>
                         </div>
                       </div>
@@ -397,7 +398,7 @@ export default function CreativesPage() {
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
                         <div className={`text-4xl ${c.type === 'TEXT' ? '' : 'text-ink-400'}`}>
-                          {c.type === 'IMAGE' ? '🖼️' : c.type === 'VIDEO' ? '🎬' : '📝'}
+                          {c.type === 'IMAGE' ? <Image className="w-4 h-4" /> : c.type === 'VIDEO' ? <Video className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                         </div>
                       )}
                       <span className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-medium ${
@@ -431,14 +432,14 @@ export default function CreativesPage() {
                         <button onClick={() => deleteCreative(c.id, c.name)}
                           className="text-xs text-danger hover:text-danger/80 px-2 py-1 font-medium">Del</button>
                         <button onClick={() => cloneCreative(c.id, c.name)}
-                          className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 font-medium">🔀 Clone</button>
+                          className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 font-medium"><Copy className="w-4 h-4" /> Clone</button>
                         {c.type !== 'TEXT' && (
                           <>
                             <input type="file" ref={fileRef} accept="image/*" className="hidden"
                               onChange={() => uploadImage(c.id)} />
                             <button onClick={() => fileRef.current?.click()} disabled={uploading === c.id}
                               className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1">
-                              {uploading === c.id ? '...' : '📷'}
+                              {uploading === c.id ? '...' : <Camera className="w-4 h-4" />}
                             </button>
                           </>
                         )}
@@ -448,8 +449,7 @@ export default function CreativesPage() {
                         </button>
                         {pages.length > 0 && (
                           <button onClick={() => setShowPostModal(c.id)}
-                            className="text-xs text-orange-600 hover:text-orange-800 px-2 py-1 font-medium">
-                            📢 Post to Page
+                            className="text-xs text-orange-600 hover:text-orange-800 px-2 py-1 font-medium"><Megaphone className="w-4 h-4" /> Post to Page
                           </button>
                         )}
                       </div>
@@ -462,7 +462,7 @@ export default function CreativesPage() {
         )}
 
         {/* Create/Edit Form Modal */}
-        <Modal open={showForm} onClose={resetForm} title={editId ? '✏️ Edit Creative' : '🎨 New Creative'} maxWidth="max-w-2xl">
+        <Modal open={showForm} onClose={resetForm} title={editId ? <><Pencil className="w-4 h-4" /> Edit Creative</> : <><Palette className="w-4 h-4" /> New Creative</>} maxWidth="max-w-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-ink-200 mb-1">Name *</label>
@@ -533,13 +533,13 @@ export default function CreativesPage() {
         </Modal>
 
         {/* Post to Page Modal */}
-        <Modal open={!!showPostModal} onClose={() => setShowPostModal(null)} title="Post Creative to Page" icon="📢">
+        <Modal open={!!showPostModal} onClose={() => setShowPostModal(null)} title="Post Creative to Page" icon={<Megaphone className="w-4 h-4" />}>
           {pages.length === 0 ? (
             <div>
               <p className="text-sm text-ink-300 mb-4">No pages found. Sync your pages first.</p>
               <button onClick={() => { syncAndLoadPages(); setShowPostModal(null); }}
                 className="btn-primary btn-sm">
-                🔄 Sync Pages
+                                <RefreshCw className="w-4 h-4" /> Sync Pages
               </button>
             </div>
           ) : (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Zap, TrendingUp, TrendingDown, Bell, Pencil, Timer, Hourglass, ClipboardList, Target, RefreshCw, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
@@ -41,14 +42,14 @@ const OPERATORS = [
 ];
 
 const ACTIONS = [
-  { key: 'PAUSE_CAMPAIGN', label: '⏸ Pause Campaign', color: 'badge-danger' },
-  { key: 'PAUSE_ADSET', label: '⏸ Pause AdSet', color: 'badge-danger' },
-  { key: 'INCREASE_BUDGET_10', label: '📈 +10% Budget', color: 'bg-success-muted text-success border border-success-border' },
-  { key: 'INCREASE_BUDGET_20', label: '📈 +20% Budget', color: 'bg-success-muted text-success border border-success-border' },
-  { key: 'INCREASE_BUDGET_50', label: '📈 +50% Budget', color: 'bg-success-muted text-success border border-success-border' },
-  { key: 'DECREASE_BUDGET_10', label: '📉 -10% Budget', color: 'badge-warning' },
-  { key: 'DECREASE_BUDGET_20', label: '📉 -20% Budget', color: 'badge-warning' },
-  { key: 'NOTIFY', label: '🔔 Notify', color: 'bg-accent-muted text-accent border border-accent-border' },
+  { key: 'PAUSE_CAMPAIGN', label: <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> Pause Campaign</span>, color: 'badge-danger' },
+  { key: 'PAUSE_ADSET', label: <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> Pause AdSet</span>, color: 'badge-danger' },
+  { key: 'INCREASE_BUDGET_10', label: <span className="inline-flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +10% Budget</span>, color: 'bg-success-muted text-success border border-success-border' },
+  { key: 'INCREASE_BUDGET_20', label: <span className="inline-flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +20% Budget</span>, color: 'bg-success-muted text-success border border-success-border' },
+  { key: 'INCREASE_BUDGET_50', label: <span className="inline-flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +50% Budget</span>, color: 'bg-success-muted text-success border border-success-border' },
+  { key: 'DECREASE_BUDGET_10', label: <span className="inline-flex items-center gap-1"><TrendingDown className="w-3 h-3" /> -10% Budget</span>, color: 'badge-warning' },
+  { key: 'DECREASE_BUDGET_20', label: <span className="inline-flex items-center gap-1"><TrendingDown className="w-3 h-3" /> -20% Budget</span>, color: 'badge-warning' },
+  { key: 'NOTIFY', label: <span className="inline-flex items-center gap-1"><Bell className="w-3 h-3" /> Notify</span>, color: 'bg-accent-muted text-accent border border-accent-border' },
 ];
 
 const SCOPE_LABELS: Record<string, string> = { CAMPAIGN: 'Campaign', ADSET: 'AdSet', AD: 'Ad', ACCOUNT: 'Account' };
@@ -245,20 +246,20 @@ export default function RulesPage() {
           title="⚡ Rule Engine"
           subtitle={rules.length > 0 ? `${rules.length} rules configured` : undefined}
           actions={
-            <button onClick={openNewRule} className="btn-primary btn-sm">
-              {showForm ? '✕ Close' : '+ New Rule'}
+            <button onClick={openNewRule} className="btn-primary btn-sm inline-flex items-center gap-1">
+              {showForm ? <><X className="w-4 h-4" /> Close</> : '+ New Rule'}
             </button>
           }
         />
 
         {/* Messages */}
-        {msg && <div className={`${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>{msg}<button className="float-right" onClick={() => setMsg('')}>✕</button></div>}
-        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}>✕</button></div>}
+        {msg && <div className={`${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
+        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
 
         {/* Create Form */}
         {showForm && (
           <div className="card p-6">
-            <h3 className="text-lg font-semibold mb-4 text-ink">{editId ? '✏️ Edit Rule' : 'Create Rule'}</h3>
+            <h3 className="text-lg font-semibold mb-4 text-ink inline-flex items-center gap-2">{editId ? <><Pencil className="w-4 h-4" /> Edit Rule</> : 'Create Rule'}</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-ink mb-1">Rule Name</label>
@@ -312,7 +313,7 @@ export default function RulesPage() {
                     <input type="number" value={cond.value} onChange={e => updateCondition(i, 'value', parseFloat(e.target.value) || 0)}
                       className="border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink w-24" step="0.01" />
                     <span className="text-xs text-ink-300 w-8">{METRICS.find(m => m.key === cond.metric)?.unit}</span>
-                    <button onClick={() => removeCondition(i)} className="text-danger hover:text-danger/80 text-xs">✕</button>
+                    <button onClick={() => removeCondition(i)} className="text-danger hover:text-danger/80 text-xs"><X className="w-3 h-3" /></button>
                   </div>
                 ))}
               </div>
@@ -368,8 +369,8 @@ export default function RulesPage() {
             </div>
 
             <button onClick={saveRule}
-              className="btn-primary btn-sm">
-              {editId ? '💾 Update Rule' : '💾 Save Rule'}
+              className="btn-primary btn-sm inline-flex items-center gap-1">
+              {editId ? <><Save className="w-4 h-4" /> Update Rule</> : <><Save className="w-4 h-4" /> Save Rule</>}
             </button>
           </div>
         )}
@@ -377,10 +378,10 @@ export default function RulesPage() {
         {/* Rules List */}
         {rules.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-4xl mb-3">⚡</p>
+            <Zap className="w-12 h-12 mx-auto mb-3 text-ink-200" />
             <p className="text-ink-300 text-lg mb-4">No rules yet</p>
             <button onClick={() => setShowForm(true)}
-              className="btn-primary btn-sm">
+              className="btn-primary btn-sm inline-flex items-center gap-1">
               + Create your first rule
             </button>
           </div>
@@ -400,8 +401,8 @@ export default function RulesPage() {
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => editRule(rule)}
-                        className="btn-secondary btn-xs">
-                        ✏️ Edit
+                        className="btn-secondary btn-xs inline-flex items-center gap-1">
+                        <Pencil className="w-3 h-3" /> Edit
                       </button>
                       <button onClick={() => toggleRule(rule.id)}
                         className={`btn-xs ${rule.isEnabled ? 'btn bg-warning-muted text-warning border border-warning-border hover:bg-warning/20' : 'btn bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
@@ -437,16 +438,16 @@ export default function RulesPage() {
 
                   {/* Meta */}
                   <div className="mt-3 flex items-center gap-4 text-xs text-ink-300">
-                    <span>🔄 Triggered {rule.triggerCount} times</span>
-                    <span>⏱ Cooldown: {rule.cooldownMinutes}m</span>
+                    <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Triggered {rule.triggerCount} times</span>
+                    <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> Cooldown: {rule.cooldownMinutes}m</span>
                     {rule.remainingCooldown > 0 && (
-                      <span className="text-warning font-medium">
-                        ⏳ Cooldown remaining: {Math.floor(rule.remainingCooldown / 60)}m {rule.remainingCooldown % 60}s
+                      <span className="text-warning font-medium inline-flex items-center gap-1">
+                        <Hourglass className="w-3 h-3" /> Cooldown remaining: {Math.floor(rule.remainingCooldown / 60)}m {rule.remainingCooldown % 60}s
                       </span>
                     )}
-                    <span>📋 Logs: {rule._count?.logs || 0}</span>
+                    <span className="inline-flex items-center gap-1"><ClipboardList className="w-3 h-3" /> Logs: {rule._count?.logs || 0}</span>
                     {rule.lastTriggeredAt && <span>Last fired: {fmtDate(rule.lastTriggeredAt)}</span>}
-                    {rule.campaign && <span>🎯 {rule.campaign.name} ({rule.campaign.status})</span>}
+                    {rule.campaign && <span className="inline-flex items-center gap-1"><Target className="w-3 h-3" /> {rule.campaign.name} ({rule.campaign.status})</span>}
                   </div>
 
                   {/* View logs button */}
@@ -471,7 +472,7 @@ export default function RulesPage() {
                               <span className="font-medium text-ink">{fmtDate(log.triggeredAt)}</span>
                               {' — '}
                               <span className={log.success ? 'text-success' : 'text-danger'}>
-                                {log.success ? '✅ Success' : `❌ ${log.errorMessage || 'Failed'}`}
+                                {log.success ? 'Success' : `Failed: ${log.errorMessage || ''}`}
                               </span>
                               {' — '}
                               <span className="text-ink-300">

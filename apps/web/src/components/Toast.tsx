@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { CheckCircle2, X, Info } from 'lucide-react';
 
 interface Toast {
   id: string;
@@ -54,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           >
             <div className="flex items-center gap-2">
               <span>
-                {t.type === 'success' ? '✓' : t.type === 'error' ? '✕' : 'ℹ'}
+                {t.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : t.type === 'error' ? <X className="w-4 h-4" /> : <Info className="w-4 h-4" />}
               </span>
               <span>{t.message}</span>
             </div>

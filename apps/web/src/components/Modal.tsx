@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title: string;
-  icon?: string;
+  title: React.ReactNode;
+  icon?: React.ReactNode;
   children: React.ReactNode;
   maxWidth?: string;
 }
@@ -46,7 +47,7 @@ export default function Modal({ open, onClose, title, icon, children, maxWidth =
             className="text-ink-100 hover:text-ink text-lg leading-none p-1 rounded hover:bg-surface-200 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -63,12 +64,12 @@ interface ConfirmModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  title: string;
+  title: React.ReactNode;
   message: string;
   confirmLabel?: string;
   confirmVariant?: 'danger' | 'primary' | 'warning';
   busy?: boolean;
-  icon?: string;
+  icon?: React.ReactNode;
   danger?: boolean;
 }
 

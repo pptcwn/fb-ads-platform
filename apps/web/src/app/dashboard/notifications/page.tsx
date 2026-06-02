@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
+import { Bell, Settings, ClipboardList, Bot, Download, Send, Unplug, FileText, Link } from 'lucide-react';
 
 interface AlertConfig {
   id: string;
@@ -208,21 +209,21 @@ export default function NotificationsPage() {
     <Shell>
       <div className="p-6 space-y-6">
         <PageHeader
-          title="🔔 Notifications"
+          title={<><Bell className="w-4 h-4" /> Notifications</>}
           subtitle={alerts.unreadCount > 0 ? `${alerts.unreadCount} unread` : undefined}
           actions={
             <div className="flex gap-2">
               <button onClick={() => setTab('configs')}
                 className={`btn-sm ${tab === 'configs' ? 'btn-primary' : 'btn-secondary'}`}>
-                ⚙️ Configs
+                                <Settings className="w-4 h-4" /> Configs
               </button>
               <button onClick={() => setTab('history')}
                 className={`btn-sm ${tab === 'history' ? 'btn-primary' : 'btn-secondary'}`}>
-                📋 History {alerts.unreadCount > 0 && `(${alerts.unreadCount})`}
+                                <ClipboardList className="w-4 h-4" /> History {alerts.unreadCount > 0 && `(${alerts.unreadCount})`}
               </button>
               <button onClick={() => setTab('telegram')}
                 className={`btn-sm ${tab === 'telegram' ? 'btn-primary' : 'btn-secondary'}`}>
-                🤖 Telegram
+                <Bot className="w-4 h-4" /> Telegram
               </button>
             </div>
           }
@@ -235,11 +236,11 @@ export default function NotificationsPage() {
             {/* Alert Configs */}
             <div className="card">
               <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink">⚙️ Alert Configurations</h3>
+                <h3 className="text-sm font-semibold text-ink"><Settings className="w-4 h-4 inline" /> Alert Configurations</h3>
                 <div className="flex gap-2">
                   <button onClick={initDefaults} disabled={saving}
                     className="btn-sm bg-success-muted text-success border border-success-border hover:bg-success/20 disabled:opacity-50 font-medium">
-                    📥 Add Defaults
+                                        <Download className="w-4 h-4" /> Add Defaults
                   </button>
                   <button onClick={() => setShowForm(!showForm)}
                     className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">
@@ -350,7 +351,7 @@ export default function NotificationsPage() {
             {/* Alert History */}
             <div className="card">
               <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink">📋 Alert History</h3>
+                <h3 className="text-sm font-semibold text-ink"><ClipboardList className="w-4 h-4 inline" /> Alert History</h3>
                 {alerts.alerts.some(a => !a.isRead) && (
                   <button onClick={() => markRead()}
                     className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">
@@ -413,7 +414,7 @@ export default function NotificationsPage() {
             {/* Telegram Settings */}
             <div className="card">
               <div className="px-6 py-4 border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink">🤖 Telegram Integration</h3>
+                <h3 className="text-sm font-semibold text-ink"><Bot className="w-4 h-4 inline" /> Telegram Integration</h3>
               </div>
               <div className="px-6 py-6">
                 {tgSettings?.hasBotToken && tgSettings?.hasChatId ? (
@@ -432,16 +433,16 @@ export default function NotificationsPage() {
                     <div className="flex gap-2">
                       <button onClick={testTelegram} disabled={tgTesting}
                         className="btn-primary btn-sm">
-                        {tgTesting ? 'Sending...' : '📨 Send Test Message'}
+                        {tgTesting ? 'Sending...' : <><Send className="w-4 h-4" /> Send Test Message</>}
                       </button>
                       <button onClick={disconnectTelegram}
                         className="btn-sm border border-danger-border text-danger hover:bg-danger-muted">
-                        🔌 Disconnect
+                                                <Unplug className="w-4 h-4" /> Disconnect
                       </button>
                     </div>
 
                     <div className="bg-accent-muted border border-accent-border rounded-lg px-4 py-3">
-                      <p className="text-sm font-medium text-accent">📝 How to set up:</p>
+                      <p className="text-sm font-medium text-accent"><FileText className="w-4 h-4 inline" /> How to set up:</p>
                       <ol className="text-xs text-accent/80 mt-2 list-decimal list-inside space-y-1">
                         <li>Create a bot at <a href="https://t.me/BotFather" target="_blank" className="underline">@BotFather</a> on Telegram</li>
                         <li>Get your Bot Token from BotFather</li>
@@ -482,7 +483,7 @@ export default function NotificationsPage() {
                     </div>
 
                     <div className="bg-accent-muted border border-accent-border rounded-lg px-4 py-3">
-                      <p className="text-sm font-medium text-accent">📝 How to get started:</p>
+                      <p className="text-sm font-medium text-accent"><FileText className="w-4 h-4 inline" /> How to get started:</p>
                       <ol className="text-xs text-accent/80 mt-2 list-decimal list-inside space-y-2">
                         <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank" className="underline font-medium">@BotFather</a></li>
                         <li>Send <code className="bg-accent-muted px-1 rounded">/newbot</code> and follow the prompts</li>
@@ -511,7 +512,7 @@ export default function NotificationsPage() {
                     <div className="flex gap-2">
                       <button onClick={saveTelegram} disabled={tgSaving || !tgBotToken.trim() || !tgChatId.trim()}
                         className="btn-primary btn-sm">
-                        {tgSaving ? 'Saving...' : '🔗 Connect'}
+                        {tgSaving ? 'Saving...' : <><Link className="w-4 h-4" /> Connect</>}
                       </button>
                       <button onClick={testTelegram} disabled={tgTesting || !tgSettings?.hasBotToken}
                         className="btn-secondary btn-sm">

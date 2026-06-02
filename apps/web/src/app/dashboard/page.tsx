@@ -8,6 +8,7 @@ import PageHeader from '@/components/PageHeader';
 import Skeleton from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 import { fmtCurr, fmtNum } from '@/lib/utils';
+import { RefreshCw, BarChart3, Link, Sparkles, ClipboardList, TrendingUp, Flame, SkipForward } from 'lucide-react';
 
 // ─── Types ───
 
@@ -204,11 +205,11 @@ export default function DashboardPage() {
             <div className="flex gap-2">
               <button onClick={triggerSync} disabled={syncing}
                 className="btn-primary btn-sm">
-                {syncing ? 'Syncing...' : '🔄 Sync Now'}
+                {syncing ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync Now</>}
               </button>
               <button onClick={syncInsights} disabled={insightSyncing}
                 className="btn-secondary btn-sm">
-                {insightSyncing ? 'Loading...' : '📊 Get Insights'}
+                {insightSyncing ? 'Loading...' : <><BarChart3 className="w-4 h-4" /> Get Insights</>}
               </button>
             </div>
           )}
@@ -256,7 +257,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <p className="text-sm text-ink-200">Connect Facebook to manage ad accounts.</p>
               <button onClick={connectFacebook} className="btn-primary btn-sm">
-                🔗 Connect Facebook
+                                <Link className="w-4 h-4" /> Connect Facebook
               </button>
             </div>
           )}
@@ -285,15 +286,15 @@ export default function DashboardPage() {
             <div className="flex gap-3 mb-6">
               <a href="/dashboard/campaigns?new=1"
                 className="btn-primary btn-sm">
-                ✨ New Campaign
+                                <Sparkles className="w-4 h-4" /> New Campaign
               </a>
               <a href="/dashboard/campaigns"
                 className="btn-secondary btn-sm">
-                📋 View Campaigns
+                                <ClipboardList className="w-4 h-4" /> View Campaigns
               </a>
               <button onClick={triggerSync} disabled={syncing}
                 className="btn-secondary btn-sm disabled:opacity-50">
-                {syncing ? 'Syncing...' : '🔄 Sync Now'}
+                {syncing ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync Now</>}
               </button>
             </div>
 
@@ -323,7 +324,7 @@ export default function DashboardPage() {
             {insights.length > 0 && (
               <div className="card p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-ink">📈 Performance (last {insightDays} days)</h3>
+                  <h3 className="text-sm font-semibold text-ink"><TrendingUp className="w-4 h-4 inline" /> Performance (last {insightDays} days)</h3>
                   <div className="grid grid-cols-4 gap-6 text-center text-sm">
                     <div><p className="text-ink-200 text-xs">Spend</p><p className="font-semibold text-ink">${fmtNum(totals.spend)}</p></div>
                     <div><p className="text-ink-200 text-xs">Impressions</p><p className="font-semibold text-ink">{fmtNum(totals.impressions)}</p></div>
@@ -365,12 +366,12 @@ export default function DashboardPage() {
             {/* Warmup Section */}
             <div className="card mb-6">
               <div className="px-5 py-3.5 flex items-center justify-between border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink">🔥 Account Warmup</h3>
+                <h3 className="text-sm font-semibold text-ink"><Flame className="w-4 h-4 inline" /> Account Warmup</h3>
                 <div className="flex gap-2">
                   {warmups.length > 0 && (
                     <button onClick={warmupTick} disabled={warmupBusy}
                       className="badge-info cursor-pointer disabled:opacity-50">
-                      ⏭️ Advance Day (Manual)
+                                            <SkipForward className="w-4 h-4" /> Advance Day (Manual)
                     </button>
                   )}
                 </div>

@@ -7,6 +7,7 @@ import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import { ConfirmModal } from '@/components/Modal';
 import { fmtCurr, fmtNum } from '@/lib/utils';
+import { GitBranch, Pause, Square, Play, RefreshCw, Trash2, Pencil, X } from 'lucide-react';
 
 interface AbTestVariant {
   id: string; name: string; fbCampaignId: string; status: string; dailyBudget: number;
@@ -196,7 +197,7 @@ export default function AbTestPage() {
     <Shell>
       <div className="p-6 space-y-6">
         <PageHeader
-          title="🔁 A/B Testing"
+          title={<><GitBranch className="w-4 h-4" /> A/B Testing</>}
           subtitle={tests.length > 0 ? `${tests.length} tests` : undefined}
           actions={
             <button onClick={openCreate}
@@ -211,7 +212,7 @@ export default function AbTestPage() {
 
         {tests.length === 0 ? (
           <div className="card p-12 text-center">
-            <p className="text-4xl mb-4">🔁</p>
+            <p className="text-4xl mb-4"><GitBranch className="w-4 h-4" /></p>
             <p className="text-lg font-medium text-ink mb-1">No A/B tests yet</p>
             <p className="text-sm text-ink-300">Create an A/B test to compare campaign variants side by side</p>
           </div>
@@ -231,19 +232,19 @@ export default function AbTestPage() {
                     {test.status === 'ACTIVE' && (
                       <>
                         <button onClick={() => pauseTest(test.id)}
-                          className="btn-xs bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 font-medium">⏸️ Pause</button>
+                          className="btn-xs bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 font-medium"><Pause className="w-4 h-4" /> Pause</button>
                         <button onClick={() => stopTest(test.id)}
-                          className="btn-xs badge-danger hover:bg-danger font-medium">⏹️ Stop</button>
+                          className="btn-xs badge-danger hover:bg-danger font-medium"><Square className="w-4 h-4" /> Stop</button>
                       </>
                     )}
                     {test.status === 'PAUSED' && (
                       <button onClick={() => resumeTest(test.id)}
-                        className="btn-xs bg-success-muted text-success border border-success-border hover:bg-success/20 font-medium">▶️ Resume All</button>
+                        className="btn-xs bg-success-muted text-success border border-success-border hover:bg-success/20 font-medium"><Play className="w-4 h-4" /> Resume All</button>
                     )}
                     <button onClick={() => loadVariants(test.id)}
-                      className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">🔄 Refresh</button>
+                      className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"><RefreshCw className="w-4 h-4" /> Refresh</button>
                     <button onClick={() => setDeleteConfirm({ type: 'test', id: test.id, name: test.name })}
-                      className="btn-xs bg-surface-100 text-ink-300 hover:bg-danger-muted hover:text-danger font-medium">🗑️</button>
+                      className="btn-xs bg-surface-100 text-ink-300 hover:bg-danger-muted hover:text-danger font-medium"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
 
@@ -284,12 +285,12 @@ export default function AbTestPage() {
                                 <div className="flex items-center justify-center gap-1">
                                   <button onClick={() => toggleVariant(v.id)}
                                     className={`btn-xs ${v.status === 'ACTIVE' ? 'bg-warning-muted text-warning border border-warning-border hover:bg-warning/20' : 'bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
-                                    {v.status === 'ACTIVE' ? '⏸️' : '▶️'}
+                                    {v.status === 'ACTIVE' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                                   </button>
                                   <button onClick={() => openEdit(v)}
-                                    className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">✏️</button>
+                                    className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"><Pencil className="w-4 h-4" /></button>
                                   <button onClick={() => setDeleteConfirm({ type: 'variant', id: v.id, name: v.name })}
-                                    className="btn-xs bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 font-medium">🗑️</button>
+                                    className="btn-xs bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 font-medium"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                               </td>
                             </tr>
@@ -312,7 +313,7 @@ export default function AbTestPage() {
       </div>
 
       {/* Create Modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="🔁 New A/B Test" maxWidth="max-w-2xl">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={<><GitBranch className="w-4 h-4" /> New A/B Test</>} maxWidth="max-w-2xl">
         <div className="mb-4">
           <label className="block text-xs font-medium text-ink mb-1">Source Campaign</label>
           <select value={selectedCamp} onChange={e => setSelectedCamp(e.target.value)}
@@ -344,7 +345,7 @@ export default function AbTestPage() {
                   className="flex-1 px-3 py-2 text-sm bg-surface-100 text-ink" />
                 {variants.length > 2 && (
                   <button onClick={() => removeVariant(idx)}
-                    className="text-xs text-danger hover:text-danger/80">✕</button>
+                    className="text-xs text-danger hover:text-danger/80"><X className="w-4 h-4" /></button>
                 )}
               </div>
             ))}
@@ -361,7 +362,7 @@ export default function AbTestPage() {
       </Modal>
 
       {/* Edit Variant Modal */}
-      <Modal open={!!editVariant} onClose={() => setEditVariant(null)} title="✏️ Edit Variant" maxWidth="max-w-sm">
+      <Modal open={!!editVariant} onClose={() => setEditVariant(null)} title={<><Pencil className="w-4 h-4" /> Edit Variant</>} maxWidth="max-w-sm">
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-ink mb-1">Name</label>
@@ -388,10 +389,10 @@ export default function AbTestPage() {
         open={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
         onConfirm={confirmDelete}
-        title={deleteConfirm?.type === 'test' ? '🗑️ Delete A/B Test' : '🗑️ Delete Variant'}
+        title={deleteConfirm?.type === 'test' ? <><Trash2 className="w-4 h-4" /> Delete A/B Test</> : <><Trash2 className="w-4 h-4" /> Delete Variant</>}
         message={deleteConfirm ? `Are you sure you want to delete ${deleteConfirm.name}? ${deleteConfirm.type === 'test' ? 'All variants will also be deleted from Facebook.' : 'This variant campaign will be deleted from Facebook.'}` : ''}
         busy={deleting}
-        icon="🗑️"
+        icon={<Trash2 className="w-4 h-4" />}
         danger
       />
     </Shell>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { ChevronRight, X, BarChart3, User, MapPin, Target, Users, Smartphone, Settings } from 'lucide-react';
 
 // ─── Types ───
 interface Interest { id: string; name: string; audienceSize?: number | null; }
@@ -52,7 +53,7 @@ function fmtNum(n: number | null) {
 
 // ─── Sub-components ───
 function SectionCard({ title, icon, children, defaultOpen = false }: {
-  title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean;
+  title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -62,10 +63,10 @@ function SectionCard({ title, icon, children, defaultOpen = false }: {
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-surface-50 transition-colors rounded-t-lg"
       >
         <span className="text-sm font-medium text-ink flex items-center gap-2">
-          <span>{icon}</span> {title}
+          {icon} {title}
         </span>
         <span className="text-ink-200 text-xs transition-transform duration-150" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)' }}>
-          ▶
+          <ChevronRight className="w-4 h-4" />
         </span>
       </button>
       {open && <div className="px-4 pb-4 space-y-2">{children}</div>}
@@ -77,7 +78,7 @@ function TagPill({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-accent-muted text-accent border border-accent-border">
       {label}
-      <button onClick={onRemove} className="hover:text-danger transition-colors">×</button>
+      <button onClick={onRemove} className="hover:text-danger transition-colors"><X className="w-4 h-4" /></button>
     </span>
   );
 }
@@ -207,7 +208,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
       {/* ─── Audience Estimate Banner ─── */}
       {audienceSize && (audienceSize.daily > 0 || audienceSize.monthly > 0) && (
         <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-surface-100 border border-surface-200 text-xs">
-          <span className="text-ink-200">📊 Est. Audience</span>
+          <span className="text-ink-200"><BarChart3 className="w-4 h-4" /> Est. Audience</span>
           <span className="font-semibold text-ink">{fmtNum(audienceSize.daily)} <span className="text-ink-300 font-normal">daily</span></span>
           <span className="text-ink-300">·</span>
           <span className="font-semibold text-ink">{fmtNum(audienceSize.monthly)} <span className="text-ink-300 font-normal">monthly</span></span>
@@ -215,7 +216,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
       )}
 
       {/* ─── Age & Gender ─── */}
-      <SectionCard title="Age & Gender" icon="👤" defaultOpen={true}>
+      <SectionCard title="Age & Gender" icon={<User className="w-4 h-4" />} defaultOpen={true}>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <span className="text-xs text-ink-200 w-8">Age</span>
@@ -264,7 +265,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
       </SectionCard>
 
       {/* ─── Locations ─── */}
-      <SectionCard title="Locations" icon="📍">
+      <SectionCard title="Locations" icon={<MapPin className="w-4 h-4" />}>
         <div className="relative mb-2">
           <input
             type="text"
@@ -307,7 +308,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
       </SectionCard>
 
       {/* ─── Interests ─── */}
-      <SectionCard title="Interests" icon="🎯">
+      <SectionCard title="Interests" icon={<Target className="w-4 h-4" />}>
         <div className="relative mb-2">
           <input
             type="text"
@@ -348,7 +349,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
       </SectionCard>
 
       {/* ─── Custom Audiences ─── */}
-      <SectionCard title="Custom Audiences" icon="👥">
+      <SectionCard title="Custom Audiences" icon={<Users className="w-4 h-4" />}>
         {audiences.length === 0 ? (
           <p className="text-xs text-ink-300 py-2">No audiences yet — create one in the Audiences page.</p>
         ) : (
@@ -392,7 +393,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
       </SectionCard>
 
       {/* ─── Platforms & Placements ─── */}
-      <SectionCard title="Platforms & Placements" icon="📱">
+      <SectionCard title="Platforms & Placements" icon={<Smartphone className="w-4 h-4" />}>
         <div className="space-y-3">
           <div>
             <p className="text-[10px] text-ink-300 mb-1.5">Platforms</p>
@@ -467,7 +468,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
       </SectionCard>
 
       {/* ─── Advanced ─── */}
-      <SectionCard title="Advanced" icon="⚙">
+      <SectionCard title="Advanced" icon={<Settings className="w-4 h-4" />}>
         <div>
           <p className="text-[10px] text-ink-300 mb-1.5">Targeting Optimization</p>
           <select

@@ -2,37 +2,59 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Megaphone,
+  Users,
+  Image,
+  Package,
+  Zap,
+  Calendar,
+  Banknote,
+  FlaskConical,
+  BarChart3,
+  Bell,
+  LogOut,
+  type LucideIcon,
+} from 'lucide-react';
 
-const NAV_GROUPS = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  exact: boolean;
+}
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Overview',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '▦', exact: true },
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, exact: true },
     ],
   },
   {
     label: 'Campaigns',
     items: [
-      { label: 'Campaigns', href: '/dashboard/campaigns', icon: '📋', exact: false },
-      { label: 'Audiences', href: '/dashboard/audiences', icon: '🎯', exact: false },
-      { label: 'Creatives', href: '/dashboard/creatives', icon: '🖼', exact: false },
-      { label: 'Templates', href: '/dashboard/templates', icon: '📦', exact: false },
+      { label: 'Campaigns', href: '/dashboard/campaigns', icon: Megaphone, exact: false },
+      { label: 'Audiences', href: '/dashboard/audiences', icon: Users, exact: false },
+      { label: 'Creatives', href: '/dashboard/creatives', icon: Image, exact: false },
+      { label: 'Templates', href: '/dashboard/templates', icon: Package, exact: false },
     ],
   },
   {
     label: 'Automation',
     items: [
-      { label: 'Rules', href: '/dashboard/rules', icon: '⚡', exact: false },
-      { label: 'Schedules', href: '/dashboard/schedules', icon: '📅', exact: false },
-      { label: 'Budget', href: '/dashboard/budget', icon: '💰', exact: false },
-      { label: 'A/B Test', href: '/dashboard/abtest', icon: '🔬', exact: false },
+      { label: 'Rules', href: '/dashboard/rules', icon: Zap, exact: false },
+      { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar, exact: false },
+      { label: 'Budget', href: '/dashboard/budget', icon: Banknote, exact: false },
+      { label: 'A/B Test', href: '/dashboard/abtest', icon: FlaskConical, exact: false },
     ],
   },
   {
     label: 'Insights',
     items: [
-      { label: 'Analytics', href: '/dashboard/analytics', icon: '📊', exact: false },
-      { label: 'Alerts', href: '/dashboard/notifications', icon: '🔔', exact: false },
+      { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, exact: false },
+      { label: 'Alerts', href: '/dashboard/notifications', icon: Bell, exact: false },
     ],
   },
 ];
@@ -65,6 +87,7 @@ export default function Sidebar() {
             </p>
             {group.items.map((item) => {
               const active = isActive(item.href, item.exact);
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
@@ -77,7 +100,7 @@ export default function Sidebar() {
                   }`}
                   style={{ letterSpacing: '-0.01em' }}
                 >
-                  <span className="w-5 text-center text-base" aria-hidden="true">{item.icon}</span>
+                  <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -94,7 +117,7 @@ export default function Sidebar() {
           style={{ letterSpacing: '-0.01em' }}
           aria-label="Sign out"
         >
-          <span className="w-5 text-center" aria-hidden="true">🚪</span>
+          <LogOut className="w-4 h-4" aria-hidden="true" />
           Sign Out
         </button>
       </div>

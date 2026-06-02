@@ -11,4 +11,4 @@ secrets/
 .DS_Store
 *.tsbuildinfo
 .github/skills/
-docs/
+docs/.pnpm-store/
