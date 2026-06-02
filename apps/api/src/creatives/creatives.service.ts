@@ -209,7 +209,7 @@ export class CreativesService {
     }
 
     // Call Facebook API
-    const baseUrl = 'https://graph.facebook.com/v20.0';
+    const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
     const url = `${baseUrl}/act_${account.accountId}/creatives`;
 
     const response = await fetch(url, {
@@ -238,7 +238,7 @@ export class CreativesService {
 
   private async uploadImageToFb(accountId: string, accessToken: string, imageUrl: string): Promise<string | null> {
     try {
-      const baseUrl = 'https://graph.facebook.com/v20.0';
+      const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
 
       // If it's a local upload, we need to read the file
       let sourceUrl = imageUrl;
@@ -305,7 +305,7 @@ export class CreativesService {
     } else {
       // Fallback: fetch post details from FB
       const accessToken = await this.facebookService.getPageAccessToken(pageId);
-      const baseUrl = 'https://graph.facebook.com/v20.0';
+      const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
       const fields = 'id,message,permalink_url,created_time,full_picture,attachments{media,subattachments}';
       const url = `${baseUrl}/${postId}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(accessToken)}`;
       const response = await fetch(url);

@@ -31,7 +31,7 @@ interface FBPage<T> {
 @Injectable()
 export class InsightsService {
   private readonly logger = new Logger(InsightsService.name);
-  private readonly baseUrl = 'https://graph.facebook.com/v20.0';
+  private readonly baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
 
   constructor(
     private readonly prisma: PrismaService,
