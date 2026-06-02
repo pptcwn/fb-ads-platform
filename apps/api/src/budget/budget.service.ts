@@ -367,23 +367,33 @@ export class BudgetService {
   private getNowInTimezone(tz: string): { minute: number; hour: number; dayOfMonth: number; month: number; dayOfWeek: number } {
     const now = new Date();
     const safeZone = (() => {
-      try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return tz; } catch { return 'UTC'; }
+      try { Intl.DateTimeFormat(undefined, { timeZone: tz }); return tz; } catch {
+        this.logger.warn(`Invalid timezone "${tz}", falling back to UTC`);
+        return 'UTC';
+      }
     })();
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: safeZone,
       hour: 'numeric', minute: 'numeric',
       day: 'numeric', month: 'numeric',
-      weekday: 'short',
       hour12: false,
     }).formatToParts(now);
     const get = (type: string) => parts.find(p => p.type === type)?.value ?? '0';
+
+    // Get day of week separately using locale-independent en-US format
+    const weekdayIdx = new Intl.DateTimeFormat('en-US', {
+      timeZone: safeZone,
+      weekday: 'short',
+    }).format(now);
     const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayOfWeek = weekdays.indexOf(weekdayIdx);
+
     return {
       minute: parseInt(get('minute')),
-      hour: parseInt(get('hour')) % 24,
+      hour: parseInt(get('hour')),
       dayOfMonth: parseInt(get('day')),
       month: parseInt(get('month')),
-      dayOfWeek: weekdays.indexOf(get('weekday')),
+      dayOfWeek: dayOfWeek === -1 ? 0 : dayOfWeek,
     };
   }
 
