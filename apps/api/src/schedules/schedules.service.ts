@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
+import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class SchedulesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
+    private readonly campaignLock: CampaignLockService,
   ) {}
 
   // ─── CRUD ───
@@ -215,26 +217,26 @@ export class SchedulesService {
 
     try {
       const accessToken = await this.facebookService.getDecryptedToken(campaign.adAccount.fbUser.id);
-      await this.facebookService.updateCampaignStatus(
-        campaign.adAccount.accountId,
-        campaign.campaignId,
-        fbStatus,
-        accessToken,
+      await this.campaignLock.withCampaignLock(
+        campaign.id,
+        async () => {
+          await this.facebookService.updateCampaignStatus(
+            campaign.adAccount.accountId,
+            campaign.campaignId,
+            fbStatus,
+            accessToken,
+          );
+          await this.prisma.campaign.update({
+            where: { id: campaign.id },
+            data: { status: fbStatus as any },
+          });
+        },
+        `Schedules:${action}`,
       );
-
-      // Update local DB
-      await this.prisma.campaign.update({
-        where: { id: campaign.id },
-        data: { status: fbStatus as any },
-      });
 
       await this.prisma.campaignSchedule.update({
         where: { id },
-        data: {
-          lastRunAt: new Date(),
-          lastError: null,
-          runCount: { increment: 1 },
-        },
+        data: { lastRunAt: new Date(), lastError: null, runCount: { increment: 1 } },
       });
 
       this.logger.log(`Schedule ${id} executed: campaign ${campaign.name} → ${action}`);

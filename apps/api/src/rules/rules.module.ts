@@ -7,6 +7,7 @@ import { RulesEngineService } from './rules-engine.service';
 import { RulesScheduler } from './rules.scheduler';
 import { PrismaModule } from '../prisma/prisma.module';
 import { FacebookModule } from '../facebook/facebook.module';
+import { CampaignLockModule } from '../campaign-lock/campaign-lock.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { FacebookModule } from '../facebook/facebook.module';
     HttpModule.register({ timeout: 60000, maxRedirects: 5 }),
     PrismaModule,
     FacebookModule,
+    CampaignLockModule,
   ],
   controllers: [RulesController],
   providers: [RulesService, RulesEngineService, RulesScheduler],

@@ -4,9 +4,10 @@ import { BudgetController } from './budget.controller';
 import { BudgetService } from './budget.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { FacebookModule } from '../facebook/facebook.module';
+import { CampaignLockModule } from '../campaign-lock/campaign-lock.module';
 
 @Module({
-  imports: [ScheduleModule, PrismaModule, FacebookModule],
+  imports: [ScheduleModule, PrismaModule, FacebookModule, CampaignLockModule],
   controllers: [BudgetController],
   providers: [BudgetService],
   exports: [BudgetService],

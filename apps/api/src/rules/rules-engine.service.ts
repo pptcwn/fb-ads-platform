@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
+import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
 
 interface RuleCondition {
   metric: string;
@@ -16,6 +17,7 @@ export class RulesEngineService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
+    private readonly campaignLock: CampaignLockService,
   ) {}
 
   /**
@@ -181,29 +183,39 @@ export class RulesEngineService {
     switch (action) {
       case 'PAUSE_CAMPAIGN': {
         if (!rule.campaign) break;
-        const fbCampaignId = rule.campaign.campaignId;
-        await this.facebookService.updateCampaignStatus(
-          rule.campaign.adAccount.accountId,
-          fbCampaignId,
-          'PAUSED',
-          accessToken,
+        await this.campaignLock.withCampaignLock(
+          rule.campaign.id,
+          async () => {
+            await this.facebookService.updateCampaignStatus(
+              rule.campaign.adAccount.accountId,
+              rule.campaign.campaignId,
+              'PAUSED',
+              accessToken,
+            );
+            await this.prisma.campaign.update({
+              where: { id: rule.campaign.id },
+              data: { status: 'PAUSED' },
+            });
+          },
+          'RulesEngine:PAUSE_CAMPAIGN',
         );
-        // Update local status
-        await this.prisma.campaign.update({
-          where: { id: rule.campaign.id },
-          data: { status: 'PAUSED' },
-        });
         break;
       }
 
       case 'PAUSE_ADSET': {
         // For v1, treat as pausing the campaign
         if (!rule.campaign) break;
-        await this.facebookService.updateCampaignStatus(
-          rule.campaign.adAccount.accountId,
-          rule.campaign.campaignId,
-          'PAUSED',
-          accessToken,
+        await this.campaignLock.withCampaignLock(
+          rule.campaign.id,
+          async () => {
+            await this.facebookService.updateCampaignStatus(
+              rule.campaign.adAccount.accountId,
+              rule.campaign.campaignId,
+              'PAUSED',
+              accessToken,
+            );
+          },
+          'RulesEngine:PAUSE_ADSET',
         );
         break;
       }

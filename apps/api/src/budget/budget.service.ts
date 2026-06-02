@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
+import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
 
 @Injectable()
 export class BudgetService {
@@ -10,6 +11,7 @@ export class BudgetService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
+    private readonly campaignLock: CampaignLockService,
   ) {}
 
   // ─── CRUD ───
@@ -199,30 +201,52 @@ export class BudgetService {
     if (schedule.campaignId) {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: schedule.campaignId },
+        include: { adAccount: true },
       });
-      if (campaign) {
-        await this.facebookService.updateCampaignStatus('', campaign.campaignId, 'PAUSED', accessToken);
-        await this.prisma.campaign.update({
-          where: { id: schedule.campaignId },
-          data: { status: 'PAUSED' },
-        });
-      }
+      if (!campaign) return;
+      await this.campaignLock.withCampaignLock(
+        campaign.id,
+        async () => {
+          await this.facebookService.updateCampaignStatus(
+            campaign.adAccount.accountId,
+            campaign.campaignId,
+            'PAUSED',
+            accessToken,
+          );
+          await this.prisma.campaign.update({
+            where: { id: campaign.id },
+            data: { status: 'PAUSED' as any },
+          });
+        },
+        'Budget:PAUSE',
+      );
     } else if (schedule.adAccountId) {
-      // Pause all active campaigns under this account
       const campaigns = await this.prisma.campaign.findMany({
-        where: { adAccountId: schedule.adAccountId, status: 'ACTIVE' },
+        where: { adAccountId: schedule.adAccountId },
+        include: { adAccount: true },
       });
       for (const campaign of campaigns) {
         try {
-          await this.facebookService.updateCampaignStatus('', campaign.campaignId, 'PAUSED', accessToken);
+          await this.campaignLock.withCampaignLock(
+            campaign.id,
+            async () => {
+              await this.facebookService.updateCampaignStatus(
+                campaign.adAccount.accountId,
+                campaign.campaignId,
+                'PAUSED',
+                accessToken,
+              );
+              await this.prisma.campaign.update({
+                where: { id: campaign.id },
+                data: { status: 'PAUSED' as any },
+              });
+            },
+            'Budget:PAUSE_ACCOUNT',
+          );
         } catch (err: any) {
-          this.logger.warn(`Failed to pause campaign ${campaign.name}: ${err.message}`);
+          this.logger.warn(`Failed to pause ${campaign.name}: ${err.message}`);
         }
       }
-      await this.prisma.campaign.updateMany({
-        where: { adAccountId: schedule.adAccountId, status: 'ACTIVE' },
-        data: { status: 'PAUSED' },
-      });
     }
   }
 
@@ -230,29 +254,52 @@ export class BudgetService {
     if (schedule.campaignId) {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: schedule.campaignId },
+        include: { adAccount: true },
       });
-      if (campaign) {
-        await this.facebookService.updateCampaignStatus('', campaign.campaignId, 'ACTIVE', accessToken);
-        await this.prisma.campaign.update({
-          where: { id: schedule.campaignId },
-          data: { status: 'ACTIVE' },
-        });
-      }
+      if (!campaign) return;
+      await this.campaignLock.withCampaignLock(
+        campaign.id,
+        async () => {
+          await this.facebookService.updateCampaignStatus(
+            campaign.adAccount.accountId,
+            campaign.campaignId,
+            'ACTIVE',
+            accessToken,
+          );
+          await this.prisma.campaign.update({
+            where: { id: campaign.id },
+            data: { status: 'ACTIVE' as any },
+          });
+        },
+        'Budget:RESUME',
+      );
     } else if (schedule.adAccountId) {
       const campaigns = await this.prisma.campaign.findMany({
-        where: { adAccountId: schedule.adAccountId, status: 'PAUSED' },
+        where: { adAccountId: schedule.adAccountId },
+        include: { adAccount: true },
       });
       for (const campaign of campaigns) {
         try {
-          await this.facebookService.updateCampaignStatus('', campaign.campaignId, 'ACTIVE', accessToken);
+          await this.campaignLock.withCampaignLock(
+            campaign.id,
+            async () => {
+              await this.facebookService.updateCampaignStatus(
+                campaign.adAccount.accountId,
+                campaign.campaignId,
+                'ACTIVE',
+                accessToken,
+              );
+              await this.prisma.campaign.update({
+                where: { id: campaign.id },
+                data: { status: 'ACTIVE' as any },
+              });
+            },
+            'Budget:RESUME_ACCOUNT',
+          );
         } catch (err: any) {
-          this.logger.warn(`Failed to resume campaign ${campaign.name}: ${err.message}`);
+          this.logger.warn(`Failed to resume ${campaign.name}: ${err.message}`);
         }
       }
-      await this.prisma.campaign.updateMany({
-        where: { adAccountId: schedule.adAccountId, status: 'PAUSED' },
-        data: { status: 'ACTIVE' },
-      });
     }
   }
 
