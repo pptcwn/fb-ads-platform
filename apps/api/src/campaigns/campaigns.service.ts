@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
-import { TargetingSchema } from './dto/targeting.schema';
+import { validateTargeting } from './dto/targeting.schema';
 
 @Injectable()
 export class CampaignsService {
@@ -53,7 +53,7 @@ export class CampaignsService {
     let adId: string | null = null;
 
     const targeting = dto.targeting
-      ? TargetingSchema.parse(dto.targeting)
+      ? validateTargeting(dto.targeting)
       : { geo_locations: { countries: ['TH'] } };
 
     // 2. Create AdSet (optional)
@@ -78,7 +78,7 @@ export class CampaignsService {
           campaignId: savedCampaign.id,
           name: dto.adSetName,
           status: 'ACTIVE',
-          targeting,
+          targeting: targeting as any,
           dailyBudget: dto.dailyBudget * 0.8,
           optimizationGoal: dto.optimizationGoal || 'REACH',
         },
