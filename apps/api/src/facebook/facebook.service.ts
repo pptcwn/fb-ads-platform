@@ -17,7 +17,7 @@ interface FacebookUserResponse {
   email?: string;
 }
 
-const FB_API_VERSION = process.env.FB_API_VERSION ?? 'v24.0';
+const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
 const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
 
 @Injectable()

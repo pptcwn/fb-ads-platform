@@ -5,6 +5,9 @@ import { FacebookService } from '../facebook/facebook.service';
 import { SyncService } from './sync.service';
 import { CampaignObjective } from '@prisma/client';
 
+const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
+const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
+
 @Injectable()
 export class AutoSyncService {
   private readonly logger = new Logger(AutoSyncService.name);
@@ -118,13 +121,12 @@ export class AutoSyncService {
   }
 
   private async syncInsightsForAccount(accountId: string, fbAccountId: string, accessToken: string) {
-    const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
     const { default: axios } = await import('axios');
     const aid = fbAccountId.replace('act_', '');
 
     // Account-level
     try {
-      const { data } = await axios.get(`${baseUrl}/act_${aid}/insights`, {
+      const { data } = await axios.get(`${FB_BASE_URL}/act_${aid}/insights`, {
         params: {
           fields: 'impressions,clicks,ctr,cpc,cpm,spend,conversions,reach,frequency',
           level: 'account',
@@ -159,7 +161,7 @@ export class AutoSyncService {
 
     // Campaign-level
     try {
-      const { data } = await axios.get(`${baseUrl}/act_${aid}/insights`, {
+      const { data } = await axios.get(`${FB_BASE_URL}/act_${aid}/insights`, {
         params: {
           fields: 'campaign_id,impressions,clicks,ctr,cpc,cpm,spend,conversions,reach,frequency',
           level: 'campaign',

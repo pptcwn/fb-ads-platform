@@ -11,6 +11,9 @@ interface UploadedFile {
   fieldname: string;
 }
 
+const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
+const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
+
 @Injectable()
 export class CreativesService {
   private readonly logger = new Logger(CreativesService.name);
@@ -209,8 +212,7 @@ export class CreativesService {
     }
 
     // Call Facebook API
-    const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
-    const url = `${baseUrl}/act_${account.accountId}/creatives`;
+    const url = `${FB_BASE_URL}/act_${account.accountId}/creatives`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -238,8 +240,6 @@ export class CreativesService {
 
   private async uploadImageToFb(accountId: string, accessToken: string, imageUrl: string): Promise<string | null> {
     try {
-      const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
-
       // If it's a local upload, we need to read the file
       let sourceUrl = imageUrl;
       if (imageUrl.startsWith('/api/creatives/uploads/')) {
@@ -249,7 +249,7 @@ export class CreativesService {
         return null;
       }
 
-      const response = await fetch(`${baseUrl}/act_${accountId}/adimages`, {
+      const response = await fetch(`${FB_BASE_URL}/act_${accountId}/adimages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -305,9 +305,8 @@ export class CreativesService {
     } else {
       // Fallback: fetch post details from FB
       const accessToken = await this.facebookService.getPageAccessToken(pageId);
-      const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
       const fields = 'id,message,permalink_url,created_time,full_picture,attachments{media,subattachments}';
-      const url = `${baseUrl}/${postId}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(accessToken)}`;
+      const url = `${FB_BASE_URL}/${postId}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(accessToken)}`;
       const response = await fetch(url);
       const post = await response.json();
       if (post.error) throw new BadRequestException(`Facebook error: ${post.error.message}`);

@@ -28,10 +28,13 @@ interface FBPage<T> {
   paging?: { cursors: { before: string; after: string }; next?: string };
 }
 
+const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
+const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
+
 @Injectable()
 export class InsightsService {
   private readonly logger = new Logger(InsightsService.name);
-  private readonly baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
+  private readonly baseUrl = FB_BASE_URL;
 
   constructor(
     private readonly prisma: PrismaService,
