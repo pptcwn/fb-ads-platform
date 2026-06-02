@@ -194,6 +194,7 @@ model Campaign {
   roas            Decimal         @default(0)
 
   lastSyncedAt    DateTime?       @map("last_synced_at")
+  statusOverriddenAt DateTime?     @map("status_overridden_at")
 
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
