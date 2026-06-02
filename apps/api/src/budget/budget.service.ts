@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
@@ -135,7 +134,7 @@ export class BudgetService {
 
   // ─── Cron Execution ───
 
-  @Cron('0 * * * *') // Every hour
+  // Scheduled via BullMQ (every hour)
   async checkSchedules() {
     this.logger.log('⏰ Checking budget schedules...');
 

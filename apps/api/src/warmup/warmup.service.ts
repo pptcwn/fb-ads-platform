@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 
@@ -106,8 +105,7 @@ export class WarmupService {
     }));
   }
 
-  /** Cron — runs every day at midnight to advance warmup */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: 'warmup-advance' })
+  /** Runs every day at midnight to advance warmup (scheduled via BullMQ) */
   async advanceWarmup() {
     const warmingAccounts = await this.prisma.adAccount.findMany({
       where: { isWarmingUp: true },

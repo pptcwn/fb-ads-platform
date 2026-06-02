@@ -2,7 +2,6 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class SchedulesService {
@@ -136,9 +135,8 @@ export class SchedulesService {
     return this.executeSchedule(schedule);
   }
 
-  // ─── Cron: Check schedules every minute ───
+  // ─── Check schedules (scheduled via BullMQ every minute) ───
 
-  @Cron(CronExpression.EVERY_MINUTE)
   async checkSchedules() {
     this.logger.debug('Checking campaign schedules...');
     const now = new Date();
