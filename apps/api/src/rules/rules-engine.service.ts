@@ -21,6 +21,35 @@ export class RulesEngineService {
   ) {}
 
   /**
+   * Evaluate all enabled rules. Called by the BullMQ processor.
+   */
+  async evaluateAll(): Promise<void> {
+    const rules = await this.prisma.rule.findMany({
+      where: { isEnabled: true },
+      select: { id: true, name: true },
+    });
+
+    let triggered = 0;
+    let errors = 0;
+
+    for (const rule of rules) {
+      try {
+        const result = await this.evaluateRule(rule.id);
+        if (result) triggered++;
+      } catch (err: any) {
+        errors++;
+        this.logger.error(
+          `Rule "${rule.name}" (${rule.id}) evaluation error: ${err.message}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Rule evaluation complete: ${rules.length} checked, ${triggered} triggered, ${errors} errors`,
+    );
+  }
+
+  /**
    * Evaluate a single rule and execute actions if triggered.
    * Returns true if the rule triggered.
    */
