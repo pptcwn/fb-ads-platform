@@ -5,6 +5,8 @@ import axios from 'axios';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
+import Skeleton from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 import { fmtCurr, fmtNum } from '@/lib/utils';
 
 // ─── Types ───
@@ -18,6 +20,7 @@ interface ChartData { date: string; spend: number; impressions: number; clicks: 
 interface WarmupStatus { id: string; name: string; day: number; totalDays: number; progress: number; targetBudget: number; currentBudget: number }
 
 export default function DashboardPage() {
+  const toast = useToast();
   const [fbStatus, setFbStatus] = useState<FbStatus | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [accounts, setAccounts] = useState<AdAccount[]>([]);
@@ -54,7 +57,7 @@ export default function DashboardPage() {
     const params = new URLSearchParams(window.location.search);
     const fbResult = params.get('fb');
     if (fbResult === 'success') {
-      setSyncMsg('✅ Facebook account connected successfully!');
+      toast.success('Facebook account connected successfully!');
       window.history.replaceState({}, '', '/dashboard');
     } else if (fbResult === 'error') {
       const reason = params.get('reason') || 'Unknown error';
@@ -83,7 +86,7 @@ export default function DashboardPage() {
       const { data } = await axios.get('/api/facebook/auth');
       window.location.href = data.url;
     } catch (err: any) {
-      setError(`Failed to get Facebook auth URL: ${err?.response?.data?.message || err.message}`);
+      toast.error(`Failed to get Facebook auth URL: ${err?.response?.data?.message || err.message}`);
     }
   };
 
@@ -101,7 +104,7 @@ export default function DashboardPage() {
       setAccounts(accts.data);
       setSummary(summ.data);
       setWarmups(warm.data);
-    } catch { setError('Failed to load data'); }
+    } catch { toast.error('Failed to load data'); }
     finally { setLoading(false); }
   };
 
@@ -142,7 +145,7 @@ export default function DashboardPage() {
     setWarmupBusy(true);
     try {
       await axios.post(`/api/warmup/stop/${accountId}`);
-      setSyncMsg('✅ Warmup stopped');
+      toast.success('Warmup stopped');
       await fetchAll();
     } catch (err: any) {
       setSyncMsg(`❌ Warmup stop failed: ${err?.response?.data?.message || err.message}`);
@@ -178,8 +181,16 @@ export default function DashboardPage() {
 
   if (loading) return (
     <Shell>
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-ink-200">Loading...</p>
+      <div className="p-6">
+        <PageHeader title="Dashboard" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card p-4 space-y-2">
+              <Skeleton variant="text" count={2} />
+            </div>
+          ))}
+        </div>
+        <Skeleton variant="card" count={6} />
       </div>
     </Shell>
   );
@@ -232,7 +243,7 @@ export default function DashboardPage() {
                 if (!confirm('Disconnect Facebook account? This will remove all synced accounts and pages.')) return;
                 try {
                   await axios.post('/api/facebook/disconnect');
-                  setSyncMsg('✅ Disconnected. Refresh to reconnect with new permissions.');
+                  toast.success('Disconnected. Refresh to reconnect with new permissions.');
                   setTimeout(() => { window.location.reload(); }, 1500);
                 } catch (err: any) {
                   setSyncMsg('❌ Disconnect failed: ' + (err?.response?.data?.message || err.message));
