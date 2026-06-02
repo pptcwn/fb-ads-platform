@@ -215,7 +215,7 @@ export class BudgetService {
           );
           await this.prisma.campaign.update({
             where: { id: campaign.id },
-            data: { status: 'PAUSED' as any },
+            data: { status: 'PAUSED' as any, statusOverriddenAt: new Date() },
           });
         },
         'Budget:PAUSE',
@@ -238,7 +238,7 @@ export class BudgetService {
               );
               await this.prisma.campaign.update({
                 where: { id: campaign.id },
-                data: { status: 'PAUSED' as any },
+                data: { status: 'PAUSED' as any, statusOverriddenAt: new Date() },
               });
             },
             'Budget:PAUSE_ACCOUNT',
@@ -268,7 +268,7 @@ export class BudgetService {
           );
           await this.prisma.campaign.update({
             where: { id: campaign.id },
-            data: { status: 'ACTIVE' as any },
+            data: { status: 'ACTIVE' as any, statusOverriddenAt: new Date() },
           });
         },
         'Budget:RESUME',
@@ -291,7 +291,7 @@ export class BudgetService {
               );
               await this.prisma.campaign.update({
                 where: { id: campaign.id },
-                data: { status: 'ACTIVE' as any },
+                data: { status: 'ACTIVE' as any, statusOverriddenAt: new Date() },
               });
             },
             'Budget:RESUME_ACCOUNT',

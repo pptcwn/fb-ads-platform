@@ -49,43 +49,25 @@ export class AutoSyncService {
   /** Sync campaigns every 15 minutes */
   @Cron('*/15 * * * *', { name: 'auto-sync-campaigns' })
   async autoSyncCampaigns() {
-    const users = await this.prisma.user.findMany({
-      include: { fbUsers: { include: { adAccounts: true } } },
+    const fbUsers = await this.prisma.fbUser.findMany({
+      include: { adAccounts: true },
     });
 
     let totalSynced = 0;
-    for (const user of users) {
-      for (const fbUser of user.fbUsers) {
-        for (const account of fbUser.adAccounts) {
-          try {
-            const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
-            const fbCampaigns = await this.facebookService.getFbCampaigns(
-              account.accountId.replace('act_', ''),
-              accessToken,
-            );
-            for (const camp of fbCampaigns) {
-              await this.prisma.campaign.upsert({
-                where: { campaignId: camp.id },
-                create: {
-                  campaignId: camp.id,
-                  name: camp.name || '',
-                  objective: this.mapCampaignObjective(camp.objective),
-                  status: (camp.status || 'PAUSED') as any,
-                  dailyBudget: camp.daily_budget ? parseFloat(camp.daily_budget) / 100 : null,
-                  adAccountId: account.id,
-                },
-                update: {
-                  name: camp.name || '',
-                  status: (camp.status || 'PAUSED') as any,
-                  dailyBudget: camp.daily_budget ? parseFloat(camp.daily_budget) / 100 : null,
-                  lastSyncedAt: new Date(),
-                },
-              });
-              totalSynced++;
-            }
-          } catch (err: any) {
-            this.logger.warn(`Auto-sync failed for ${account.name}: ${err.message}`);
+    for (const fbUser of fbUsers) {
+      for (const account of fbUser.adAccounts) {
+        try {
+          const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
+          const fbCampaigns = await this.facebookService.getFbCampaigns(
+            account.accountId.replace('act_', ''),
+            accessToken,
+          );
+          for (const camp of fbCampaigns) {
+            await this.upsertCampaign(camp, account.id);
+            totalSynced++;
           }
+        } catch (err: any) {
+          this.logger.warn(`Auto-sync failed for ${account.name}: ${err.message}`);
         }
       }
     }
@@ -94,24 +76,51 @@ export class AutoSyncService {
     }
   }
 
+  private async upsertCampaign(camp: any, adAccountId: string) {
+    const existing = await this.prisma.campaign.findUnique({
+      where: { campaignId: camp.id },
+      select: { statusOverriddenAt: true },
+    });
+
+    const overrideRecent =
+      existing?.statusOverriddenAt != null &&
+      Date.now() - existing.statusOverriddenAt.getTime() < 10 * 60 * 1000;
+
+    await this.prisma.campaign.upsert({
+      where: { campaignId: camp.id },
+      create: {
+        campaignId: camp.id,
+        name: camp.name || '',
+        objective: this.mapCampaignObjective(camp.objective),
+        status: (camp.status || 'PAUSED') as any,
+        dailyBudget: camp.daily_budget ? parseFloat(camp.daily_budget) / 100 : null,
+        adAccountId,
+      },
+      update: {
+        name: camp.name || '',
+        ...(overrideRecent ? {} : { status: (camp.status || 'PAUSED') as any }),
+        dailyBudget: camp.daily_budget ? parseFloat(camp.daily_budget) / 100 : null,
+        lastSyncedAt: new Date(),
+      },
+    });
+  }
+
   /** Sync insights every hour */
   @Cron('0 * * * *', { name: 'auto-sync-insights' })
   async autoSyncInsights() {
-    const users = await this.prisma.user.findMany({
-      include: { fbUsers: { include: { adAccounts: true } } },
+    const fbUsers = await this.prisma.fbUser.findMany({
+      include: { adAccounts: true },
     });
 
     let total = 0;
-    for (const user of users) {
-      for (const fbUser of user.fbUsers) {
-        for (const account of fbUser.adAccounts) {
-          try {
-            const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
-            await this.syncInsightsForAccount(account.id, account.accountId, accessToken);
-            total++;
-          } catch (err: any) {
-            this.logger.warn(`Auto-insight sync failed for ${account.name}: ${err.message}`);
-          }
+    for (const fbUser of fbUsers) {
+      for (const account of fbUser.adAccounts) {
+        try {
+          const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
+          await this.syncInsightsForAccount(account.id, account.accountId, accessToken);
+          total++;
+        } catch (err: any) {
+          this.logger.warn(`Auto-insight sync failed for ${account.name}: ${err.message}`);
         }
       }
     }

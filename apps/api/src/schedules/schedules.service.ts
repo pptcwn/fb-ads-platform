@@ -228,7 +228,7 @@ export class SchedulesService {
           );
           await this.prisma.campaign.update({
             where: { id: campaign.id },
-            data: { status: fbStatus as any },
+            data: { status: fbStatus as any, statusOverriddenAt: new Date() },
           });
         },
         `Schedules:${action}`,

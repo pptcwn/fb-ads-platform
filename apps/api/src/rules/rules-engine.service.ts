@@ -194,7 +194,7 @@ export class RulesEngineService {
             );
             await this.prisma.campaign.update({
               where: { id: rule.campaign.id },
-              data: { status: 'PAUSED' },
+              data: { status: 'PAUSED', statusOverriddenAt: new Date() },
             });
           },
           'RulesEngine:PAUSE_CAMPAIGN',
