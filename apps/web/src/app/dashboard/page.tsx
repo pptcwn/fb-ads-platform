@@ -37,8 +37,6 @@ export default function DashboardPage() {
 
   // Warmup
   const [warmups, setWarmups] = useState<WarmupStatus[]>([]);
-  const [warmupStart, setWarmupStart] = useState<{ accountId: string; accountName: string; currency: string } | null>(null);
-  const [warmupTarget, setWarmupTarget] = useState(200);
   const [warmupBusy, setWarmupBusy] = useState(false);
 
   // Auto-refresh
@@ -139,19 +137,6 @@ export default function DashboardPage() {
   };
 
   // ─── Warmup actions ───
-
-  const startWarmup = async () => {
-    if (!warmupStart) return;
-    setWarmupBusy(true);
-    try {
-      const { data } = await axios.post(`/api/warmup/start/${warmupStart.accountId}`, { targetDailyBudget: warmupTarget });
-      setSyncMsg(`✅ ${data.message} — budget: ${data.budget}`);
-      setWarmupStart(null);
-      await fetchAll();
-    } catch (err: any) {
-      setSyncMsg(`❌ Warmup start failed: ${err?.response?.data?.message || err.message}`);
-    } finally { setWarmupBusy(false); }
-  };
 
   const stopWarmup = async (accountId: string) => {
     setWarmupBusy(true);
@@ -412,30 +397,6 @@ export default function DashboardPage() {
           <div className="msg-info">
             <p className="text-sm font-medium">Getting Started</p>
             <p className="text-xs mt-1">Connect your Facebook account above to start managing ads.</p>
-          </div>
-        )}
-
-        {/* Warmup Start Modal */}
-        {warmupStart && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setWarmupStart(null)}>
-            <div className="card p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-              <h3 className="text-sm font-semibold text-ink mb-2">🔥 Start Warmup</h3>
-              <p className="text-sm text-ink-200 mb-4">
-                Start 7-day warmup for <strong className="text-ink">{warmupStart.accountName}</strong>? Budget starts low and scales daily.
-              </p>
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-ink-200 mb-1">Target Daily Budget ({warmupStart.currency})</label>
-                <input type="number" value={warmupTarget} onChange={e => setWarmupTarget(Number(e.target.value) || 0)}
-                  className="w-full" min={1} />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setWarmupStart(null)} className="btn-secondary btn-sm">Cancel</button>
-                <button onClick={startWarmup} disabled={warmupBusy}
-                  className="badge-warning cursor-pointer disabled:opacity-50">
-                  {warmupBusy ? 'Starting...' : 'Start Warmup'}
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
