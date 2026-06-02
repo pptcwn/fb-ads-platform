@@ -170,16 +170,33 @@ export class SchedulesService {
   private shouldRun(schedule: any, now: Date): boolean {
     switch (schedule.scheduleType) {
       case 'ONCE': {
+        if (schedule.lastRunAt) return false; // already ran
         const execAt = new Date(schedule.executeAt);
-        return now >= execAt && now.getTime() - execAt.getTime() < 60000; // Within 1 min window
+        return now >= execAt && now.getTime() - execAt.getTime() < 60_000;
       }
       case 'DAILY': {
         if (!schedule.timeOfDay) return false;
+        if (schedule.lastRunAt) {
+          const last = new Date(schedule.lastRunAt);
+          if (
+            last.getFullYear() === now.getFullYear() &&
+            last.getMonth() === now.getMonth() &&
+            last.getDate() === now.getDate()
+          ) return false;
+        }
         const [h, m] = schedule.timeOfDay.split(':').map(Number);
         return now.getHours() === h && now.getMinutes() === m;
       }
       case 'WEEKLY': {
         if (!schedule.timeOfDay || !schedule.daysOfWeek) return false;
+        if (schedule.lastRunAt) {
+          const last = new Date(schedule.lastRunAt);
+          if (
+            last.getFullYear() === now.getFullYear() &&
+            last.getMonth() === now.getMonth() &&
+            last.getDate() === now.getDate()
+          ) return false;
+        }
         const days: number[] = JSON.parse(schedule.daysOfWeek);
         if (!days.includes(now.getDay())) return false;
         const [h, m] = schedule.timeOfDay.split(':').map(Number);
