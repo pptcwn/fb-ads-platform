@@ -118,7 +118,7 @@ export class AutoSyncService {
   }
 
   private async syncInsightsForAccount(accountId: string, fbAccountId: string, accessToken: string) {
-    const baseUrl = 'https://graph.facebook.com/v20.0';
+    const baseUrl = `https://graph.facebook.com/${process.env.FB_API_VERSION ?? 'v24.0'}`;
     const { default: axios } = await import('axios');
     const aid = fbAccountId.replace('act_', '');
 

@@ -17,10 +17,13 @@ interface FacebookUserResponse {
   email?: string;
 }
 
+const FB_API_VERSION = process.env.FB_API_VERSION ?? 'v24.0';
+const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
+
 @Injectable()
 export class FacebookService {
   private readonly logger = new Logger(FacebookService.name);
-  private readonly baseUrl = 'https://graph.facebook.com/v20.0';
+  private readonly baseUrl = FB_BASE_URL;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -45,7 +48,7 @@ export class FacebookService {
       response_type: 'code',
       state,
     });
-    return `https://www.facebook.com/v20.0/dialog/oauth?${params}`;
+    return `https://www.facebook.com/${FB_API_VERSION}/dialog/oauth?${params}`;
   }
 
   decryptState(state: string): string {
