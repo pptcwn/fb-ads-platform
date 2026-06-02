@@ -355,7 +355,7 @@ export class BudgetService {
       }).formatToParts(new Date(lastRunAt));
       const getL = (type: string) => lastParts.find(p => p.type === type)?.value ?? '0';
       if (
-        parseInt(getL('hour')) % 24 === hour &&
+        parseInt(getL('hour')) === hour &&
         parseInt(getL('day')) === dayOfMonth &&
         parseInt(getL('month')) === month
       ) return false;
