@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bullmq';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
@@ -26,7 +25,6 @@ import { CampaignLockModule } from './campaign-lock/campaign-lock.module';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     BullModule.forRoot({
       connection: { url: process.env.REDIS_URL ?? 'redis://localhost:6379' },
     }),
