@@ -1,8 +1,10 @@
 import {
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
   BadRequestException,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FbMutationService, CampaignMutationContext } from '../fb-mutation/fb-mutation.service';
@@ -20,6 +22,7 @@ export class ApprovalsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => FbMutationService))
     private readonly fbMutation: FbMutationService,
   ) {}
 

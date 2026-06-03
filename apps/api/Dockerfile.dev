@@ -14,11 +14,12 @@ COPY pnpm-lock.yaml* ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 
-# Install
+# Install workspace deps (first pass from package manifests only)
 RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 
-# Copy source
+# Copy source and reinstall so new api deps (ioredis, cookie-parser, s3) land in the image
 COPY . .
+RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 
 EXPOSE 4000
 

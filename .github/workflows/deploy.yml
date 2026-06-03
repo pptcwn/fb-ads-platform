@@ -47,7 +47,8 @@ jobs:
             git fetch origin main
             # VPS must match repo exactly — discard stale local edits from dev mounts
             git reset --hard origin/main
-            docker compose up -d --build
+            docker compose build --no-cache api web
+            docker compose up -d --force-recreate --renew-anon-volumes
             docker compose exec -T api sh -c 'cd apps/api && npx prisma migrate deploy'
             docker compose ps
           EOF

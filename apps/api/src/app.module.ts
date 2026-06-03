@@ -26,6 +26,7 @@ import { ReconcileModule } from './reconcile/reconcile.module';
 import { CommonModule } from './common/common.module';
 import { ApprovalsModule } from './approvals/approvals.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { FbMutationModule } from './fb-mutation/fb-mutation.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     }),
     PrismaModule,
     CommonModule,
+    FbMutationModule,
     CampaignLockModule,
     AuthModule,
     FacebookModule,
