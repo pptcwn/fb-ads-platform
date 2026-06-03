@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { abtestApi, campaignsApi } from '@/lib/api-client';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
@@ -52,13 +52,12 @@ export default function AbTestPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    axios.defaults.withCredentials = true;
     fetchTests();
   }, []);
 
   const fetchTests = async () => {
     try {
-      const { data } = await axios.get('/api/abtest/list');
+      const { data } = await abtestApi.list();
       setTests(data);
     } catch { setError('Failed to load A/B tests'); }
     finally { setLoading(false); }
@@ -68,8 +67,8 @@ export default function AbTestPage() {
     setShowCreate(true);
     setError('');
     try {
-      const { data } = await axios.get('/api/campaigns/accounts');
-      setCampaigns(data.flatMap((a: any) => a.campaigns || []));
+      const { data } = await campaignsApi.list();
+      setCampaigns(data.flatMap((a) => a.campaigns || []));
     } catch { setError('Failed to load campaigns'); }
   };
 
@@ -90,7 +89,7 @@ export default function AbTestPage() {
 
     setSaving(true); setError('');
     try {
-      await axios.post('/api/abtest/create', {
+      await abtestApi.create({
         sourceCampaignId: selectedCamp,
         variants: validVariants,
       });
@@ -104,7 +103,7 @@ export default function AbTestPage() {
 
   const stopTest = async (testId: string) => {
     try {
-      await axios.post(`/api/abtest/${testId}/stop`);
+      await abtestApi.stop(testId);
       setSyncMsg('✅ A/B Test stopped');
       fetchTests();
     } catch (err: any) {
@@ -114,7 +113,7 @@ export default function AbTestPage() {
 
   const pauseTest = async (testId: string) => {
     try {
-      await axios.post(`/api/abtest/${testId}/pause`);
+      await abtestApi.pause(testId);
       setSyncMsg('⏸️ All variants paused');
       fetchTests();
     } catch (err: any) {
@@ -124,7 +123,7 @@ export default function AbTestPage() {
 
   const resumeTest = async (testId: string) => {
     try {
-      await axios.post(`/api/abtest/${testId}/resume`);
+      await abtestApi.resume(testId);
       setSyncMsg('▶️ All variants resumed');
       fetchTests();
     } catch (err: any) {
@@ -134,8 +133,9 @@ export default function AbTestPage() {
 
   const toggleVariant = async (variantId: string) => {
     try {
-      const { data } = await axios.post(`/api/abtest/variants/${variantId}/toggle`);
-      setSyncMsg(data.message === 'Variant paused' ? '⏸️ Variant paused' : '▶️ Variant resumed');
+      const { data } = await abtestApi.toggleVariant(variantId);
+      const msg = (data as { message?: string }).message;
+      setSyncMsg(msg === 'Variant paused' ? '⏸️ Variant paused' : '▶️ Variant resumed');
       fetchTests();
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message);
@@ -151,7 +151,7 @@ export default function AbTestPage() {
     if (!editVariant) return;
     setEditSaving(true);
     try {
-      await axios.patch(`/api/abtest/variants/${editVariant.id}`, editForm);
+      await abtestApi.updateVariant(editVariant.id, editForm);
       setSyncMsg('✅ Variant updated');
       setEditVariant(null);
       fetchTests();
@@ -164,10 +164,11 @@ export default function AbTestPage() {
     if (!deleteConfirm) return;
     setDeleting(true);
     try {
-      const url = deleteConfirm.type === 'test'
-        ? `/api/abtest/${deleteConfirm.id}`
-        : `/api/abtest/variants/${deleteConfirm.id}`;
-      await axios.delete(url);
+      if (deleteConfirm.type === 'test') {
+        await abtestApi.remove(deleteConfirm.id);
+      } else {
+        await abtestApi.removeVariant(deleteConfirm.id);
+      }
       setSyncMsg(`🗑️ ${deleteConfirm.type === 'test' ? 'A/B test' : 'Variant'} deleted`);
       setDeleteConfirm(null);
       fetchTests();
@@ -178,8 +179,8 @@ export default function AbTestPage() {
 
   const loadVariants = async (testId: string) => {
     try {
-      const { data } = await axios.get(`/api/abtest/${testId}/variants`);
-      setTests(tests.map(t => t.id === testId ? { ...t, variants: data.variants } : t));
+      const { data } = await abtestApi.variants(testId);
+      setTests(tests.map(t => t.id === testId ? { ...t, variants: (data as { variants: AbTestVariant[] }).variants } : t));
     } catch { setError('Failed to load variant data'); }
   };
 

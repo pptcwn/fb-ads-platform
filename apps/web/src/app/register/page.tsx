@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { authApi } from '@/lib/api-client';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await axios.post('/api/auth/register', { name, email, password }, { withCredentials: true });
+      await authApi.register(name, email, password);
       router.push('/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Registration failed');

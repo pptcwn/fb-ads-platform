@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
+import { audiencesApi, targetingApi } from '@/lib/api-client';
 import { ChevronRight, X, BarChart3, User, MapPin, Target, Users, Smartphone, Settings } from 'lucide-react';
 
 // ─── Types ───
@@ -97,7 +97,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
 
   // ─── Load audiences ───
   useEffect(() => {
-    axios.get('/api/audiences').then(r => setAudiences(r.data || [])).catch(() => {});
+    audiencesApi.list().then(r => setAudiences(r.data || [])).catch(() => {});
   }, []);
 
   // ─── Estimate audience size ───
@@ -105,9 +105,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
     if (!adAccountId || Object.keys(value).length === 0) return;
     const timer = setTimeout(async () => {
       try {
-        const { data } = await axios.get('/api/targeting/estimate', {
-          params: { targeting: JSON.stringify(value), adAccountId },
-        });
+        const { data } = await targetingApi.estimate(value, adAccountId);
         setAudienceSize({ daily: data.dailyUniqueReach || 0, monthly: data.monthlyUniqueReach || 0 });
       } catch { setAudienceSize(null); }
     }, 800);
@@ -119,7 +117,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
     if (q.length < 2) { setInterests([]); return; }
     setSearching(true);
     try {
-      const { data } = await axios.get('/api/targeting/interests', { params: { q } });
+      const { data } = await targetingApi.interests(q);
       setInterests(data || []);
     } catch { setInterests([]); }
     finally { setSearching(false); }
@@ -136,7 +134,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
     if (q.length < 2) { setLocations([]); return; }
     setSearching(true);
     try {
-      const { data } = await axios.get('/api/targeting/locations', { params: { q, types: 'country,region,city' } });
+      const { data } = await targetingApi.locations(q, 'country,region,city');
       setLocations(data || []);
     } catch { setLocations([]); }
     finally { setSearching(false); }

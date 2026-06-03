@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { accountsApi, budgetSchedulesApi } from '@/lib/api-client';
 import { Timer, Play, DollarSign, BarChart3, Pencil, Clock, RefreshCw, Calendar, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
@@ -96,7 +96,6 @@ export default function BudgetPage() {
   const [customCron, setCustomCron] = useState('');
 
   useEffect(() => {
-    axios.defaults.withCredentials = true;
     loadAll();
   }, []);
 
@@ -111,18 +110,17 @@ export default function BudgetPage() {
   const loadAll = async () => {
     try {
       const [schedRes, acctsRes] = await Promise.all([
-        axios.get('/api/budget-schedules'),
-        axios.get('/api/adaccounts').catch(() => ({ data: [] })),
+        budgetSchedulesApi.list(),
+        accountsApi.list().catch(() => ({ data: [] })),
       ]);
       setSchedules(schedRes.data);
       setAccounts(acctsRes.data);
 
-      // Load campaigns for each account
       const allCamps: CampaignOption[] = [];
       for (const acct of acctsRes.data) {
         try {
-          const { data } = await axios.get(`/api/adaccounts/${acct.id}/campaigns`);
-          allCamps.push(...data.map((c: any) => ({ id: c.id, name: c.name, accountId: acct.id })));
+          const { data } = await accountsApi.campaigns(acct.id);
+          allCamps.push(...data.map((c) => ({ id: c.id, name: c.name, accountId: acct.id })));
         } catch {}
       }
       setCampaigns(allCamps);
@@ -204,10 +202,10 @@ export default function BudgetPage() {
       if (form.adAccountId) dto.adAccountId = form.adAccountId;
 
       if (editId) {
-        await axios.patch(`/api/budget-schedules/${editId}`, dto);
+        await budgetSchedulesApi.update(editId, dto);
         setMsg('✅ Schedule updated!');
       } else {
-        await axios.post('/api/budget-schedules', dto);
+        await budgetSchedulesApi.create(dto);
         setMsg('✅ Schedule created!');
       }
 
@@ -222,7 +220,7 @@ export default function BudgetPage() {
 
   const toggleSchedule = async (id: string) => {
     try {
-      await axios.post(`/api/budget-schedules/${id}/toggle`);
+      await budgetSchedulesApi.toggle(id);
       loadAll();
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message);
@@ -233,7 +231,7 @@ export default function BudgetPage() {
     if (!deleteConfirm) return;
     setDeleting(true);
     try {
-      await axios.delete(`/api/budget-schedules/${deleteConfirm.id}`);
+      await budgetSchedulesApi.remove(deleteConfirm.id);
       setMsg(`🗑️ Schedule "${deleteConfirm.name}" deleted`);
       setDeleteConfirm(null);
       loadAll();

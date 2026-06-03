@@ -60,6 +60,15 @@
 | P5-3 | nginx webhook mTLS snippet (commented) | `nginx.conf` | done |
 | P5-4 | อัปเดตสถานะ docs | `Fb ads platform fixes.md` | done |
 
+## Phase 6 — Unified api-client (ทุกหน้า dashboard) ✅
+
+| ID | Fix | Files | Status |
+|----|-----|-------|--------|
+| P6-1 | `authApi`, `schedulesApi`, `rulesApi`, `budgetSchedulesApi`, `alertsApi`, `analyticsApi`, `abtestApi` | `api-client.ts` | done |
+| P6-2 | `accountsApi.campaigns`, `targetingApi` GET estimate | `api-client.ts` | done |
+| P6-3 | schedules, rules, budget, notifications, analytics, abtest | `dashboard/*/page.tsx` | done |
+| P6-4 | login, register, TargetingBuilder | `page.tsx`, `register`, `TargetingBuilder.tsx` | done |
+
 ## Deploy
 
 Push `main` → GitHub Actions → VPS health `/api/health`

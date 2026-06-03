@@ -59,6 +59,20 @@ export interface AdAccount {
 
 export const accountsApi = {
   list: () => api.get<AdAccount[]>('/api/adaccounts'),
+  campaigns: (accountId: string) =>
+    api.get<Array<{ id: string; campaignId: string; name: string; status: string }>>(
+      `/api/adaccounts/${accountId}/campaigns`,
+    ),
+};
+
+// ─── Auth ───
+
+export const authApi = {
+  login: (email: string, password: string) =>
+    api.post('/api/auth/login', { email, password }),
+  register: (name: string, email: string, password: string) =>
+    api.post('/api/auth/register', { name, email, password }),
+  logout: () => api.post('/api/auth/logout'),
 };
 
 // ─── Audiences ───
@@ -151,13 +165,16 @@ export const warmupApi = {
 // ─── Targeting ───
 
 export const targetingApi = {
-  interests: (query: string, adAccountId?: string) =>
-    api.get(`/api/targeting/interests?q=${encodeURIComponent(query)}${adAccountId ? `&adAccountId=${adAccountId}` : ''}`),
-  locations: (query: string) => api.get(`/api/targeting/locations?q=${encodeURIComponent(query)}`),
-  demographics: (type: string, query?: string) =>
-    api.get(`/api/targeting/demographics/${type}${query ? `?q=${encodeURIComponent(query)}` : ''}`),
-  estimate: (targeting: Record<string, unknown>, adAccountId?: string) =>
-    api.post('/api/targeting/estimate', { targeting, adAccountId }),
+  interests: (query: string) =>
+    api.get('/api/targeting/interests', { params: { q: query } }),
+  locations: (query: string, types = 'country,region,city') =>
+    api.get('/api/targeting/locations', { params: { q: query, types } }),
+  demographics: (query: string) =>
+    api.get('/api/targeting/demographics', { params: { q: query } }),
+  estimate: (targeting: Record<string, unknown>, adAccountId: string) =>
+    api.get<{ dailyUniqueReach: number; monthlyUniqueReach: number }>('/api/targeting/estimate', {
+      params: { targeting: JSON.stringify(targeting), adAccountId },
+    }),
 };
 
 // ─── Templates ───
@@ -242,4 +259,84 @@ export const creativesApi = {
     api.post<{ fbCreativeId: string }>(`/api/creatives/${id}/fb-create/${adAccountId}`),
   postToPage: (id: string, pageId: string) =>
     api.post(`/api/creatives/${id}/fb-post/${pageId}`),
+};
+
+// ─── Schedules ───
+
+export const schedulesApi = {
+  list: () => api.get('/api/schedules'),
+  create: (dto: Record<string, unknown>) => api.post('/api/schedules', dto),
+  update: (id: string, dto: Record<string, unknown>) => api.patch(`/api/schedules/${id}`, dto),
+  remove: (id: string) => api.delete(`/api/schedules/${id}`),
+  toggle: (id: string) => api.post(`/api/schedules/${id}/toggle`),
+  runNow: (id: string) => api.post(`/api/schedules/${id}/run-now`),
+};
+
+// ─── Rules ───
+
+export const rulesApi = {
+  list: () => api.get('/api/rules'),
+  create: (dto: Record<string, unknown>) => api.post('/api/rules', dto),
+  update: (id: string, dto: Record<string, unknown>) => api.patch(`/api/rules/${id}`, dto),
+  remove: (id: string) => api.delete(`/api/rules/${id}`),
+  toggle: (id: string) => api.post(`/api/rules/${id}/toggle`),
+  logs: (id: string) => api.get(`/api/rules/${id}/logs`),
+};
+
+// ─── Budget schedules ───
+
+export const budgetSchedulesApi = {
+  list: () => api.get('/api/budget-schedules'),
+  create: (dto: Record<string, unknown>) => api.post('/api/budget-schedules', dto),
+  update: (id: string, dto: Record<string, unknown>) => api.patch(`/api/budget-schedules/${id}`, dto),
+  remove: (id: string) => api.delete(`/api/budget-schedules/${id}`),
+  toggle: (id: string) => api.post(`/api/budget-schedules/${id}/toggle`),
+};
+
+// ─── Alerts / notifications ───
+
+export const alertsApi = {
+  listConfigs: () => api.get('/api/alerts/configs'),
+  createConfig: (dto: Record<string, unknown>) => api.post('/api/alerts/configs', dto),
+  toggleConfig: (id: string) => api.post(`/api/alerts/configs/${id}/toggle`),
+  deleteConfig: (id: string) => api.delete(`/api/alerts/configs/${id}`),
+  history: (limit = 50) => api.get('/api/alerts/history', { params: { limit } }),
+  markHistoryRead: (id?: string) => api.post('/api/alerts/history/read', id ? { id } : {}),
+  deleteHistory: (id: string) => api.delete(`/api/alerts/history/${id}`),
+  initDefaults: () => api.post('/api/alerts/init-defaults'),
+  getTelegram: () => api.get('/api/alerts/telegram'),
+  saveTelegram: (botToken: string, chatId: string) =>
+    api.post('/api/alerts/telegram', { botToken, chatId }),
+  testTelegram: () => api.post('/api/alerts/telegram/test'),
+  disconnectTelegram: () => api.delete('/api/alerts/telegram'),
+};
+
+// ─── Analytics ───
+
+export const analyticsApi = {
+  overview: (from: string, to: string) =>
+    api.get('/api/analytics/overview', { params: { from, to } }),
+  trends: (from: string, to: string, granularity: string) =>
+    api.get('/api/analytics/trends', { params: { from, to, granularity } }),
+  comparison: (period: string) =>
+    api.get('/api/analytics/comparison', { params: { period } }),
+  accounts: () => api.get('/api/analytics/accounts'),
+  campaigns: (from: string, to: string, sort: string, limit = 20) =>
+    api.get('/api/analytics/campaigns', { params: { from, to, sort, limit } }),
+};
+
+// ─── A/B tests ───
+
+export const abtestApi = {
+  list: () => api.get('/api/abtest/list'),
+  create: (dto: Record<string, unknown>) => api.post('/api/abtest/create', dto),
+  variants: (testId: string) => api.get(`/api/abtest/${testId}/variants`),
+  stop: (testId: string) => api.post(`/api/abtest/${testId}/stop`),
+  pause: (testId: string) => api.post(`/api/abtest/${testId}/pause`),
+  resume: (testId: string) => api.post(`/api/abtest/${testId}/resume`),
+  toggleVariant: (variantId: string) => api.post(`/api/abtest/variants/${variantId}/toggle`),
+  updateVariant: (variantId: string, dto: Record<string, unknown>) =>
+    api.patch(`/api/abtest/variants/${variantId}`, dto),
+  remove: (testId: string) => api.delete(`/api/abtest/${testId}`),
+  removeVariant: (variantId: string) => api.delete(`/api/abtest/variants/${variantId}`),
 };

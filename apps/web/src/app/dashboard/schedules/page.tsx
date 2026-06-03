@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { campaignsApi, schedulesApi } from '@/lib/api-client';
 import Link from 'next/link';
 import { Calendar, Plus, Pencil, Trash2, Clock, RefreshCw, AlertTriangle, StopCircle, Play, Timer, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
@@ -63,7 +63,6 @@ export default function SchedulesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<Schedule | null>(null);
 
   useEffect(() => {
-    axios.defaults.withCredentials = true;
     fetchAll();
   }, []);
 
@@ -71,8 +70,8 @@ export default function SchedulesPage() {
     setLoading(true);
     try {
       const [schRes, acctRes] = await Promise.all([
-        axios.get('/api/schedules').catch(() => ({ data: [] })),
-        axios.get('/api/campaigns/accounts').catch(() => ({ data: [] })),
+        schedulesApi.list().catch(() => ({ data: [] })),
+        campaignsApi.list().catch(() => ({ data: [] })),
       ]);
       setSchedules(schRes.data);
       const flat: Campaign[] = (acctRes.data || []).flatMap((acct: { campaigns?: Campaign[] }) =>
@@ -125,10 +124,10 @@ export default function SchedulesPage() {
       if (!payload.endTime) delete payload.endTime;
 
       if (editId) {
-        const { data } = await axios.patch(`/api/schedules/${editId}`, payload);
+        const { data } = await schedulesApi.update(editId, payload);
         setMsg(data.message);
       } else {
-        const { data } = await axios.post('/api/schedules', payload);
+        const { data } = await schedulesApi.create(payload);
         setMsg(data.message);
       }
       setShowModal(false);
@@ -140,7 +139,7 @@ export default function SchedulesPage() {
   const deleteSchedule = async () => {
     if (!deleteConfirm) return;
     try {
-      const { data } = await axios.delete(`/api/schedules/${deleteConfirm.id}`);
+      const { data } = await schedulesApi.remove(deleteConfirm.id);
       setMsg(data.message);
       setDeleteConfirm(null);
       await fetchAll();
@@ -149,7 +148,7 @@ export default function SchedulesPage() {
 
   const toggleSchedule = async (id: string) => {
     try {
-      const { data } = await axios.post(`/api/schedules/${id}/toggle`);
+      const { data } = await schedulesApi.toggle(id);
       setMsg(data.message);
       await fetchAll();
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
@@ -157,7 +156,7 @@ export default function SchedulesPage() {
 
   const runNow = async (id: string) => {
     try {
-      const { data } = await axios.post(`/api/schedules/${id}/run-now`);
+      const { data } = await schedulesApi.runNow(id);
       setMsg(data.message);
       await fetchAll();
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }

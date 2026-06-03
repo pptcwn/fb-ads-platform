@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import { analyticsApi } from '@/lib/api-client';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
@@ -44,17 +44,15 @@ export default function AnalyticsPage() {
   const [granularity, setGranularity] = useState('day');
 
   const fetchData = useCallback(async () => {
-    axios.defaults.withCredentials = true;
-
     const from = daysAgo(range);
     const to = daysAgo(0);
 
     try {
       const [ov, tr, cmp, acc] = await Promise.all([
-        axios.get('/api/analytics/overview', { params: { from, to } }).catch(() => ({ data: { connected: false } })),
-        axios.get('/api/analytics/trends', { params: { from, to, granularity } }).catch(() => ({ data: { series: [] } })),
-        axios.get('/api/analytics/comparison', { params: { period: `${range}d` } }).catch(() => ({ data: null })),
-        axios.get('/api/analytics/accounts').catch(() => ({ data: [] })),
+        analyticsApi.overview(from, to).catch(() => ({ data: { connected: false } })),
+        analyticsApi.trends(from, to, granularity).catch(() => ({ data: { series: [] } })),
+        analyticsApi.comparison(`${range}d`).catch(() => ({ data: null })),
+        analyticsApi.accounts().catch(() => ({ data: [] })),
       ]);
       setOverview(ov.data);
       setTrends((tr.data as TrendData)?.series || []);
@@ -70,8 +68,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const from = daysAgo(range);
     const to = daysAgo(0);
-    axios.get('/api/analytics/campaigns', { params: { from, to, sort: sortBy, limit: 20 } })
-      .then(r => setCampaigns(r.data))
+    analyticsApi.campaigns(from, to, sortBy, 20)
+      .then(r => setCampaigns(r.data as CampaignRank[]))
       .catch(() => {});
   }, [sortBy, range]);
 

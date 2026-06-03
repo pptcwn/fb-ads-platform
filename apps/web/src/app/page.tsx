@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import axios from 'axios';
+import { authApi } from '@/lib/api-client';
 
 function LoginForm() {
   const router = useRouter();
@@ -18,7 +18,7 @@ function LoginForm() {
     setError('');
     setLoading(true);
     try {
-      await axios.post('/api/auth/login', { email, password }, { withCredentials: true });
+      await authApi.login(email, password);
       const redirect = searchParams.get('redirect');
       router.push(redirect && redirect.startsWith('/dashboard') ? redirect : '/dashboard');
     } catch (err: any) {

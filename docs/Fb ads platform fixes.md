@@ -50,7 +50,7 @@
 |--------|----------|
 | Webhooks mTLS production | เปิด block ใน `nginx.conf` + ตั้ง `META_CA_BUNDLE_PATH` บน VPS |
 | Advantage+ Shopping/App MAPI | ตรวจตาม `docs/meta-advantage-plus-2026.md` เมื่อ Meta บังคับ |
-| Web pages อื่นที่ยังใช้ `axios` ตรง | schedules, rules, budget, notifications, analytics, abtest, TargetingBuilder |
+| Web: ทุกหน้า dashboard ใช้ `api-client` | done (wave 4) — เหลือแค่ `api.ts` / `axios-setup` |
 
 ---
 

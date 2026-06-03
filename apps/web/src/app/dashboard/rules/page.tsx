@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { accountsApi, rulesApi } from '@/lib/api-client';
 import { Zap, TrendingUp, TrendingDown, Bell, Pencil, Timer, Hourglass, ClipboardList, Target, RefreshCw, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
@@ -83,30 +83,23 @@ export default function RulesPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    axios.defaults.withCredentials = true;
     loadAll();
   }, []);
 
   const loadAll = async () => {
     try {
-      const [rulesRes, campsRes, acctsRes] = await Promise.all([
-        axios.get('/api/rules'),
-        axios.get('/api/adaccounts').then(r => {
-          // Get all campaigns from all accounts
-          const allCamps: { id: string; name: string }[] = [];
-          return allCamps;
-        }).catch(() => ({ data: [] as any[] })),
-        axios.get('/api/adaccounts').catch(() => ({ data: [] })),
+      const [rulesRes, acctsRes] = await Promise.all([
+        rulesApi.list(),
+        accountsApi.list().catch(() => ({ data: [] })),
       ]);
       setRules(rulesRes.data);
       setAccounts(acctsRes.data);
 
-      // Load campaigns for each account
       const allCamps: { id: string; name: string; accountId: string }[] = [];
       for (const acct of acctsRes.data) {
         try {
-          const { data } = await axios.get(`/api/adaccounts/${acct.id}/campaigns`);
-          allCamps.push(...data.map((c: any) => ({ id: c.id, name: c.name, accountId: acct.id })));
+          const { data } = await accountsApi.campaigns(acct.id);
+          allCamps.push(...data.map((c) => ({ id: c.id, name: c.name, accountId: acct.id })));
         } catch {}
       }
       setCampaigns(allCamps);
@@ -132,10 +125,10 @@ export default function RulesPage() {
       if (form.adAccountId) dto.adAccountId = form.adAccountId;
 
       if (editId) {
-        await axios.patch(`/api/rules/${editId}`, dto);
+        await rulesApi.update(editId, dto);
         setMsg('✅ Rule updated!');
       } else {
-        await axios.post('/api/rules', dto);
+        await rulesApi.create(dto);
         setMsg('✅ Rule created!');
       }
       setShowForm(false);
@@ -149,7 +142,7 @@ export default function RulesPage() {
 
   const toggleRule = async (id: string) => {
     try {
-      await axios.post(`/api/rules/${id}/toggle`);
+      await rulesApi.toggle(id);
       loadAll();
     } catch {}
   };
@@ -158,7 +151,7 @@ export default function RulesPage() {
     if (!deleteConfirm) return;
     setDeleting(true);
     try {
-      await axios.delete(`/api/rules/${deleteConfirm.id}`);
+      await rulesApi.remove(deleteConfirm.id);
       setMsg('🗑️ Rule deleted');
       setDeleteConfirm(null);
       loadAll();
@@ -193,7 +186,7 @@ export default function RulesPage() {
     setShowLogs(ruleId);
     setLoadingLogs(true);
     try {
-      const { data } = await axios.get(`/api/rules/${ruleId}/logs`);
+      const { data } = await rulesApi.logs(ruleId);
       setLogs(data);
     } catch {}
     setLoadingLogs(false);

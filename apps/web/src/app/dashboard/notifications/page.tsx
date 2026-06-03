@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import { alertsApi } from '@/lib/api-client';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import { Bell, Settings, ClipboardList, Bot, Download, Send, Unplug, FileText, Link } from 'lucide-react';
@@ -84,12 +84,10 @@ export default function NotificationsPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      axios.defaults.withCredentials = true;
-
       const [configsRes, alertsRes, tgRes] = await Promise.all([
-        axios.get('/api/alerts/configs').catch(() => ({ data: [] })),
-        axios.get('/api/alerts/history?limit=50').catch(() => ({ data: [] })),
-        axios.get('/api/alerts/telegram').catch(() => ({ data: null })),
+        alertsApi.listConfigs().catch(() => ({ data: [] })),
+        alertsApi.history(50).catch(() => ({ data: { alerts: [], unreadCount: 0 } })),
+        alertsApi.getTelegram().catch(() => ({ data: null })),
       ]);
       setConfigs(configsRes.data);
       setAlerts(alertsRes.data);
@@ -104,7 +102,7 @@ export default function NotificationsPage() {
   const initDefaults = async () => {
     setSaving(true);
     try {
-      await axios.post('/api/alerts/init-defaults');
+      await alertsApi.initDefaults();
       setMsg('✅ Default configs created!');
       await fetchAll();
     } catch (err: any) {
@@ -116,7 +114,7 @@ export default function NotificationsPage() {
     if (!form.name.trim()) { setMsg('❌ Please enter a name'); return; }
     setSaving(true); setMsg('');
     try {
-      await axios.post('/api/alerts/configs', form);
+      await alertsApi.createConfig(form);
       setMsg('✅ Config created!');
       setShowForm(false);
       setForm({ name: '', metric: 'BUDGET_USAGE', condition: 'ABOVE', threshold: 80, unit: 'percent', notifyTelegram: false });
@@ -128,7 +126,7 @@ export default function NotificationsPage() {
 
   const toggleConfig = async (id: string) => {
     try {
-      await axios.post(`/api/alerts/configs/${id}/toggle`);
+      await alertsApi.toggleConfig(id);
       await fetchAll();
     } catch { setMsg('❌ Toggle failed'); }
   };
@@ -136,21 +134,21 @@ export default function NotificationsPage() {
   const deleteConfig = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"?`)) return;
     try {
-      await axios.delete(`/api/alerts/configs/${id}`);
+      await alertsApi.deleteConfig(id);
       await fetchAll();
     } catch { setMsg('❌ Delete failed'); }
   };
 
   const markRead = async (id?: string) => {
     try {
-      await axios.post('/api/alerts/history/read', id ? { id } : {});
+      await alertsApi.markHistoryRead(id);
       await fetchAll();
     } catch { setMsg('❌ Failed to mark read'); }
   };
 
   const deleteAlert = async (id: string) => {
     try {
-      await axios.delete(`/api/alerts/history/${id}`);
+      await alertsApi.deleteHistory(id);
       await fetchAll();
     } catch { setMsg('❌ Delete failed'); }
   };
@@ -161,7 +159,7 @@ export default function NotificationsPage() {
     if (!tgBotToken.trim() || !tgChatId.trim()) { setMsg('❌ Bot Token and Chat ID are required'); return; }
     setTgSaving(true); setMsg('');
     try {
-      await axios.post('/api/alerts/telegram', { botToken: tgBotToken.trim(), chatId: tgChatId.trim() });
+      await alertsApi.saveTelegram(tgBotToken.trim(), tgChatId.trim());
       setMsg('✅ Telegram settings saved!');
       setTgBotToken('');
       setTgChatId('');
@@ -174,12 +172,13 @@ export default function NotificationsPage() {
   const testTelegram = async () => {
     setTgTesting(true); setMsg('');
     try {
-      const { data } = await axios.post('/api/alerts/telegram/test');
-      if (data.success) {
-        const botSuffix = data.botName ? ' (Bot: ' + data.botName + ')' : '';
+      const { data } = await alertsApi.testTelegram();
+      const result = data as { success?: boolean; error?: string; botName?: string };
+      if (result.success) {
+        const botSuffix = result.botName ? ' (Bot: ' + result.botName + ')' : '';
         setMsg('✅ Telegram test sent! Check your Telegram chat.' + botSuffix);
       } else {
-        setMsg(`❌ ${data.error || 'Test failed'}`);
+        setMsg(`❌ ${result.error || 'Test failed'}`);
       }
     } catch (err: any) {
       setMsg(`❌ ${err?.response?.data?.message || err.message}`);
@@ -189,7 +188,7 @@ export default function NotificationsPage() {
   const disconnectTelegram = async () => {
     if (!confirm('Disconnect Telegram?')) return;
     try {
-      await axios.delete('/api/alerts/telegram');
+      await alertsApi.disconnectTelegram();
       setMsg('✅ Telegram disconnected');
       setTgSettings(null);
     } catch { setMsg('❌ Disconnect failed'); }
