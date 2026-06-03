@@ -11,3 +11,8 @@ export const META_API_CHANGE_REVIEW_DATE = '2026-05-01';
 export function fbOAuthDialogBaseUrl(): string {
   return `https://www.facebook.com/${FB_API_VERSION}/dialog/oauth`;
 }
+
+/** Normalize stored account_id (act_123) to numeric id for Graph act_XXX paths. */
+export function fbAdAccountActId(accountId: string): string {
+  return accountId.replace(/^act_/, '');
+}

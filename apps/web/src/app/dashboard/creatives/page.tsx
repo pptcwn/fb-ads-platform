@@ -408,6 +408,11 @@ export default function CreativesPage() {
                     <div className="p-4">
                       <p className="font-medium text-sm text-ink truncate">{c.name}</p>
                       <p className="text-xs text-ink-300 mt-1">{c.type} · Used {c.usedCount}x</p>
+                      {c.fbCreativeId ? (
+                        <p className="text-[10px] text-success mt-1 font-medium">✓ On Meta · {c.fbCreativeId}</p>
+                      ) : (
+                        <p className="text-[10px] text-ink-400 mt-1">ยังไม่อยู่บน Meta — กด FB Publish</p>
+                      )}
                       {c.primaryText && <p className="text-xs text-ink-200 mt-1 line-clamp-2">{c.primaryText}</p>}
                       {c.headline && <p className="text-xs font-medium text-ink mt-1">{c.headline}</p>}
 

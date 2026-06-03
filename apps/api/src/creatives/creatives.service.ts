@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
-import { FB_GRAPH_BASE_URL } from '../common/facebook-api.config';
+import { FB_GRAPH_BASE_URL, fbAdAccountActId } from '../common/facebook-api.config';
 import { ObjectStorageService } from '../common/object-storage.service';
 import { extname } from 'path';
 
@@ -195,19 +195,36 @@ export class CreativesService {
     });
     if (!account) throw new NotFoundException('Ad account not found');
 
+    const actId = fbAdAccountActId(account.accountId);
+
+    let pageId = creative.pageId;
+    if (!pageId) {
+      const pages = await this.facebookService.getStoredPages(fbUser.id);
+      if (pages.length === 0) {
+        throw new BadRequestException(
+          'No Facebook Page linked. Connect FB, then Dashboard → sync pages, or import from a Page.',
+        );
+      }
+      pageId = pages[0].pageId;
+    }
+
     // Upload image to Facebook if we have one
     let imageHash = creative.imageFbHash;
     if (!imageHash && creative.imageUrl) {
-      imageHash = await this.uploadImageToFb(account.accountId, accessToken, creative.imageUrl);
+      imageHash = await this.uploadImageToFb(actId, accessToken, creative.imageUrl);
     }
+
+    const destinationLink = creative.linkUrl?.includes('facebook.com')
+      ? 'https://www.example.com'
+      : (creative.linkUrl || 'https://www.example.com');
 
     // Build creative params
     const creativeParams: any = {
       name: creative.name,
       object_story_spec: {
-        page_id: creative.pageId || fbUser.facebookUserId,
+        page_id: pageId,
         link_data: {
-          link: creative.linkUrl || 'https://www.example.com',
+          link: destinationLink,
           message: creative.primaryText || '',
           name: creative.headline || creative.name,
           description: creative.description || '',
@@ -221,7 +238,7 @@ export class CreativesService {
     }
 
     // Call Facebook API
-    const url = `${FB_GRAPH_BASE_URL}/act_${account.accountId}/creatives`;
+    const url = `${FB_GRAPH_BASE_URL}/act_${actId}/creatives`;
 
     const response = await fetch(url, {
       method: 'POST',
