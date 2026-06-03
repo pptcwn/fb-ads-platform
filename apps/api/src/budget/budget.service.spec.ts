@@ -144,7 +144,13 @@ describe('BudgetService', () => {
       });
 
       const ok = await (service as any).executeAdjustPercent(
-        { campaignId: 'camp-db-1', userId: 'user-1', value: 10 },
+        {
+          id: 'sched-1',
+          campaignId: 'camp-db-1',
+          userId: 'user-1',
+          value: 10,
+          action: 'ADJUST_PERCENT',
+        },
         'access-token',
       );
 
@@ -153,6 +159,8 @@ describe('BudgetService', () => {
         expect.objectContaining({ campaignDbId: 'camp-db-1', fbCampaignId: 'fb-camp-1' }),
         110,
         'Budget:ADJUST_PERCENT',
+        false,
+        { source: 'budget', sourceId: 'sched-1', action: 'ADJUST_PERCENT' },
       );
     });
 

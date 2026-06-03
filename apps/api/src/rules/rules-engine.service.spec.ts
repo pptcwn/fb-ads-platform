@@ -199,6 +199,8 @@ describe('RulesEngineService', () => {
         expect.any(Object),
         5000,
         'RulesEngine:INCREASE_BUDGET_50',
+        false,
+        { source: 'rules', sourceId: 'rule-1', action: 'INCREASE_BUDGET_50' },
       );
     });
   });
