@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +19,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await axios.post('/api/auth/login', { email, password }, { withCredentials: true });
-      router.push('/dashboard');
+      const redirect = searchParams.get('redirect');
+      router.push(redirect && redirect.startsWith('/dashboard') ? redirect : '/dashboard');
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       setError(msg || (err?.message && !err?.response ? err.message : 'Invalid credentials'));
@@ -30,7 +32,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-10">
           <div className="w-12 h-12 rounded-lg bg-accent flex items-center justify-center mx-auto mb-4 transition-transform hover:scale-105">
             <span className="text-white text-lg font-bold">F</span>
@@ -39,13 +40,12 @@ export default function LoginPage() {
           <p className="text-sm text-ink-100 mt-2">Multi-Account Automation</p>
         </div>
 
-        {/* Card */}
         <div className="card p-6 sm:p-8">
           {error && (
             <div className="msg-error mb-5 flex items-start justify-between gap-3">
               <span className="text-sm">{error}</span>
-              <button 
-                onClick={() => setError('')} 
+              <button
+                onClick={() => setError('')}
                 className="text-danger hover:text-danger/80 flex-shrink-0 cursor-pointer"
                 aria-label="Dismiss error"
               >✕</button>
@@ -76,8 +76,8 @@ export default function LoginPage() {
                 className="w-full"
               />
             </div>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn-primary w-full mt-6"
               disabled={loading}
             >
@@ -94,5 +94,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-ink-300">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

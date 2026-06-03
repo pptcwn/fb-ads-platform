@@ -66,7 +66,7 @@ export function useCloneCampaign() {
 /** Save campaign as template */
 export function useSaveTemplate() {
   return useMutation({
-    mutationFn: (dto: { name: string; notes?: string; objective: string; dailyBudget?: number }) =>
+    mutationFn: (dto: import('@/lib/api-client').CreateTemplatePayload) =>
       import('@/lib/api-client').then(m => m.templatesApi.create(dto).then(r => r.data)),
   });
 }

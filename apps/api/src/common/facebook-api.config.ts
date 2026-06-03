@@ -16,3 +16,8 @@ export function fbOAuthDialogBaseUrl(): string {
 export function fbAdAccountActId(accountId: string): string {
   return accountId.replace(/^act_/, '');
 }
+
+/** Graph path segment for ad account endpoints. */
+export function actPath(adAccountId: string): string {
+  return `act_${fbAdAccountActId(adAccountId)}`;
+}

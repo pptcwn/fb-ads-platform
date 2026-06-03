@@ -88,6 +88,13 @@ export default function CreativesPage() {
   // Post to Page
   const [postingToPage, setPostingToPage] = useState<string | null>(null);
 
+  // FB Publish — ad account picker
+  interface AdAccountOption { id: string; name: string; accountId: string }
+  const [adAccounts, setAdAccounts] = useState<AdAccountOption[]>([]);
+  const [fbPublishModal, setFbPublishModal] = useState<string | null>(null);
+  const [fbPublishAccountId, setFbPublishAccountId] = useState('');
+  const [fbPublishing, setFbPublishing] = useState(false);
+
   // ─── Helpers ───
 
   const tokenAxios = useCallback(() => {
@@ -247,16 +254,36 @@ export default function CreativesPage() {
     } finally { setUploading(null); if (fileRef.current) fileRef.current.value = ''; }
   };
 
-  const createFbCreative = async (id: string) => {
+  const openFbPublish = async (creativeId: string) => {
     try {
-      const { data: accounts } = await axios.get('/api/adaccounts');
-      if (accounts.length === 0) { setMsg('❌ No ad accounts found'); return; }
-      const accountId = accounts[0].id;
-      const { data } = await axios.post(`/api/creatives/${id}/fb-create/${accountId}`);
+      const { data: accounts } = await axios.get<AdAccountOption[]>('/api/adaccounts');
+      if (!accounts?.length) {
+        setMsg('❌ No ad accounts found — connect Facebook and sync accounts first');
+        return;
+      }
+      setAdAccounts(accounts);
+      setFbPublishAccountId(accounts[0].id);
+      setFbPublishModal(creativeId);
+    } catch (err: any) {
+      setMsg(`❌ ${err?.response?.data?.message || err.message}`);
+    }
+  };
+
+  const confirmFbPublish = async () => {
+    if (!fbPublishModal || !fbPublishAccountId) return;
+    setFbPublishing(true);
+    setMsg('');
+    try {
+      const { data } = await axios.post(
+        `/api/creatives/${fbPublishModal}/fb-create/${fbPublishAccountId}`,
+      );
       setMsg(`✅ FB creative created! ID: ${data.fbCreativeId}`);
+      setFbPublishModal(null);
       await fetchAll();
     } catch (err: any) {
       setMsg(`❌ ${err?.response?.data?.message || err.message}`);
+    } finally {
+      setFbPublishing(false);
     }
   };
 
@@ -405,7 +432,7 @@ export default function CreativesPage() {
                     {/* Image preview */}
                     <div className="h-40 bg-surface-100 relative overflow-hidden flex items-center justify-center">
                       {c.imageUrl ? (
-                        <img src={c.imageUrl.startsWith('http') ? c.imageUrl : c.imageUrl}
+                        <img src={c.imageUrl.startsWith('http') || c.imageUrl.startsWith('/') ? c.imageUrl : `/${c.imageUrl}`}
                           alt={c.name} className="w-full h-full object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
@@ -460,7 +487,7 @@ export default function CreativesPage() {
                             </button>
                           </>
                         )}
-                        <button onClick={() => createFbCreative(c.id)}
+                        <button onClick={() => openFbPublish(c.id)}
                           className="text-xs text-success hover:text-success/80 px-2 py-1 font-medium">
                           FB Publish
                         </button>
@@ -545,6 +572,34 @@ export default function CreativesPage() {
             <button onClick={saveCreative} disabled={saving}
               className="btn-primary btn-sm">
               {saving ? 'Saving...' : editId ? 'Update' : 'Create'}
+            </button>
+          </div>
+        </Modal>
+
+        {/* FB Publish — ad account */}
+        <Modal
+          open={!!fbPublishModal}
+          onClose={() => setFbPublishModal(null)}
+          title="Publish to Meta"
+          icon={<Sparkles className="w-4 h-4" />}
+        >
+          <p className="text-sm text-ink-300 mb-3">Choose the ad account to create this creative under.</p>
+          <label className="block text-xs font-medium text-ink-200 mb-1">Ad Account</label>
+          <select
+            value={fbPublishAccountId}
+            onChange={(e) => setFbPublishAccountId(e.target.value)}
+            className="w-full bg-surface-50 px-3 py-2 text-sm text-ink mb-4"
+          >
+            {adAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.accountId})
+              </option>
+            ))}
+          </select>
+          <div className="flex justify-end gap-2 pt-4 -mx-5 px-5 border-t border-surface-300">
+            <button onClick={() => setFbPublishModal(null)} className="btn-secondary btn-sm">Cancel</button>
+            <button onClick={confirmFbPublish} disabled={fbPublishing} className="btn-primary btn-sm">
+              {fbPublishing ? 'Publishing...' : 'Publish'}
             </button>
           </div>
         </Modal>

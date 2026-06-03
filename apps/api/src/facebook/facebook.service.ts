@@ -14,12 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptToken, decryptToken } from '../common/encryption.util';
 import { readFileSync } from 'fs';
-import { FB_GRAPH_BASE_URL, fbAdAccountActId, fbOAuthDialogBaseUrl } from '../common/facebook-api.config';
-
-/** Graph path segment for ad account endpoints. */
-function actPath(adAccountId: string): string {
-  return `act_${fbAdAccountActId(adAccountId)}`;
-}
+import { FB_GRAPH_BASE_URL, actPath, fbAdAccountActId, fbOAuthDialogBaseUrl } from '../common/facebook-api.config';
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AxiosResponse } from 'axios';
 

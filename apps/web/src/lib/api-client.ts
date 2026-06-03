@@ -161,7 +161,20 @@ export const targetingApi = {
 
 // ─── Templates ───
 
+export interface CreateTemplatePayload {
+  name: string;
+  notes?: string;
+  objective: string;
+  dailyBudget?: number;
+  targetSpec?: Record<string, unknown>;
+  adSetName?: string;
+  optimizationGoal?: string;
+  billingEvent?: string;
+  adName?: string;
+  creativeConfig?: Record<string, unknown>;
+}
+
 export const templatesApi = {
-  create: (dto: { name: string; notes?: string; objective: string; dailyBudget?: number }) =>
-    api.post('/api/templates', dto),
+  get: (id: string) => api.get<CreateTemplatePayload & { id: string }>(`/api/templates/${id}`),
+  create: (dto: CreateTemplatePayload) => api.post('/api/templates', dto),
 };

@@ -10,7 +10,7 @@ import Modal, { ConfirmModal } from '@/components/Modal';
 import TargetingBuilder from '@/components/TargetingBuilder';
 import { objLabel, fmtCurr, fmtPct, STATUS_COLORS } from '@/lib/utils';
 import { useCampaigns, useCreateCampaign, useDeleteCampaign, useCloneCampaign, useSaveTemplate, useBulkAction } from '@/hooks/use-campaigns';
-import { campaignsApi } from '@/lib/api-client';
+import { campaignsApi, templatesApi } from '@/lib/api-client';
 import { useAdSets, useToggleAdSet, useUpdateAdSetBudget } from '@/hooks/use-adsets';
 import { useAdAccounts } from '@/hooks/use-accounts';
 import type { AdSetItem } from '@/lib/api-client';
@@ -92,7 +92,14 @@ function CampaignsPageInner() {
   const [cloneModal, setCloneModal] = useState<{ id: string; name: string; type: 'campaign' | 'creative' } | null>(null);
   const [cloneName, setCloneName] = useState('');
 
-  const [saveTpl, setSaveTpl] = useState<{ id: string; name: string; objective: string; dailyBudget: number } | null>(null);
+  type SaveTplState = {
+    source: 'row' | 'drawer';
+    label: string;
+    objective: string;
+    dailyBudget: number;
+    formSnapshot?: typeof form;
+  };
+  const [saveTpl, setSaveTpl] = useState<SaveTplState | null>(null);
   const [tplName, setTplName] = useState('');
   const [tplNotes, setTplNotes] = useState('');
 
@@ -125,6 +132,34 @@ function CampaignsPageInner() {
 
   useEffect(() => {
     if (searchParams.get('new') === '1') setDrawerOpen(true);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const templateId = searchParams.get('template');
+    if (!templateId) return;
+    templatesApi
+      .get(templateId)
+      .then(({ data: t }) => {
+        const creative = (t.creativeConfig || {}) as Record<string, string>;
+        setForm(f => ({
+          ...f,
+          name: t.name.replace(/\s*Template\s*$/i, '').trim() || f.name,
+          objective: t.objective || f.objective,
+          dailyBudget: t.dailyBudget != null ? Number(t.dailyBudget) : f.dailyBudget,
+          adSetName: t.adSetName || '',
+          optimizationGoal: t.optimizationGoal || f.optimizationGoal,
+          billingEvent: t.billingEvent || f.billingEvent,
+          targeting: (t.targetSpec as Record<string, unknown>) || {},
+          createAd: !!t.adName,
+          adName: t.adName || '',
+          creativeMessage: creative.message || '',
+          creativeLink: creative.link || '',
+        }));
+        setDrawerOpen(true);
+        setDrawerStep(1);
+        setMsg('Template loaded — review settings and launch');
+      })
+      .catch(() => setError('Failed to load template'));
   }, [searchParams]);
 
   // ─── Derived ───
@@ -199,11 +234,40 @@ function CampaignsPageInner() {
   };
 
   // ─── Save template ───
+  const openSaveTemplate = (payload: SaveTplState) => {
+    setSaveTpl(payload);
+    setTplName(`${payload.label} Template`);
+    setTplNotes('');
+  };
+
   const saveAsTemplate = async () => {
     if (!saveTpl || !tplName.trim()) return;
     setMsg(''); setError('');
     try {
-      await saveTemplateMutation.mutateAsync({ name: tplName, notes: tplNotes || undefined, objective: saveTpl.objective, dailyBudget: saveTpl.dailyBudget || undefined });
+      const base = {
+        name: tplName,
+        notes: tplNotes || undefined,
+        objective: saveTpl.objective,
+        dailyBudget: saveTpl.dailyBudget || undefined,
+      };
+      if (saveTpl.source === 'drawer' && saveTpl.formSnapshot) {
+        const f = saveTpl.formSnapshot;
+        await saveTemplateMutation.mutateAsync({
+          ...base,
+          objective: f.objective,
+          dailyBudget: f.dailyBudget,
+          targetSpec: Object.keys(f.targeting || {}).length > 0 ? f.targeting : undefined,
+          adSetName: f.adSetName || undefined,
+          optimizationGoal: f.optimizationGoal || undefined,
+          billingEvent: f.billingEvent || undefined,
+          adName: f.createAd && f.adName ? f.adName : undefined,
+          creativeConfig: f.createAd
+            ? { message: f.creativeMessage, link: f.creativeLink, createAd: true }
+            : undefined,
+        });
+      } else {
+        await saveTemplateMutation.mutateAsync(base);
+      }
       setMsg('Template saved'); setSaveTpl(null); setTplName(''); setTplNotes('');
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
   };
@@ -452,7 +516,7 @@ function CampaignsPageInner() {
                               <button onClick={() => openAdSets(camp.id, camp.name, acct.currency)} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20"><Package className="w-3 h-3 mr-0.5 inline" />Ad Sets</button>
                               <button onClick={() => { setCloneModal({ id: camp.id, name: camp.name, type: 'campaign' }); setCloneName(`Copy of ${camp.name}`); }} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20"><Shuffle className="w-3 h-3 mr-0.5 inline" />Clone</button>
                               <button onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: camp.status === 'ACTIVE' ? 'pause' : 'resume', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20">{camp.status === 'ACTIVE' ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}</button>
-                              <button onClick={() => { setSaveTpl({ id: camp.id, name: camp.name, objective: camp.objective, dailyBudget: Number(camp.dailyBudget || 0) }); setTplName(`${camp.name} Template`); setTplNotes(''); }} className="text-xs px-2 py-1 rounded font-medium bg-success-muted text-success hover:bg-success/20"><Save className="w-3 h-3" /></button>
+                              <button onClick={() => openSaveTemplate({ source: 'row', label: camp.name, objective: camp.objective, dailyBudget: Number(camp.dailyBudget || 0) })} className="text-xs px-2 py-1 rounded font-medium bg-success-muted text-success hover:bg-success/20"><Save className="w-3 h-3" /></button>
                               <button onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: 'delete', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-danger-muted text-danger hover:bg-danger/20"><Trash2 className="w-3 h-3" /></button>
                             </div>
                           </td>
@@ -478,7 +542,16 @@ function CampaignsPageInner() {
           <div className="relative w-[480px] h-full bg-surface-50 border-l border-surface-300 flex flex-col shadow-2xl overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-surface-300 shrink-0">
               <h2 className="text-lg font-semibold text-ink flex items-center gap-2" style={{ letterSpacing: '-0.02em' }}><Sparkles className="w-4 h-4" />New Campaign</h2>
-              <button onClick={() => setDrawerOpen(false)} className="text-ink-200 hover:text-ink transition-colors text-xl leading-none">✕</button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openSaveTemplate({ source: 'drawer', label: form.name || 'Campaign', objective: form.objective, dailyBudget: form.dailyBudget, formSnapshot: { ...form } })}
+                  className="btn-secondary btn-sm text-xs"
+                >
+                  <Save className="w-3.5 h-3.5 mr-0.5 inline" /> Template
+                </button>
+                <button onClick={() => setDrawerOpen(false)} className="text-ink-200 hover:text-ink transition-colors text-xl leading-none">✕</button>
+              </div>
             </div>
             <div className="flex-1 px-6 py-4">
               {drawerError && <div className="msg-error mb-4">{drawerError}</div>}
@@ -756,7 +829,10 @@ function CampaignsPageInner() {
       </Modal>
 
       <Modal open={!!saveTpl} onClose={() => setSaveTpl(null)} title="Save as Template" icon={<Save className="w-4 h-4" />}>
-        <p className="text-sm text-ink-200 mb-3">{saveTpl?.name}</p>
+        <p className="text-sm text-ink-200 mb-3">{saveTpl?.label}</p>
+        {saveTpl?.source === 'row' && (
+          <p className="text-xs text-ink-400 mb-2">จากแถวแคมเปญ — เก็บ objective + งบเท่านั้น (ใช้ปุ่ม Template ใน drawer เพื่อเก็บ targeting/creative ครบ)</p>
+        )}
         <div className="space-y-3">
           <div><label className="block text-xs text-ink-300 mb-1">Template Name *</label><input type="text" value={tplName} onChange={e => setTplName(e.target.value)} className="w-full bg-surface-200 border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink" /></div>
           <div><label className="block text-xs text-ink-300 mb-1">Notes (optional)</label><textarea value={tplNotes} onChange={e => setTplNotes(e.target.value)} rows={3} className="w-full bg-surface-200 border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink placeholder-ink-300" /></div>

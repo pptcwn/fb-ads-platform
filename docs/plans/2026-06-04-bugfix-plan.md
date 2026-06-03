@@ -31,11 +31,25 @@
 | P3-4 | `useSyncInsights` per account | `use-dashboard.ts`, `api-client.ts` | done |
 | P3-5 | Creative `linkToCampaign` ownership | `creatives.service.ts` | done |
 
+## Phase 4 — Auth, storage, templates ✅
+
+| ID | Fix | Files | Status |
+|----|-----|-------|--------|
+| P4-1 | Same-origin API proxy + cookie (unset `NEXT_PUBLIC_API_URL` in dev) | `api.ts`, `next.config.js`, `.env.example` | done |
+| P4-2 | Dashboard auth middleware (`fb_ads_token`) | `middleware.ts` | done |
+| P4-3 | Login redirect after auth | `page.tsx` | done |
+| P4-4 | Local creative image → FB via multipart upload | `creatives.service.ts` | done |
+| P4-5 | S3/R2 upload on attach when configured | `creatives.service.ts`, `.env.example` | done |
+| P4-6 | Save/load template full payload (targeting + creative) | `campaigns/page.tsx`, `api-client.ts` | done |
+| P4-7 | Templates apply → `?new=1&template=` | `templates/page.tsx` | done |
+| P4-8 | FB Publish ad account picker | `creatives/page.tsx` | done |
+| P4-9 | `actPath` shared export | `facebook-api.config.ts` | done |
+
 ## Verification
 
 - `pnpm --filter api test`
 - `pnpm --filter api exec tsc --noEmit`
-- Manual: Campaigns `?new=1`, Targeting search, Schedules create, Creatives FB Publish
+- Manual: login cookie on `:3000`, Campaigns `?new=1&template=`, Creatives FB Publish, middleware redirect when logged out
 
 ## Deploy
 

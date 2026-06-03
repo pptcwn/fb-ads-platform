@@ -3,7 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { FB_GRAPH_BASE_URL, fbAdAccountActId } from '../common/facebook-api.config';
 import { ObjectStorageService } from '../common/object-storage.service';
-import { extname } from 'path';
+import { extname, join } from 'path';
+import { existsSync } from 'fs';
 
 interface UploadedFile {
   filename: string;
@@ -267,20 +268,34 @@ export class CreativesService {
   }
 
   private async uploadImageToFb(accountId: string, accessToken: string, imageUrl: string): Promise<string | null> {
+    const actId = fbAdAccountActId(accountId);
     try {
-      // If it's a local upload, we need to read the file
-      let sourceUrl = imageUrl;
       if (imageUrl.startsWith('/api/creatives/uploads/')) {
-        this.logger.warn('Local file upload to FB not supported — configure S3/R2 for a public image URL.');
-        return null;
+        const filename = imageUrl.replace(/^\/api\/creatives\/uploads\//, '');
+        const filePath = join(process.cwd(), 'uploads', 'creatives', filename);
+        if (!existsSync(filePath)) {
+          this.logger.warn(`Local upload file missing: ${filePath}`);
+          return null;
+        }
+        const ext = extname(filename).toLowerCase();
+        const mime =
+          ext === '.png' ? 'image/png'
+          : ext === '.webp' ? 'image/webp'
+          : ext === '.gif' ? 'image/gif'
+          : 'image/jpeg';
+        return await this.facebookService.uploadAdImage(actId, accessToken, {
+          path: filePath,
+          originalname: filename,
+          mimetype: mime,
+        });
       }
 
-      const response = await fetch(`${FB_GRAPH_BASE_URL}/act_${accountId}/adimages`, {
+      const response = await fetch(`${FB_GRAPH_BASE_URL}/act_${actId}/adimages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           access_token: accessToken,
-          url: sourceUrl,
+          url: imageUrl,
         }),
       });
 

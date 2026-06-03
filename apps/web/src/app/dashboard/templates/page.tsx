@@ -123,7 +123,7 @@ export default function TemplatesPage() {
     try {
       await axios.post(`/api/templates/${t.id}/apply`);
       // Navigate to new campaign page with pre-filled params
-      window.location.href = `/dashboard/campaigns/new?template=${t.id}`;
+      window.location.href = `/dashboard/campaigns?new=1&template=${t.id}`;
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
   };
 
