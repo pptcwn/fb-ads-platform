@@ -44,7 +44,9 @@ jobs:
           ssh -i ~/.ssh/deploy_key root@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
             cd /root/fb-ads-platform
-            git pull origin main
+            git fetch origin main
+            # VPS must match repo exactly — discard stale local edits from dev mounts
+            git reset --hard origin/main
             docker compose up -d --build
             docker compose exec -T api sh -c 'cd apps/api && npx prisma migrate deploy'
             docker compose ps
