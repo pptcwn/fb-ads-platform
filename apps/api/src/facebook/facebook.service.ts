@@ -15,6 +15,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { encryptToken, decryptToken } from '../common/encryption.util';
 import { readFileSync } from 'fs';
 import { FB_GRAPH_BASE_URL, fbAdAccountActId, fbOAuthDialogBaseUrl } from '../common/facebook-api.config';
+
+/** Graph path segment for ad account endpoints. */
+function actPath(adAccountId: string): string {
+  return `act_${fbAdAccountActId(adAccountId)}`;
+}
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AxiosResponse } from 'axios';
 
@@ -363,7 +368,7 @@ export class FacebookService implements OnModuleInit {
         special_ad_categories: 'NONE',
       });
       const { data } = await firstValueFrom(
-        this.http.post<{ id: string }>(`${this.baseUrl}/act_${adAccountId}/campaigns`, params.toString(), {
+        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/campaigns`, params.toString(), {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         }),
       );
@@ -401,7 +406,7 @@ export class FacebookService implements OnModuleInit {
       if (bidAmount) params.bid_amount = Math.round(bidAmount * 100);
       if (bidStrategy) params.bid_strategy = bidStrategy;
       const { data } = await firstValueFrom(
-        this.http.post<{ id: string }>(`${this.baseUrl}/act_${adAccountId}/adsets`, params, {
+        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/adsets`, params, {
           headers: { 'Content-Type': 'application/json' },
         }),
       );
@@ -417,7 +422,7 @@ export class FacebookService implements OnModuleInit {
   async searchTargetingInterests(query: string, accessToken: string, limit = 25) {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl.replace('/v22.0', '/v22.0')}search`, {
+        this.http.get(`${this.baseUrl}/search`, {
           params: {
             type: 'adinterest',
             q: query,
@@ -442,7 +447,7 @@ export class FacebookService implements OnModuleInit {
   async searchTargetingLocations(query: string, accessToken: string, locationTypes: string[] = ['country', 'region', 'city'], limit = 25) {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl.replace('/v22.0', '/v22.0')}search`, {
+        this.http.get(`${this.baseUrl}/search`, {
           params: {
             type: 'adgeolocation',
             q: query,
@@ -470,7 +475,7 @@ export class FacebookService implements OnModuleInit {
   async searchTargetingDemographics(query: string, accessToken: string, limit = 25) {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl.replace('/v22.0', '/v22.0')}search`, {
+        this.http.get(`${this.baseUrl}/search`, {
           params: {
             type: 'addemographic',
             q: query,
@@ -494,7 +499,7 @@ export class FacebookService implements OnModuleInit {
   async estimateAudienceSize(targeting: any, accessToken: string, adAccountId: string) {
     try {
       const { data } = await firstValueFrom(
-        this.http.post(`${this.baseUrl}/act_${adAccountId}/delivery_estimate`, null, {
+        this.http.post(`${this.baseUrl}/${actPath(adAccountId)}/delivery_estimate`, null, {
           params: {
             targeting: JSON.stringify(targeting),
             optimization_goal: 'REACH',
@@ -527,7 +532,7 @@ export class FacebookService implements OnModuleInit {
       file.originalname || 'image.jpg',
     );
 
-    const response = await fetch(`${this.baseUrl}/act_${actId}/adimages`, {
+    const response = await fetch(`${this.baseUrl}/${actPath(actId)}/adimages`, {
       method: 'POST',
       body: form,
     });
@@ -570,7 +575,7 @@ export class FacebookService implements OnModuleInit {
         access_token: accessToken,
       };
       const { data } = await firstValueFrom(
-        this.http.post<{ id: string }>(`${this.baseUrl}/act_${adAccountId}/creatives`, params, {
+        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/creatives`, params, {
           headers: { 'Content-Type': 'application/json' },
         }),
       );
@@ -598,7 +603,7 @@ export class FacebookService implements OnModuleInit {
         access_token: accessToken,
       });
       const { data } = await firstValueFrom(
-        this.http.post<{ id: string }>(`${this.baseUrl}/act_${adAccountId}/ads`, params.toString(), {
+        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/ads`, params.toString(), {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         }),
       );
@@ -629,7 +634,7 @@ export class FacebookService implements OnModuleInit {
   async getFbCampaigns(adAccountId: string, accessToken: string): Promise<any[]> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/act_${adAccountId}/campaigns`, {
+        this.http.get(`${this.baseUrl}/${actPath(adAccountId)}/campaigns`, {
           params: {
             fields: 'id,name,objective,status,daily_budget,lifetime_budget,created_time',
             access_token: accessToken,
@@ -844,7 +849,7 @@ export class FacebookService implements OnModuleInit {
   async getCustomAudiences(adAccountId: string, accessToken: string): Promise<any[]> {
     try {
       const { data } = await firstValueFrom(
-        this.http.get(`${this.baseUrl}/act_${adAccountId}/customaudiences`, {
+        this.http.get(`${this.baseUrl}/${actPath(adAccountId)}/customaudiences`, {
           params: {
             fields: 'id,name,type,subtype,description,approximate_count,status,source_audience_id,lookalike_value,targeting,account_id',
             access_token: accessToken,
@@ -872,7 +877,7 @@ export class FacebookService implements OnModuleInit {
         access_token: accessToken,
       };
       const { data } = await firstValueFrom(
-        this.http.post<{ id: string }>(`${this.baseUrl}/act_${adAccountId}/customaudiences`, body, {
+        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/customaudiences`, body, {
           headers: { 'Content-Type': 'application/json' },
         }),
       );
@@ -897,7 +902,7 @@ export class FacebookService implements OnModuleInit {
         access_token: accessToken,
       };
       const { data } = await firstValueFrom(
-        this.http.post<{ id: string }>(`${this.baseUrl}/act_${adAccountId}/customaudiences`, body, {
+        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/customaudiences`, body, {
           headers: { 'Content-Type': 'application/json' },
         }),
       );

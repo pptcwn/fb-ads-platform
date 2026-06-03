@@ -80,7 +80,7 @@ export function useSyncInsights() {
   return useMutation({
     mutationFn: (adAccountId?: string) =>
       adAccountId
-        ? insightsApi.sync().then(r => r.data)  // syncAll ignores body
+        ? insightsApi.syncAccount(adAccountId).then(r => r.data)
         : insightsApi.sync().then(r => r.data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['insights'] }); },
     // Overload: pass adAccountId to sync specific account

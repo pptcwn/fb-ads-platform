@@ -132,6 +132,7 @@ export const syncApi = {
 
 export const insightsApi = {
   sync: () => api.post('/api/insights/sync'),
+  syncAccount: (adAccountId: string) => api.post(`/api/insights/sync/${adAccountId}`),
   byAccount: (adAccountId: string, days: number) =>
     api.get(`/api/insights/accounts/${adAccountId}?days=${days}`),
   summary: () => api.get<{ accounts: number; totalCampaigns: number; activeCampaigns: number; totalSpend: number }>('/api/insights/summary'),

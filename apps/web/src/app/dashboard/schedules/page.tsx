@@ -40,7 +40,6 @@ const TYPE_LABELS: Record<string, string> = {
   ONCE: 'One-time',
   DAILY: 'Daily',
   WEEKLY: 'Weekly',
-  HOURLY: 'Hourly',
 };
 
 export default function SchedulesPage() {
@@ -71,12 +70,15 @@ export default function SchedulesPage() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [schRes, camRes] = await Promise.all([
+      const [schRes, acctRes] = await Promise.all([
         axios.get('/api/schedules').catch(() => ({ data: [] })),
-        axios.get('/api/campaigns').catch(() => ({ data: [] })),
+        axios.get('/api/campaigns/accounts').catch(() => ({ data: [] })),
       ]);
       setSchedules(schRes.data);
-      setCampaigns(camRes.data);
+      const flat: Campaign[] = (acctRes.data || []).flatMap((acct: { campaigns?: Campaign[] }) =>
+        (acct.campaigns || []).map((c) => ({ ...c })),
+      );
+      setCampaigns(flat);
     } catch { setError('Failed to load data'); }
     finally { setLoading(false); }
   };
@@ -102,6 +104,18 @@ export default function SchedulesPage() {
   };
 
   const submitForm = async () => {
+    if (form.scheduleType === 'ONCE' && !form.executeAt) {
+      setError('Please set Execute At for a one-time schedule');
+      return;
+    }
+    if ((form.scheduleType === 'DAILY' || form.scheduleType === 'WEEKLY') && !form.timeOfDay) {
+      setError('Please set Time of Day');
+      return;
+    }
+    if (form.scheduleType === 'WEEKLY' && form.daysOfWeek.length === 0) {
+      setError('Please select at least one day for weekly schedule');
+      return;
+    }
     setFormBusy(true); setError(''); setMsg('');
     try {
       const payload = { ...form };

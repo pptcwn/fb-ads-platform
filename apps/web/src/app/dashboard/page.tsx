@@ -68,10 +68,10 @@ export default function DashboardPage() {
     }
   };
 
-  const handleSyncInsights = async () => {
+  const handleSyncInsights = async (accountId?: string) => {
     setSyncMsg('');
     try {
-      const data = await syncInsightsMutation.mutateAsync(undefined as any);
+      const data = await syncInsightsMutation.mutateAsync(accountId as any);
       if (data?.queued) {
         setSyncMsg(`✅ ${data.message || 'Insights sync queued — updating in background.'}`);
       } else {
@@ -165,9 +165,12 @@ export default function DashboardPage() {
                 className="btn-secondary btn-sm">
                 {triggerSync.isPending ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync now</>}
               </button>
-              <button onClick={handleSyncInsights} disabled={syncInsightsMutation.isPending}
-                className="btn-ghost btn-sm">
-                {syncInsightsMutation.isPending ? 'Loading...' : <><BarChart3 className="w-4 h-4" /> Insights 30d</>}
+              <button
+                onClick={() => handleSyncInsights(insightAccountId ?? undefined)}
+                disabled={syncInsightsMutation.isPending}
+                className="btn-ghost btn-sm"
+              >
+                {syncInsightsMutation.isPending ? 'Loading...' : <><BarChart3 className="w-4 h-4" /> Sync insights</>}
               </button>
             </div>
           )}
@@ -267,9 +270,33 @@ export default function DashboardPage() {
             )}
 
             {/* Charts */}
+            {accounts.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <label className="text-xs text-ink-300">Chart account</label>
+                <select
+                  value={insightAccountId ?? ''}
+                  onChange={e => setInsightAccountId(e.target.value || null)}
+                  className="text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink px-3 py-1.5"
+                >
+                  {accounts.map(a => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+                <label className="text-xs text-ink-300">Days</label>
+                <select
+                  value={insightDays}
+                  onChange={e => setInsightDays(parseInt(e.target.value, 10))}
+                  className="text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink px-3 py-1.5"
+                >
+                  <option value={7}>7</option>
+                  <option value={14}>14</option>
+                  <option value={30}>30</option>
+                </select>
+              </div>
+            )}
             {insights.length > 0 && (
               <div className="card p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                   <h3 className="text-sm font-semibold text-ink"><TrendingUp className="w-4 h-4 inline" /> Performance (last {insightDays} days)</h3>
                   <div className="grid grid-cols-4 gap-6 text-center text-sm">
                     <div><p className="text-ink-200 text-xs">Spend</p><p className="font-semibold text-ink">${fmtNum(totals.spend)}</p></div>

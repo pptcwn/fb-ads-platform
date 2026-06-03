@@ -1,5 +1,5 @@
 // apps/api/src/campaigns/targeting.controller.ts
-import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FacebookService } from '../facebook/facebook.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -54,7 +54,12 @@ export class TargetingController {
     const fbUser = await this.prisma.fbUser.findFirst({ where: { userId: req.user.id } });
     if (!fbUser) return { dailyUniqueReach: 0, monthlyUniqueReach: 0 };
     const token = await this.facebookService.getDecryptedToken(fbUser.id);
-    const targeting = JSON.parse(targetingJson);
+    let targeting: Record<string, unknown>;
+    try {
+      targeting = JSON.parse(targetingJson);
+    } catch {
+      throw new BadRequestException('Invalid targeting JSON');
+    }
     const account = await this.prisma.adAccount.findFirst({
       where: { id: adAccountId, fbUser: { userId: req.user.id } },
     });

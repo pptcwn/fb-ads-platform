@@ -115,7 +115,9 @@ export class CreativesService {
     const creative = await this.prisma.creative.findFirst({ where: { id: creativeId, userId } });
     if (!creative) throw new NotFoundException('Creative not found');
 
-    const campaign = await this.prisma.campaign.findFirst({ where: { id: campaignId } });
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id: campaignId, adAccount: { fbUser: { userId } } },
+    });
     if (!campaign) throw new NotFoundException('Campaign not found');
 
     // Upsert link

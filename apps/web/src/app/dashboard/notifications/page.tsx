@@ -88,7 +88,7 @@ export default function NotificationsPage() {
 
       const [configsRes, alertsRes, tgRes] = await Promise.all([
         axios.get('/api/alerts/configs').catch(() => ({ data: [] })),
-        axios.get('/api/alerts/history?limit=50'),
+        axios.get('/api/alerts/history?limit=50').catch(() => ({ data: [] })),
         axios.get('/api/alerts/telegram').catch(() => ({ data: null })),
       ]);
       setConfigs(configsRes.data);

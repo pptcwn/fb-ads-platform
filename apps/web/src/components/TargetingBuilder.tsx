@@ -92,7 +92,8 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
   const [audiences, setAudiences] = useState<AudienceItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [audienceSize, setAudienceSize] = useState<{ daily: number; monthly: number } | null>(null);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interestSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const locationSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─── Load audiences ───
   useEffect(() => {
@@ -125,9 +126,9 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
   }, []);
 
   useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => doInterestSearch(interestQuery), 400);
-    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+    if (interestSearchTimer.current) clearTimeout(interestSearchTimer.current);
+    interestSearchTimer.current = setTimeout(() => doInterestSearch(interestQuery), 400);
+    return () => { if (interestSearchTimer.current) clearTimeout(interestSearchTimer.current); };
   }, [interestQuery, doInterestSearch]);
 
   // ─── Location search ───
@@ -142,9 +143,9 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
   }, []);
 
   useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => doLocationSearch(locationQuery), 400);
-    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+    if (locationSearchTimer.current) clearTimeout(locationSearchTimer.current);
+    locationSearchTimer.current = setTimeout(() => doLocationSearch(locationQuery), 400);
+    return () => { if (locationSearchTimer.current) clearTimeout(locationSearchTimer.current); };
   }, [locationQuery, doLocationSearch]);
 
   // ─── Helpers ───

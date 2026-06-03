@@ -20,7 +20,8 @@ export default function LoginPage() {
       await axios.post('/api/auth/login', { email, password }, { withCredentials: true });
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Invalid credentials');
+      const msg = err?.response?.data?.message;
+      setError(msg || (err?.message && !err?.response ? err.message : 'Invalid credentials'));
     } finally {
       setLoading(false);
     }

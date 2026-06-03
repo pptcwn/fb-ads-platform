@@ -117,17 +117,15 @@ function CampaignsPageInner() {
   const [fbPages, setFbPages] = useState<{ pageId: string; name: string }[]>([]);
   const adImageRef = useRef<HTMLInputElement>(null);
 
-  // Init ad account from query data
-  useState(() => {
+  useEffect(() => {
     if (adAccounts.length > 0 && !form.adAccountId) {
       setForm(f => ({ ...f, adAccountId: adAccounts[0].id }));
     }
-  });
+  }, [adAccounts, form.adAccountId]);
 
-  // Open drawer from URL param
-  useState(() => {
+  useEffect(() => {
     if (searchParams.get('new') === '1') setDrawerOpen(true);
-  });
+  }, [searchParams]);
 
   // ─── Derived ───
   const allCampaigns = accounts.flatMap((acct) =>
@@ -273,7 +271,7 @@ function CampaignsPageInner() {
     const errs: FormErrors = {};
     if (!form.name.trim()) errs.name = 'Campaign name is required';
     else if (form.name.trim().length < 2) errs.name = 'Name must be at least 2 characters';
-    if (!form.dailyBudget || form.dailyBudget < 10) errs.dailyBudget = 'Daily budget must be at least 10';
+    if (!form.dailyBudget || form.dailyBudget < 50) errs.dailyBudget = 'Daily budget must be at least 50';
     if (!form.adAccountId) errs.adAccountId = 'Please select an ad account';
     if (form.createAd && !form.adName.trim()) errs.adName = 'Ad name is required';
     return errs;
@@ -360,7 +358,7 @@ function CampaignsPageInner() {
         <input type="number" value={form.dailyBudget}
           onChange={e => { setForm({ ...form, dailyBudget: parseInt(e.target.value) || 0 }); setTouched({ ...touched, dailyBudget: true }); }}
           className={`w-full pl-7 pr-3 py-2 text-sm rounded-lg border bg-surface-100 text-ink transition-colors ${formErrors.dailyBudget && touched.dailyBudget ? 'border-danger' : 'border-surface-300'}`}
-          min={10} placeholder="300" />
+          min={50} placeholder="300" />
       </div>
       {formErrors.dailyBudget && touched.dailyBudget && <p className="text-danger text-xs mt-1">{formErrors.dailyBudget}</p>}
     </div>

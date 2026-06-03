@@ -106,6 +106,20 @@ export default function CreativesPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  const loadPages = useCallback(async () => {
+    if (!tokenAxios()) return;
+    try {
+      const { data } = await axios.get('/api/creatives/pages');
+      setPages(data);
+    } catch {
+      setPages([]);
+    }
+  }, [tokenAxios]);
+
+  useEffect(() => {
+    loadPages();
+  }, [loadPages]);
+
   // ─── Page Import ───
 
   const syncAndLoadPages = useCallback(async () => {
