@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { fbAdAccountActId } from '../common/facebook-api.config';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -13,6 +14,34 @@ export class CampaignsService {
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
   ) {}
+
+  async uploadAdImage(
+    userId: string,
+    adAccountId: string,
+    file: { path: string; originalname: string; mimetype: string },
+  ): Promise<{ imageHash: string }> {
+    const fbUser = await this.prisma.fbUser.findFirst({ where: { userId } });
+    if (!fbUser) throw new NotFoundException('Facebook account not connected');
+
+    const adAccount = await this.prisma.adAccount.findFirst({
+      where: { id: adAccountId, fbUser: { userId } },
+    });
+    if (!adAccount) throw new NotFoundException('Ad account not found');
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (file.mimetype && !allowed.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPEG, PNG, WebP, or GIF images are allowed');
+    }
+
+    const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
+    const imageHash = await this.facebookService.uploadAdImage(
+      fbAdAccountActId(adAccount.accountId),
+      accessToken,
+      { path: file.path, originalname: file.originalname, mimetype: file.mimetype },
+    );
+
+    return { imageHash };
+  }
 
   async create(userId: string, dto: CreateCampaignDto) {
     const fbUser = await this.prisma.fbUser.findFirst({ where: { userId } });
@@ -90,9 +119,15 @@ export class CampaignsService {
     if (dto.adName && adSetId) {
       const savedAdSet = await this.prisma.adSet.findUnique({ where: { id: adSetId } });
       if (savedAdSet) {
+        let pageId = dto.pageId || null;
+        if (!pageId) {
+          const pages = await this.facebookService.getStoredPages(fbUser.id);
+          if (pages.length > 0) pageId = pages[0].pageId;
+        }
+
         const creative = await this.facebookService.createCreative(
           fbAccountId,
-          dto.pageId || null,
+          pageId,
           dto.creativeImageHash || null,
           dto.creativeLink || 'https://example.com',
           dto.creativeMessage || '',

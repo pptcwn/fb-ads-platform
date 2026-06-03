@@ -17,6 +17,15 @@ export interface AdAccountWithCampaigns {
 
 export const campaignsApi = {
   list: () => api.get<AdAccountWithCampaigns[]>('/api/campaigns/accounts'),
+  uploadAdImage: (adAccountId: string, file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return api.post<{ imageHash: string }>(
+      `/api/campaigns/accounts/${adAccountId}/ad-image`,
+      fd,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+  },
   create: (dto: Record<string, unknown>) => api.post('/api/campaigns', dto),
   remove: (id: string) => api.delete(`/api/campaigns/${id}`),
   clone: (id: string, name?: string) => api.post(`/api/campaigns/${id}/clone`, { name }),

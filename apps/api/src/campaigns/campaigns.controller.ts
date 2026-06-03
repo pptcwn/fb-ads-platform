@@ -1,4 +1,8 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller, Post, Get, Patch, Delete, Body, Param, UseGuards, Req,
+  UseInterceptors, UploadedFile, BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -27,6 +31,17 @@ export class CampaignsController {
   @Get('accounts')
   async getAdAccounts(@Req() req: any) {
     return this.campaignsService.getAdAccounts(req.user.id);
+  }
+
+  @Post('accounts/:adAccountId/ad-image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAdImage(
+    @Param('adAccountId') adAccountId: string,
+    @UploadedFile() file: { path: string; originalname: string; mimetype: string },
+    @Req() req: any,
+  ) {
+    if (!file) throw new BadRequestException('No image file uploaded');
+    return this.campaignsService.uploadAdImage(req.user.id, adAccountId, file);
   }
 
   @Get('accounts/:adAccountId')

@@ -13,7 +13,8 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptToken, decryptToken } from '../common/encryption.util';
-import { FB_GRAPH_BASE_URL, fbOAuthDialogBaseUrl } from '../common/facebook-api.config';
+import { readFileSync } from 'fs';
+import { FB_GRAPH_BASE_URL, fbAdAccountActId, fbOAuthDialogBaseUrl } from '../common/facebook-api.config';
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AxiosResponse } from 'axios';
 
@@ -511,6 +512,40 @@ export class FacebookService implements OnModuleInit {
     }
   }
 
+  async uploadAdImage(
+    adAccountId: string,
+    accessToken: string,
+    file: { path: string; originalname: string; mimetype: string },
+  ): Promise<string> {
+    const actId = fbAdAccountActId(adAccountId);
+    const buffer = readFileSync(file.path);
+    const form = new FormData();
+    form.append('access_token', accessToken);
+    form.append(
+      'filename',
+      new Blob([buffer], { type: file.mimetype || 'image/jpeg' }),
+      file.originalname || 'image.jpg',
+    );
+
+    const response = await fetch(`${this.baseUrl}/act_${actId}/adimages`, {
+      method: 'POST',
+      body: form,
+    });
+    const result = await response.json();
+    if (result.error) {
+      this.logger.error('Failed to upload ad image', result.error);
+      throw new InternalServerErrorException(
+        result.error.message || 'Failed to upload image to Facebook',
+      );
+    }
+    const images = result.images || {};
+    const entry = Object.values(images)[0] as { hash?: string } | undefined;
+    if (!entry?.hash) {
+      throw new InternalServerErrorException('Facebook did not return an image hash');
+    }
+    return entry.hash;
+  }
+
   async createCreative(
     adAccountId: string,
     pageId: string | null,
@@ -529,7 +564,7 @@ export class FacebookService implements OnModuleInit {
             link,
             message,
             image_hash: imageHash || undefined,
-            call_to_action: { type: 'SIGN_UP' },
+            call_to_action: { type: 'LEARN_MORE' },
           },
         },
         access_token: accessToken,

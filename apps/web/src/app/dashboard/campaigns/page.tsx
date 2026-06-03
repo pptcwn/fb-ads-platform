@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useCallback, useMemo, Suspense } from 'react';
+import { useState, useCallback, useMemo, Suspense, useRef, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ClipboardList, RefreshCw, Sparkles, Pause, Play, Trash2, Download, Package, Shuffle, Save, X, Target, DollarSign, Palette, Rocket, BarChart3, Pencil } from 'lucide-react';
+import { ClipboardList, RefreshCw, Sparkles, Pause, Play, Trash2, Download, Package, Shuffle, Save, X, Target, DollarSign, Palette, Rocket, BarChart3, Pencil, ImagePlus } from 'lucide-react';
+import api from '@/lib/api';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal, { ConfirmModal } from '@/components/Modal';
 import TargetingBuilder from '@/components/TargetingBuilder';
 import { objLabel, fmtCurr, fmtPct, STATUS_COLORS } from '@/lib/utils';
 import { useCampaigns, useCreateCampaign, useDeleteCampaign, useCloneCampaign, useSaveTemplate, useBulkAction } from '@/hooks/use-campaigns';
+import { campaignsApi } from '@/lib/api-client';
 import { useAdSets, useToggleAdSet, useUpdateAdSetBudget } from '@/hooks/use-adsets';
 import { useAdAccounts } from '@/hooks/use-accounts';
 import type { AdSetItem } from '@/lib/api-client';
@@ -107,8 +109,13 @@ function CampaignsPageInner() {
     status: 'PAUSED', adSetName: '', optimizationGoal: 'REACH',
     billingEvent: 'IMPRESSIONS', adName: '', creativeMessage: '',
     creativeLink: '', pageId: '', createAd: false,
+    creativeImageHash: '',
     targeting: {} as Record<string, any>,
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [fbPages, setFbPages] = useState<{ pageId: string; name: string }[]>([]);
+  const adImageRef = useRef<HTMLInputElement>(null);
 
   // Init ad account from query data
   useState(() => {
@@ -225,7 +232,41 @@ function CampaignsPageInner() {
     setDrawerStep(1); setDrawerMode('wizard');
     setDrawerMsg(''); setDrawerError('');
     setFormErrors({}); setTouched({});
-    setForm(f => ({ ...f, name: '', objective: 'OUTCOME_TRAFFIC', dailyBudget: 300, status: 'PAUSED', adSetName: '', adName: '', creativeMessage: '', creativeLink: '', createAd: false }));
+    setImagePreview(null);
+    setForm(f => ({
+      ...f, name: '', objective: 'OUTCOME_TRAFFIC', dailyBudget: 300, status: 'PAUSED',
+      adSetName: '', adName: '', creativeMessage: '', creativeLink: '', createAd: false,
+      creativeImageHash: '', pageId: '',
+    }));
+  };
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    api.get<{ pageId: string; name: string }[]>('/api/creatives/pages')
+      .then(({ data }) => setFbPages(data))
+      .catch(() => setFbPages([]));
+  }, [drawerOpen]);
+
+  const uploadAdImage = async (file: File) => {
+    if (!form.adAccountId) {
+      setDrawerError('เลือก Ad Account ในขั้น Objective ก่อนอัปโหลดรูป');
+      return;
+    }
+    setImageUploading(true);
+    setDrawerError('');
+    try {
+      const preview = URL.createObjectURL(file);
+      setImagePreview(preview);
+      const { data } = await campaignsApi.uploadAdImage(form.adAccountId, file);
+      setForm(f => ({ ...f, creativeImageHash: data.imageHash }));
+    } catch (err: any) {
+      setImagePreview(null);
+      setForm(f => ({ ...f, creativeImageHash: '' }));
+      setDrawerError(err?.response?.data?.message || err.message || 'อัปโหลดรูปไม่สำเร็จ');
+    } finally {
+      setImageUploading(false);
+      if (adImageRef.current) adImageRef.current.value = '';
+    }
   };
 
   const validate = (): FormErrors => {
@@ -257,8 +298,27 @@ function CampaignsPageInner() {
     setDrawerError(''); setDrawerMsg('');
     try {
       const dto: any = { adAccountId: form.adAccountId, name: form.name, objective: form.objective, dailyBudget: form.dailyBudget, status: form.status };
-      if (form.adSetName) { dto.adSetName = form.adSetName; dto.optimizationGoal = form.optimizationGoal; dto.billingEvent = form.billingEvent; dto.targeting = form.targeting; }
-      if (form.createAd && form.adName) { dto.adName = form.adName; dto.creativeMessage = form.creativeMessage || 'Check this out!'; dto.creativeLink = form.creativeLink || 'https://example.com'; }
+      if (form.adSetName) {
+        dto.adSetName = form.adSetName;
+        dto.optimizationGoal = form.optimizationGoal;
+        dto.billingEvent = form.billingEvent;
+        dto.targeting = form.targeting;
+      }
+      if (form.createAd && form.adName) {
+        if (!form.adSetName) {
+          dto.adSetName = 'Ad Set 1';
+          dto.optimizationGoal = form.optimizationGoal || 'REACH';
+          dto.billingEvent = form.billingEvent || 'IMPRESSIONS';
+          dto.targeting = Object.keys(form.targeting || {}).length > 0
+            ? form.targeting
+            : { geo_locations: { countries: ['TH'] } };
+        }
+        dto.adName = form.adName;
+        dto.creativeMessage = form.creativeMessage || 'Check this out!';
+        dto.creativeLink = form.creativeLink || 'https://example.com';
+        if (form.creativeImageHash) dto.creativeImageHash = form.creativeImageHash;
+        if (form.pageId) dto.pageId = form.pageId;
+      }
       await createCampaignMutation.mutateAsync(dto);
       setDrawerMsg('Campaign created!');
       setTimeout(() => { setDrawerOpen(false); }, 1200);
@@ -572,6 +632,58 @@ function CampaignsPageInner() {
                             <input value={form.creativeLink} onChange={e => setForm({ ...form, creativeLink: e.target.value })}
                               className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink placeholder-ink-200" placeholder="https://..." />
                           </div>
+                          <div>
+                            <label className="block text-sm font-medium text-ink mb-1">รูปโฆษณา (แนะนำ 1200×628)</label>
+                            <input
+                              ref={adImageRef}
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
+                              className="hidden"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) uploadAdImage(file);
+                              }}
+                            />
+                            <div className="flex gap-2 items-start">
+                              <button
+                                type="button"
+                                onClick={() => adImageRef.current?.click()}
+                                disabled={imageUploading || !form.adAccountId}
+                                className="btn-secondary text-sm inline-flex items-center gap-1 disabled:opacity-50"
+                              >
+                                {imageUploading ? <><Spinner /> อัปโหลด...</> : <><ImagePlus className="w-4 h-4" /> เลือกรูป</>}
+                              </button>
+                              {form.creativeImageHash && (
+                                <span className="text-xs text-success pt-2">✓ อัปโหลดไป Meta แล้ว</span>
+                              )}
+                            </div>
+                            {!form.adAccountId && (
+                              <p className="text-xs text-ink-400 mt-1">เลือก Ad Account ในขั้น 1 ก่อน</p>
+                            )}
+                            {imagePreview && (
+                              <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="mt-2 w-full max-h-40 object-cover rounded-lg border border-surface-300"
+                              />
+                            )}
+                            <p className="text-xs text-ink-400 mt-1">รูปจะแสดงใน Feed — ไม่อัปโหลดจะเหลือแค่ข้อความ + ลิงก์</p>
+                          </div>
+                          {fbPages.length > 0 && (
+                            <div>
+                              <label className="block text-sm font-medium text-ink mb-1">Facebook Page</label>
+                              <select
+                                value={form.pageId}
+                                onChange={e => setForm({ ...form, pageId: e.target.value })}
+                                className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink"
+                              >
+                                <option value="">เพจแรก (อัตโนมัติ)</option>
+                                {fbPages.map(p => (
+                                  <option key={p.pageId} value={p.pageId}>{p.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                       )}
                       <div className="flex gap-3">
