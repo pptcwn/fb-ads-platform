@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { FacebookAsyncInsightsClient } from './facebook-async-insights.client';
@@ -12,6 +18,7 @@ export class InsightsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => FacebookService))
     private readonly facebookService: FacebookService,
     private readonly syncHelper: InsightsSyncHelper,
     private readonly insightsAsync: InsightsAsyncService,

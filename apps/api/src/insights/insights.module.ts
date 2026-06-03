@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { InsightsController } from './insights.controller';
 import { InsightsService } from './insights.service';
@@ -11,7 +11,7 @@ import { FacebookModule } from '../facebook/facebook.module';
 @Module({
   imports: [
     PrismaModule,
-    FacebookModule,
+    forwardRef(() => FacebookModule),
     BullModule.registerQueue({ name: 'insights-async' }),
   ],
   controllers: [InsightsController],

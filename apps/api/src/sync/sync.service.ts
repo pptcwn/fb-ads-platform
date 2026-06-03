@@ -1,4 +1,11 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+  forwardRef,
+} from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -49,6 +56,7 @@ export class SyncService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly http: HttpService,
+    @Inject(forwardRef(() => FacebookService))
     private readonly facebookService: FacebookService,
     private readonly insightsAsync: InsightsAsyncService,
   ) {}

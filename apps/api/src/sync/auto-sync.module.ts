@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { AutoSyncService } from './auto-sync.service';
 import { SyncProcessor } from './sync.processor';
@@ -12,9 +12,9 @@ import { InsightsModule } from '../insights/insights.module';
   imports: [
     BullModule.registerQueue({ name: 'sync' }),
     PrismaModule,
-    FacebookModule,
-    SyncModule,
-    InsightsModule,
+    forwardRef(() => FacebookModule),
+    forwardRef(() => SyncModule),
+    forwardRef(() => InsightsModule),
   ],
   providers: [AutoSyncService, SyncProcessor, SyncSchedulerService],
   exports: [AutoSyncService],

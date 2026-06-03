@@ -11,7 +11,7 @@ import { InsightsModule } from '../insights/insights.module';
     HttpModule.register({ timeout: 30000, maxRedirects: 5 }),
     PrismaModule,
     forwardRef(() => FacebookModule),
-    InsightsModule,
+    forwardRef(() => InsightsModule),
   ],
   controllers: [SyncController],
   providers: [SyncService],
