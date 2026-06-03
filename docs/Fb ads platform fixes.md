@@ -22,10 +22,6 @@
 - [x] `FbMutationService` — idempotent ก่อนยิง Graph API
 - [x] `ReconcileModule` — sync DB จาก FB ทุก 6 ชม.
 
----
-
-## ยังต้องทำ
-
 ### P1 — Tests
 - [x] Unit test `rules-engine.service.spec.ts`
 - [x] Unit test `budget.service.spec.ts` (`shouldRunNow`, ADJUST_PERCENT)
@@ -34,19 +30,32 @@
 ### P2 — Hardening
 - [x] Rate-limit header + backoff (`facebook-rate-limit.ts`)
 - [x] Async Insights API (`facebook-async-insights.client.ts`)
-- [ ] Creatives → object storage (R2/S3)
-- [ ] Custom Audience PII hash + PDPA consent
+- [x] Creatives → R2/S3 เมื่อตั้ง `S3_*` + local multipart fallback ไป Meta
+- [x] Custom Audience PII hash + PDPA consent (`audience-pii.util.ts`, audiences UI)
 - [x] Telegram เมื่อ reconcile แก้ drift (`RECONCILE_TELEGRAM_NOTIFY`)
 - [x] `GRAFANA_PASSWORD` placeholder ใน `.env.example`
-- [x] Meta deadlines: webhooks mTLS (`docs/meta-webhooks-mtls.md`), Advantage+ notes (`docs/meta-advantage-plus-2026.md`)
+- [x] Meta webhooks + mTLS guard (`/api/webhooks/meta`, `docs/meta-webhooks-mtls.md`)
+- [x] Advantage+ notes (`docs/meta-advantage-plus-2026.md`)
 
-### Meta platform (ตรวจเป็นระยะ)
-- [ ] Webhooks mTLS → Meta CA (มี.ค. 2026)
-- [ ] Advantage+ Shopping/App ผ่าน MAPI (พ.ค. 2026)
+### Web / UX (bugfix waves)
+- [x] Bugfix waves 1–2 (`docs/plans/2026-06-04-bugfix-plan.md`)
+- [x] Auth middleware, same-origin API proxy, templates ครบ, FB Publish ad account picker
+- [x] Wave 3: `templates` + `creatives` ใช้ `api-client` (cookie เดียวกับ hooks อื่น)
+
+---
+
+## ยังต้องทำ (ops / Meta platform)
+
+| หัวข้อ | หมายเหตุ |
+|--------|----------|
+| Webhooks mTLS production | เปิด block ใน `nginx.conf` + ตั้ง `META_CA_BUNDLE_PATH` บน VPS |
+| Advantage+ Shopping/App MAPI | ตรวจตาม `docs/meta-advantage-plus-2026.md` เมื่อ Meta บังคับ |
+| Web pages อื่นที่ยังใช้ `axios` ตรง | schedules, rules, budget, notifications, analytics, abtest, TargetingBuilder |
 
 ---
 
 ## ลำดับถัดไป
 
-1. **Phase 4** — unit tests + CI  
-2. **Phase 5** — hardening ตาม traffic
+1. `git push origin main` — deploy 3 commits ที่ค้างบน local  
+2. เปิด mTLS บน VPS เมื่อลงทะเบียน Meta Webhooks  
+3. ค่อยๆ ย้ายหน้า dashboard ที่เหลือไป `api-client`

@@ -51,6 +51,15 @@
 - `pnpm --filter api exec tsc --noEmit`
 - Manual: login cookie on `:3000`, Campaigns `?new=1&template=`, Creatives FB Publish, middleware redirect when logged out
 
+## Phase 5 — HTTP client + ops ✅
+
+| ID | Fix | Files | Status |
+|----|-----|-------|--------|
+| P5-1 | `creativesApi` + `templatesApi` ครบ CRUD | `api-client.ts` | done |
+| P5-2 | Templates + Creatives ใช้ `api-client` | `templates/page.tsx`, `creatives/page.tsx` | done |
+| P5-3 | nginx webhook mTLS snippet (commented) | `nginx.conf` | done |
+| P5-4 | อัปเดตสถานะ docs | `Fb ads platform fixes.md` | done |
+
 ## Deploy
 
 Push `main` → GitHub Actions → VPS health `/api/health`

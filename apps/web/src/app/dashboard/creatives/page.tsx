@@ -1,38 +1,20 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import axios from 'axios';
+import {
+  accountsApi,
+  creativesApi,
+  facebookApi,
+  type CreativeItem,
+  type FbPageItem,
+} from '@/lib/api-client';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import { Sparkles, Download, Image, Video, FileText, Copy, Camera, Megaphone, Pencil, Palette, RefreshCw } from 'lucide-react';
 
-interface Creative {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  primaryText: string | null;
-  headline: string | null;
-  description: string | null;
-  callToAction: string | null;
-  linkUrl: string | null;
-  imageUrl: string | null;
-  fbCreativeId: string | null;
-  usedCount: number;
-  pageId: string | null;
-  lastUsedAt: string | null;
-  createdAt: string;
-  campaigns: { campaign: { id: string; name: string } }[];
-}
-
-interface FbPage {
-  id: string;
-  pageId: string;
-  name: string;
-  category: string | null;
-  tasks: string[];
-}
+type Creative = CreativeItem;
+type FbPage = FbPageItem;
 
 interface PagePost {
   postId: string;
@@ -88,40 +70,31 @@ export default function CreativesPage() {
   // Post to Page
   const [postingToPage, setPostingToPage] = useState<string | null>(null);
 
-  // FB Publish — ad account picker
-  interface AdAccountOption { id: string; name: string; accountId: string }
-  const [adAccounts, setAdAccounts] = useState<AdAccountOption[]>([]);
+  const [adAccounts, setAdAccounts] = useState<{ id: string; name: string; accountId: string }[]>([]);
   const [fbPublishModal, setFbPublishModal] = useState<string | null>(null);
   const [fbPublishAccountId, setFbPublishAccountId] = useState('');
   const [fbPublishing, setFbPublishing] = useState(false);
 
   // ─── Helpers ───
 
-  const tokenAxios = useCallback(() => {
-    axios.defaults.withCredentials = true;
-    return true;
-  }, []);
-
   const fetchAll = useCallback(async () => {
-    if (!tokenAxios()) return;
     try {
-      const { data } = await axios.get('/api/creatives');
+      const { data } = await creativesApi.list();
       setCreatives(data);
     } catch { setMsg('❌ Failed to load'); }
     finally { setLoading(false); }
-  }, [tokenAxios]);
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const loadPages = useCallback(async () => {
-    if (!tokenAxios()) return;
     try {
-      const { data } = await axios.get('/api/creatives/pages');
+      const { data } = await creativesApi.pages();
       setPages(data);
     } catch {
       setPages([]);
     }
-  }, [tokenAxios]);
+  }, []);
 
   useEffect(() => {
     loadPages();
@@ -130,45 +103,43 @@ export default function CreativesPage() {
   // ─── Page Import ───
 
   const syncAndLoadPages = useCallback(async () => {
-    if (!tokenAxios()) return;
     setLoadingPages(true);
     try {
-      await axios.post('/api/facebook/sync-pages');
-      const { data } = await axios.get('/api/creatives/pages');
+      await facebookApi.syncPages();
+      const { data } = await creativesApi.pages();
       setPages(data);
       if (data.length > 0 && !selectedPage) setSelectedPage(data[0].pageId);
     } catch (err: any) {
       setMsg('❌ Failed to load pages: ' + (err?.response?.data?.message || err.message));
     } finally { setLoadingPages(false); }
-  }, [tokenAxios, selectedPage]);
+  }, [selectedPage]);
 
   useEffect(() => {
     if (tab === 'import') syncAndLoadPages();
   }, [tab, syncAndLoadPages]);
 
   const loadPagePosts = useCallback(async (pageId: string) => {
-    if (!tokenAxios() || !pageId) return;
+    if (!pageId) return;
     setLoadingPosts(true);
     try {
-      const { data } = await axios.get(`/api/creatives/pages/${pageId}/posts`);
-      setPagePosts(data);
+      const { data } = await creativesApi.pagePosts(pageId);
+      setPagePosts(data as PagePost[]);
     } catch (err: any) {
       setMsg('❌ Failed to load posts: ' + (err?.response?.data?.message || err.message));
     } finally { setLoadingPosts(false); }
-  }, [tokenAxios]);
+  }, []);
 
   useEffect(() => {
     if (selectedPage) loadPagePosts(selectedPage);
   }, [selectedPage, loadPagePosts]);
 
   const importPost = async (pageId: string, post: PagePost) => {
-    if (!tokenAxios()) return;
     setImporting(post.postId);
     setMsg('');
     try {
-      const { data } = await axios.post(`/api/creatives/import/${pageId}/${post.postId}`, {
+      const { data } = await creativesApi.importPost(pageId, post.postId, {
         message: post.message,
-        imageUrl: post.imageUrl,
+        imageUrl: post.imageUrl ?? undefined,
         permalinkUrl: post.permalinkUrl,
       });
       setMsg(`✅ Imported as "${data.name}"`);
@@ -179,11 +150,10 @@ export default function CreativesPage() {
   };
 
   const postToPage = async (creativeId: string, pageId: string) => {
-    if (!tokenAxios()) return;
     setPostingToPage(creativeId);
     setMsg('');
     try {
-      const { data } = await axios.post(`/api/creatives/${creativeId}/fb-post/${pageId}`);
+      const { data } = await creativesApi.postToPage(creativeId, pageId);
       setMsg(`✅ ${data.message}`);
       fetchAll();
     } catch (err: any) {
@@ -215,10 +185,10 @@ export default function CreativesPage() {
     setSaving(true); setMsg('');
     try {
       if (editId) {
-        await axios.patch(`/api/creatives/${editId}`, form);
+        await creativesApi.update(editId, form);
         setMsg('✅ Creative updated!');
       } else {
-        await axios.post('/api/creatives', form);
+        await creativesApi.create(form);
         setMsg('✅ Creative created!');
       }
       resetForm();
@@ -231,7 +201,7 @@ export default function CreativesPage() {
   const deleteCreative = async (id: string, name: string) => {
     if (!confirm(`Delete creative "${name}"?`)) return;
     try {
-      await axios.delete(`/api/creatives/${id}`);
+      await creativesApi.remove(id);
       setMsg('✅ Deleted');
       await fetchAll();
     } catch { setMsg('❌ Delete failed'); }
@@ -244,9 +214,7 @@ export default function CreativesPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      await axios.post(`/api/creatives/${id}/upload`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await creativesApi.upload(id, fd);
       setMsg('✅ Image uploaded!');
       await fetchAll();
     } catch (err: any) {
@@ -256,7 +224,7 @@ export default function CreativesPage() {
 
   const openFbPublish = async (creativeId: string) => {
     try {
-      const { data: accounts } = await axios.get<AdAccountOption[]>('/api/adaccounts');
+      const { data: accounts } = await accountsApi.list();
       if (!accounts?.length) {
         setMsg('❌ No ad accounts found — connect Facebook and sync accounts first');
         return;
@@ -274,9 +242,7 @@ export default function CreativesPage() {
     setFbPublishing(true);
     setMsg('');
     try {
-      const { data } = await axios.post(
-        `/api/creatives/${fbPublishModal}/fb-create/${fbPublishAccountId}`,
-      );
+      const { data } = await creativesApi.fbCreate(fbPublishModal, fbPublishAccountId);
       setMsg(`✅ FB creative created! ID: ${data.fbCreativeId}`);
       setFbPublishModal(null);
       await fetchAll();
@@ -291,8 +257,8 @@ export default function CreativesPage() {
   const cloneCreative = async (id: string, name: string) => {
     try {
       const newName = `Copy of ${name}`;
-      const { data } = await axios.post(`/api/creatives/${id}/clone`, { name: newName });
-      setMsg(`✅ ${data.message}`);
+      const { data } = await creativesApi.clone(id, newName);
+      setMsg(`✅ ${(data as { message?: string }).message || 'Cloned'}`);
       await fetchAll();
     } catch (err: any) {
       setMsg(`❌ ${err?.response?.data?.message || err.message}`);

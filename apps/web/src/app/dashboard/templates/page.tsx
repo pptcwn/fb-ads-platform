@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { templatesApi, type CampaignTemplate } from '@/lib/api-client';
 import { Package, Plus, Target, RefreshCw, Pencil, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
@@ -11,23 +11,18 @@ import { objLabel, fmtCurr } from '@/lib/utils';
 
 // ─── Types ───
 
-interface Template {
-  id: string;
-  name: string;
+type Template = CampaignTemplate & {
   notes: string | null;
-  objective: string;
   dailyBudget: number | null;
-  targetSpec: any;
+  targetSpec: unknown;
   adSetName: string | null;
   optimizationGoal: string | null;
   billingEvent: string | null;
   adName: string | null;
-  creativeConfig: any;
+  creativeConfig: unknown;
   useCount: number;
   lastUsedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+};
 
 const OBJECTIVES = [
   'OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC', 'OUTCOME_ENGAGEMENT',
@@ -55,15 +50,14 @@ export default function TemplatesPage() {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
-    axios.defaults.withCredentials = true;
     fetchAll();
   }, []);
 
   const fetchAll = async () => {
     setLoading(true); setError('');
     try {
-      const { data } = await axios.get('/api/templates');
-      setTemplates(data);
+      const { data } = await templatesApi.list();
+      setTemplates(data as Template[]);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load templates');
     } finally { setLoading(false); }
@@ -93,10 +87,10 @@ export default function TemplatesPage() {
         notes: editForm.notes || null,
       };
       if (editModal?.template) {
-        await axios.patch(`/api/templates/${editModal.template.id}`, body);
+        await templatesApi.update(editModal.template.id, body);
         setMsg('✅ Template updated');
       } else {
-        await axios.post('/api/templates', body);
+        await templatesApi.create(body);
         setMsg('✅ Template created');
       }
       setEditModal(null);
@@ -110,7 +104,7 @@ export default function TemplatesPage() {
     if (!deleteTpl) return;
     setDeleteBusy(true); setError(''); setMsg('');
     try {
-      await axios.delete(`/api/templates/${deleteTpl.id}`);
+      await templatesApi.remove(deleteTpl.id);
       setMsg('✅ Template deleted');
       setDeleteTpl(null);
       fetchAll();
@@ -121,7 +115,7 @@ export default function TemplatesPage() {
   const applyTemplate = async (t: Template) => {
     setMsg(''); setError('');
     try {
-      await axios.post(`/api/templates/${t.id}/apply`);
+      await templatesApi.apply(t.id);
       // Navigate to new campaign page with pre-filled params
       window.location.href = `/dashboard/campaigns?new=1&template=${t.id}`;
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }

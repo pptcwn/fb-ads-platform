@@ -111,6 +111,7 @@ export const facebookApi = {
   getAuthUrl: () => api.get<{ url: string }>('/api/facebook/auth'),
   me: () => api.get<{ connected: boolean; data: FbAccount | null }>('/api/facebook/me'),
   disconnect: () => api.post('/api/facebook/disconnect'),
+  syncPages: () => api.post('/api/facebook/sync-pages'),
 };
 
 // ─── Sync ───
@@ -174,7 +175,71 @@ export interface CreateTemplatePayload {
   creativeConfig?: Record<string, unknown>;
 }
 
+export interface CampaignTemplate extends CreateTemplatePayload {
+  id: string;
+  useCount?: number;
+  lastUsedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export const templatesApi = {
-  get: (id: string) => api.get<CreateTemplatePayload & { id: string }>(`/api/templates/${id}`),
+  list: () => api.get<CampaignTemplate[]>('/api/templates'),
+  get: (id: string) => api.get<CampaignTemplate>(`/api/templates/${id}`),
   create: (dto: CreateTemplatePayload) => api.post('/api/templates', dto),
+  update: (id: string, dto: Partial<CreateTemplatePayload>) => api.patch(`/api/templates/${id}`, dto),
+  remove: (id: string) => api.delete(`/api/templates/${id}`),
+  apply: (id: string) => api.post(`/api/templates/${id}/apply`),
+};
+
+// ─── Creatives ───
+
+export interface CreativeItem {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  primaryText: string | null;
+  headline: string | null;
+  description: string | null;
+  callToAction: string | null;
+  linkUrl: string | null;
+  imageUrl: string | null;
+  fbCreativeId: string | null;
+  usedCount: number;
+  pageId: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  campaigns: { campaign: { id: string; name: string } }[];
+}
+
+export interface FbPageItem {
+  id: string;
+  pageId: string;
+  name: string;
+  category: string | null;
+  tasks: string[];
+}
+
+export const creativesApi = {
+  list: () => api.get<CreativeItem[]>('/api/creatives'),
+  create: (dto: Record<string, unknown>) => api.post('/api/creatives', dto),
+  update: (id: string, dto: Record<string, unknown>) => api.patch(`/api/creatives/${id}`, dto),
+  remove: (id: string) => api.delete(`/api/creatives/${id}`),
+  upload: (id: string, formData: FormData) =>
+    api.post(`/api/creatives/${id}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  clone: (id: string, name?: string) => api.post(`/api/creatives/${id}/clone`, { name }),
+  pages: () => api.get<FbPageItem[]>('/api/creatives/pages'),
+  pagePosts: (pageId: string) => api.get(`/api/creatives/pages/${pageId}/posts`),
+  importPost: (
+    pageId: string,
+    postId: string,
+    body?: { message?: string; imageUrl?: string; permalinkUrl?: string },
+  ) => api.post(`/api/creatives/import/${pageId}/${postId}`, body),
+  fbCreate: (id: string, adAccountId: string) =>
+    api.post<{ fbCreativeId: string }>(`/api/creatives/${id}/fb-create/${adAccountId}`),
+  postToPage: (id: string, pageId: string) =>
+    api.post(`/api/creatives/${id}/fb-post/${pageId}`),
 };
