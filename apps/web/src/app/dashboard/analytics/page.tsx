@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { analyticsApi } from '@/lib/api-client';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
+import PageLayout from '@/components/layout/PageLayout';
 import { objLabel, fmtCurr, fmtNum, daysAgo } from '@/lib/utils';
-import { BarChart3, TrendingUp, DollarSign, Eye, Trophy, Building2 } from 'lucide-react';
+import { useAdAccounts } from '@/hooks/use-accounts';
+import { useAccountContext } from '@/contexts/account-context';
+import { TrendingUp, DollarSign, Eye, Trophy, Building2, Calendar } from 'lucide-react';
 
 // ─── Types ───
 
@@ -28,8 +30,9 @@ interface Comparison { period: string; current: { impressions: number; clicks: n
 interface AccountSummary { id: string; name: string; currency: string; status: string; balance: number; spentToday: number; campaignCount: number; latestInsight: { impressions: number; clicks: number; spend: number; conversions: number; ctr: number; cpc: number } | null }
 
 const DAY_OPTIONS = [
-  { label: '7D', days: 7 }, { label: '30D', days: 30 },
-  { label: '60D', days: 60 }, { label: '90D', days: 90 },
+  { label: '7 วัน', days: 7 },
+  { label: '14 วัน', days: 14 },
+  { label: '30 วัน', days: 30 },
 ];
 
 export default function AnalyticsPage() {
@@ -43,6 +46,15 @@ export default function AnalyticsPage() {
   const [sortBy, setSortBy] = useState('spend');
   const [granularity, setGranularity] = useState('day');
 
+  const { data: adAccounts = [] } = useAdAccounts();
+  const { selectedAccountId, setSelectedAccountId } = useAccountContext();
+
+  const trendAccountId = selectedAccountId === 'all' ? undefined : selectedAccountId;
+  const selectedAccountName = useMemo(() => {
+    if (selectedAccountId === 'all') return null;
+    return adAccounts.find(a => a.id === selectedAccountId)?.name ?? null;
+  }, [adAccounts, selectedAccountId]);
+
   const fetchData = useCallback(async () => {
     const from = daysAgo(range);
     const to = daysAgo(0);
@@ -50,7 +62,7 @@ export default function AnalyticsPage() {
     try {
       const [ov, tr, cmp, acc] = await Promise.all([
         analyticsApi.overview(from, to).catch(() => ({ data: { connected: false } })),
-        analyticsApi.trends(from, to, granularity).catch(() => ({ data: { series: [] } })),
+        analyticsApi.trends(from, to, granularity, trendAccountId).catch(() => ({ data: { series: [] } })),
         analyticsApi.comparison(`${range}d`).catch(() => ({ data: null })),
         analyticsApi.accounts().catch(() => ({ data: [] })),
       ]);
@@ -60,11 +72,10 @@ export default function AnalyticsPage() {
       setAccounts(acc.data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  }, [range, granularity]);
+  }, [range, granularity, trendAccountId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Fetch campaign ranking separately when sort changes
   useEffect(() => {
     const from = daysAgo(range);
     const to = daysAgo(0);
@@ -72,6 +83,16 @@ export default function AnalyticsPage() {
       .then(r => setCampaigns(r.data as CampaignRank[]))
       .catch(() => {});
   }, [sortBy, range]);
+
+  const filteredCampaigns = useMemo(() => {
+    if (!selectedAccountName) return campaigns;
+    return campaigns.filter(c => c.accountName === selectedAccountName);
+  }, [campaigns, selectedAccountName]);
+
+  const filteredAccounts = useMemo(() => {
+    if (selectedAccountId === 'all') return accounts;
+    return accounts.filter(a => a.id === selectedAccountId);
+  }, [accounts, selectedAccountId]);
 
   if (loading) return (
     <Shell>
@@ -93,25 +114,49 @@ export default function AnalyticsPage() {
   );
 
   const o = overview;
-  const trendOpt = function<T>(a: T, b: T) { return a ?? b; };
 
   return (
     <Shell>
-      <div className="px-6 py-6 space-y-6">
-        {/* Header + Date Range */}
-        <PageHeader
-          title={<><BarChart3 className="w-4 h-4" /> Analytics</>}
-          actions={
-            <div className="flex gap-2">
+      <div className="px-6 py-6">
+        <PageLayout title="Analytics">
+          {/* Filter bar */}
+          <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-surface-300 bg-surface-50/50">
+            <div className="inline-flex items-center gap-2 text-xs text-ink-300">
+              <Calendar className="w-4 h-4" aria-hidden />
+              <span>ช่วงเวลา</span>
+            </div>
+            <div className="flex gap-2 flex-wrap">
               {DAY_OPTIONS.map(opt => (
-                <button key={opt.days} onClick={() => setRange(opt.days)}
+                <button
+                  key={opt.days}
+                  type="button"
+                  onClick={() => setRange(opt.days)}
                   className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     range === opt.days ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'
-                  }`}>{opt.label}</button>
+                  }`}
+                >
+                  {opt.label}
+                </button>
               ))}
             </div>
-          }
-        />
+            <div className="w-px h-6 bg-surface-300 hidden sm:block" aria-hidden />
+            <label className="text-xs text-ink-300">บัญชีโฆษณา</label>
+            <select
+              value={selectedAccountId}
+              onChange={e => setSelectedAccountId(e.target.value as typeof selectedAccountId)}
+              className="text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink px-3 py-1.5 min-w-[180px]"
+            >
+              <option value="all">ทุกบัญชี</option>
+              {adAccounts.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            {selectedAccountId !== 'all' && (
+              <span className="text-xs text-ink-300">
+                กราฟตามบัญชีที่เลือก · ตารางกรองตามบัญชี
+              </span>
+            )}
+          </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -307,7 +352,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.map((c, i) => (
+                {filteredCampaigns.map((c, i) => (
                   <tr key={c.id} className="hover:bg-surface-200/30 transition-colors border-b border-surface-300">
                     <td className="px-4 py-2 text-ink-300">{i + 1}</td>
                     <td className="px-3 py-2">
@@ -324,7 +369,7 @@ export default function AnalyticsPage() {
                     <td className="px-3 py-2 text-right text-accent font-mono">{c.roas.toFixed(1)}x</td>
                   </tr>
                 ))}
-                {campaigns.length === 0 && (
+                {filteredCampaigns.length === 0 && (
                   <tr><td colSpan={10} className="text-center py-8 text-ink-300">No campaign data for this period</td></tr>
                 )}
               </tbody>
@@ -338,7 +383,7 @@ export default function AnalyticsPage() {
             <h3 className="text-sm font-semibold text-ink"><Building2 className="w-4 h-4 inline" /> Account Summary</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
-            {accounts.map(acc => (
+            {filteredAccounts.map(acc => (
               <div key={acc.id} className="bg-surface-200 rounded-lg p-3 border border-surface-border">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-ink truncate">{acc.name}</p>
@@ -358,21 +403,20 @@ export default function AnalyticsPage() {
                     <p className="text-ink">{acc.campaignCount}</p>
                   </div>
                   {acc.latestInsight && (
-                    <>
-                      <div>
-                        <p className="text-ink-300">CTR / CPC</p>
-                        <p className="text-ink font-mono">{Number(acc.latestInsight.ctr).toFixed(2)}% / {fmtCurr(Number(acc.latestInsight.cpc))}</p>
-                      </div>
-                    </>
+                    <div>
+                      <p className="text-ink-300">CTR / CPC</p>
+                      <p className="text-ink font-mono">{Number(acc.latestInsight.ctr).toFixed(2)}% / {fmtCurr(Number(acc.latestInsight.cpc))}</p>
+                    </div>
                   )}
                 </div>
               </div>
             ))}
-            {accounts.length === 0 && (
+            {filteredAccounts.length === 0 && (
               <div className="col-span-full text-center py-6 text-ink-300 text-sm">No accounts found</div>
             )}
           </div>
         </div>
+        </PageLayout>
       </div>
     </Shell>
   );

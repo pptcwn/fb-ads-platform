@@ -1,11 +1,22 @@
 'use client';
 
 import { useState, useCallback, useMemo, Suspense, useRef, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { ClipboardList, RefreshCw, Sparkles, Pause, Play, Trash2, Download, Package, Shuffle, Save, X, Target, DollarSign, Palette, Rocket, BarChart3, Pencil, ImagePlus } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { ClipboardList, RefreshCw, Sparkles, Pause, Play, Trash2, Download, Package, Shuffle, Save, X, Target, DollarSign, Palette, Rocket, BarChart3, Pencil, ImagePlus, MoreVertical } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import api from '@/lib/api';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
+import PageLayout from '@/components/layout/PageLayout';
+import StatusBadge from '@/components/ui/StatusBadge';
+
+import TemplatesTab from '@/components/campaigns/TemplatesTab';
+import { useAccountContext } from '@/contexts/account-context';
 import Modal, { ConfirmModal } from '@/components/Modal';
 import TargetingBuilder from '@/components/TargetingBuilder';
 import { objLabel, fmtCurr, fmtPct, STATUS_COLORS } from '@/lib/utils';
@@ -62,7 +73,10 @@ function Spinner() {
 // ─── Inner page (needs searchParams) ───
 
 function CampaignsPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { selectedAccountId } = useAccountContext();
+  const activeTab = searchParams.get('tab') === 'templates' ? 'templates' : 'campaigns';
 
   // ─── React Query hooks ───
   const { data: accounts = [], isLoading, error: queryError, refetch } = useCampaigns();
@@ -131,8 +145,8 @@ function CampaignsPageInner() {
   }, [adAccounts, form.adAccountId]);
 
   useEffect(() => {
-    if (searchParams.get('new') === '1') setDrawerOpen(true);
-  }, [searchParams]);
+    if (searchParams.get('new') === '1') router.replace('/dashboard/campaigns/create');
+  }, [searchParams, router]);
 
   useEffect(() => {
     const templateId = searchParams.get('template');
@@ -163,7 +177,12 @@ function CampaignsPageInner() {
   }, [searchParams]);
 
   // ─── Derived ───
-  const allCampaigns = accounts.flatMap((acct) =>
+  const filteredAccounts =
+    selectedAccountId !== 'all'
+      ? accounts.filter((a) => a.id === selectedAccountId)
+      : accounts;
+
+  const allCampaigns = filteredAccounts.flatMap((acct) =>
     acct.campaigns.map((camp) => ({ ...camp, _account: acct })),
   );
 
@@ -289,19 +308,6 @@ function CampaignsPageInner() {
   };
 
   // ─── Drawer ───
-  const openDrawer = () => {
-    setDrawerOpen(true);
-    setDrawerStep(1); setDrawerMode('wizard');
-    setDrawerMsg(''); setDrawerError('');
-    setFormErrors({}); setTouched({});
-    setImagePreview(null);
-    setForm(f => ({
-      ...f, name: '', objective: 'OUTCOME_TRAFFIC', dailyBudget: 300, status: 'PAUSED',
-      adSetName: '', adName: '', creativeMessage: '', creativeLink: '', createAd: false,
-      creativeImageHash: '', pageId: '',
-    }));
-  };
-
   useEffect(() => {
     if (!drawerOpen) return;
     api.get<{ pageId: string; name: string }[]>('/api/creatives/pages')
@@ -446,20 +452,45 @@ function CampaignsPageInner() {
 
   return (
     <Shell>
-      <div className="px-6 py-6">
-        <PageHeader
-          title={<><ClipboardList className="w-4 h-4 inline mr-1" />Campaigns</>}
-          subtitle={`${allCampaigns.length} campaigns across ${accounts.length} ad accounts`}
+      <PageLayout
+          title="แคมเปญ"
+          subtitle={`${allCampaigns.length} แคมเปญ · ${filteredAccounts.length} บัญชี`}
           actions={
             <div className="flex gap-2">
-              <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm disabled:opacity-50 inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Refresh</button>
-              <button onClick={openDrawer} className="btn-primary btn-sm inline-flex items-center gap-1"><Sparkles className="w-4 h-4" /> New Campaign</button>
+              <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm disabled:opacity-50 inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> รีเฟรช</button>
+              <Link href="/dashboard/campaigns/create" className="btn-primary btn-sm inline-flex items-center gap-1"><Sparkles className="w-4 h-4" /> สร้างแคมเปญ</Link>
             </div>
           }
-        />
+        >
 
-        {msg && <div className="msg-success mb-4">{msg}<button className="float-right font-bold" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
-        {displayError && <div className="msg-error mb-4">{displayError}<button className="float-right font-bold" onClick={() => { setError(''); }}><X className="w-4 h-4" /></button></div>}
+        <div className="flex gap-1 border-b border-surface-300 mb-6" role="tablist" aria-label="แท็บแคมเปญ">
+          <Link
+            href="/dashboard/campaigns"
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'campaigns' ? 'border-accent text-ink' : 'border-transparent text-ink-200 hover:text-ink'}`}
+            role="tab"
+            aria-selected={activeTab === 'campaigns'}
+            aria-current={activeTab === 'campaigns' ? 'page' : undefined}
+          >
+            ทั้งหมด
+          </Link>
+          <Link
+            href="/dashboard/campaigns?tab=templates"
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'templates' ? 'border-accent text-ink' : 'border-transparent text-ink-200 hover:text-ink'}`}
+            role="tab"
+            aria-selected={activeTab === 'templates'}
+            aria-current={activeTab === 'templates' ? 'page' : undefined}
+          >
+            เทมเพลต
+          </Link>
+        </div>
+
+        {activeTab === 'templates' ? (
+          <TemplatesTab />
+        ) : (
+        <>
+
+        {msg && <div className="msg-success mb-4">{msg}<button type="button" className="float-right font-bold" onClick={() => setMsg('')} aria-label="ปิดข้อความ"><X className="w-4 h-4" aria-hidden /></button></div>}
+        {displayError && <div className="msg-error mb-4">{displayError}<button type="button" className="float-right font-bold" onClick={() => { setError(''); }} aria-label="ปิดข้อความ"><X className="w-4 h-4" aria-hidden /></button></div>}
 
         {hasChecked && (
           <div className="card px-5 py-3 mb-4 flex items-center justify-between">
@@ -478,11 +509,11 @@ function CampaignsPageInner() {
             <ClipboardList className="w-8 h-8 mx-auto mb-3 text-ink-200" />
             <p className="text-lg font-medium mb-1 text-ink">No campaigns found</p>
             <p className="text-sm text-ink-300">Sync your ad accounts from the Dashboard or create a new campaign.</p>
-            <button onClick={openDrawer} className="btn-primary mt-4"><Sparkles className="w-3.5 h-3.5 mr-1" />New Campaign</button>
+            <Link href="/dashboard/campaigns/create" className="btn-primary mt-4 inline-flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> สร้างแคมเปญ</Link>
           </div>
         ) : (
           <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-surface-200/50 border-b border-surface-300">
@@ -508,16 +539,16 @@ function CampaignsPageInner() {
                           <td className="px-3 py-3"><span className="font-medium text-ink">{camp.name}</span></td>
                           <td className="px-3 py-3 text-ink-200 text-xs">{acct.name}</td>
                           <td className="px-3 py-3 text-xs text-ink-200">{objLabel(camp.objective)}</td>
-                          <td className="px-3 py-3"><span className={STATUS_COLORS[camp.status] || 'badge-ink'}>{camp.status}</span></td>
+                          <td className="px-3 py-3"><StatusBadge status={camp.status} /></td>
                           <td className="px-3 py-3 text-right text-sm font-medium text-ink">{camp.dailyBudget ? fmtCurr(camp.dailyBudget, acct.currency) : '-'}</td>
                           <td className="px-3 py-3 text-right text-sm text-ink">{camp.spent ? fmtCurr(camp.spent, acct.currency) : '-'}</td>
                           <td className="px-3 py-3 text-center">
                             <div className="flex items-center justify-center gap-1 flex-wrap">
                               <button onClick={() => openAdSets(camp.id, camp.name, acct.currency)} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20"><Package className="w-3 h-3 mr-0.5 inline" />Ad Sets</button>
                               <button onClick={() => { setCloneModal({ id: camp.id, name: camp.name, type: 'campaign' }); setCloneName(`Copy of ${camp.name}`); }} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20"><Shuffle className="w-3 h-3 mr-0.5 inline" />Clone</button>
-                              <button onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: camp.status === 'ACTIVE' ? 'pause' : 'resume', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20">{camp.status === 'ACTIVE' ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}</button>
-                              <button onClick={() => openSaveTemplate({ source: 'row', label: camp.name, objective: camp.objective, dailyBudget: Number(camp.dailyBudget || 0) })} className="text-xs px-2 py-1 rounded font-medium bg-success-muted text-success hover:bg-success/20"><Save className="w-3 h-3" /></button>
-                              <button onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: 'delete', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-danger-muted text-danger hover:bg-danger/20"><Trash2 className="w-3 h-3" /></button>
+                              <button type="button" onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: camp.status === 'ACTIVE' ? 'pause' : 'resume', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20" aria-label={camp.status === 'ACTIVE' ? `หยุด ${camp.name}` : `เปิด ${camp.name}`}>{camp.status === 'ACTIVE' ? <Pause className="w-3 h-3" aria-hidden /> : <Play className="w-3 h-3" aria-hidden />}</button>
+                              <button type="button" onClick={() => openSaveTemplate({ source: 'row', label: camp.name, objective: camp.objective, dailyBudget: Number(camp.dailyBudget || 0) })} className="text-xs px-2 py-1 rounded font-medium bg-success-muted text-success hover:bg-success/20" aria-label={`บันทึก ${camp.name} เป็นเทมเพลต`}><Save className="w-3 h-3" aria-hidden /></button>
+                              <button type="button" onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: 'delete', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-danger-muted text-danger hover:bg-danger/20" aria-label={`ลบ ${camp.name}`}><Trash2 className="w-3 h-3" aria-hidden /></button>
                             </div>
                           </td>
                         </tr>
@@ -527,16 +558,75 @@ function CampaignsPageInner() {
                 </tbody>
               </table>
             </div>
+
+            <div className="md:hidden divide-y divide-surface-300">
+              {accounts.map((acct) =>
+                acct.campaigns.map((camp) => (
+                  <div key={camp.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-ink truncate">{camp.name}</p>
+                        <p className="text-xs text-ink-200 mt-0.5 truncate">{acct.name}</p>
+                      </div>
+                      <StatusBadge status={camp.status} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-ink-300">งบประมาณ/วัน</p>
+                        <p className="font-medium text-ink">{camp.dailyBudget ? fmtCurr(camp.dailyBudget, acct.currency) : '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-ink-300">ใช้จ่ายแล้ว</p>
+                        <p className="font-medium text-ink">{camp.spent ? fmtCurr(camp.spent, acct.currency) : '—'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: camp.status === 'ACTIVE' ? 'pause' : 'resume', ids: [camp.id] }); }}
+                        className="btn-secondary btn-sm flex-1 inline-flex items-center justify-center gap-1"
+                      >
+                        {camp.status === 'ACTIVE' ? <><Pause className="w-3.5 h-3.5" aria-hidden /> หยุด</> : <><Play className="w-3.5 h-3.5" aria-hidden /> เปิด</>}
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className="btn-secondary btn-sm px-2.5"
+                          aria-label={`เมนูการจัดการ ${camp.name}`}
+                        >
+                          <MoreVertical className="w-4 h-4" aria-hidden />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-[11rem]">
+                          <DropdownMenuItem onSelect={() => openAdSets(camp.id, camp.name, acct.currency)}>
+                            <Package className="w-3.5 h-3.5" aria-hidden /> Ad Sets
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => { setCloneModal({ id: camp.id, name: camp.name, type: 'campaign' }); setCloneName(`Copy of ${camp.name}`); }}>
+                            <Shuffle className="w-3.5 h-3.5" aria-hidden /> โคลน
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openSaveTemplate({ source: 'row', label: camp.name, objective: camp.objective, dailyBudget: Number(camp.dailyBudget || 0) })}>
+                            <Save className="w-3.5 h-3.5" aria-hidden /> บันทึกเทมเพลต
+                          </DropdownMenuItem>
+                          <DropdownMenuItem variant="destructive" onSelect={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: 'delete', ids: [camp.id] }); }}>
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden /> ลบ
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                )),
+              )}
+            </div>
+
             <div className="px-4 py-3 bg-surface-200/50 text-xs text-ink-300 flex items-center justify-between border-t border-surface-300">
-              <span>Showing {allCampaigns.length} campaign{allCampaigns.length !== 1 ? 's' : ''} from {accounts.length} account{accounts.length !== 1 ? 's' : ''}</span>
+              <span>แสดง {allCampaigns.length} แคมเปญ จาก {filteredAccounts.length} บัญชี</span>
               <button onClick={exportCsv} className="text-accent hover:text-accent/80 font-medium"><Download className="w-3.5 h-3.5 mr-1 inline" />Export CSV</button>
             </div>
           </div>
         )}
-      </div>
+        </>
+        )}
 
-      {/* ─── New Campaign Drawer ─── */}
-      {drawerOpen && (
+      {/* Legacy drawer — redirect users to full-page create */}
+      {false && drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDrawerOpen(false)} />
           <div className="relative w-[480px] h-full bg-surface-50 border-l border-surface-300 flex flex-col shadow-2xl overflow-y-auto">
@@ -731,13 +821,13 @@ function CampaignsPageInner() {
                             {!form.adAccountId && (
                               <p className="text-xs text-ink-400 mt-1">เลือก Ad Account ในขั้น 1 ก่อน</p>
                             )}
-                            {imagePreview && (
+                            {imagePreview ? (
                               <img
-                                src={imagePreview}
-                                alt="Preview"
+                                src={imagePreview as string}
+                                alt="ตัวอย่างรูปโฆษณา"
                                 className="mt-2 w-full max-h-40 object-cover rounded-lg border border-surface-300"
                               />
-                            )}
+                            ) : null}
                             <p className="text-xs text-ink-400 mt-1">รูปจะแสดงใน Feed — ไม่อัปโหลดจะเหลือแค่ข้อความ + ลิงก์</p>
                           </div>
                           {fbPages.length > 0 && (
@@ -771,6 +861,8 @@ function CampaignsPageInner() {
           </div>
         </div>
       )}
+
+      </PageLayout>
 
       <ConfirmModal
         open={!!confirmAction}

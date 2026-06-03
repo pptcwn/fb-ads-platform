@@ -63,17 +63,17 @@ export default function ApprovalsPage() {
     <Shell>
       <div className="p-6 space-y-6">
         <PageHeader
-          title={<><ShieldCheck className="w-4 h-4 inline mr-1" />Automation Approvals</>}
-          subtitle="Budget changes that exceed guardrails wait here before touching Meta."
+          title={<><ShieldCheck className="w-4 h-4 inline mr-1" aria-hidden />อนุมัติอัตโนมัติ</>}
+          subtitle="การเปลี่ยนงบที่เกิน guardrail รออนุมัติก่อนส่งไป Meta"
         />
 
         {msg && <div className="msg-success">{msg}</div>}
         {error && <div className="msg-error">{error}</div>}
 
         {loading ? (
-          <p className="text-ink-300 animate-pulse">Loading...</p>
+          <p className="text-ink-300 animate-pulse">กำลังโหลด…</p>
         ) : items.length === 0 ? (
-          <div className="card p-8 text-center text-ink-300">No pending approvals.</div>
+          <div className="card p-8 text-center text-ink-300">ไม่มีรายการรออนุมัติ</div>
         ) : (
           <div className="space-y-3">
             {items.map((a) => (
@@ -88,11 +88,11 @@ export default function ApprovalsPage() {
                   <p className="text-[10px] text-ink-400 mt-1">{new Date(a.createdAt).toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => approve(a.id)} className="btn-primary btn-sm inline-flex items-center gap-1">
-                    <Check className="w-4 h-4" /> Approve
+                  <button type="button" onClick={() => approve(a.id)} className="btn-primary btn-sm inline-flex items-center gap-1">
+                    <Check className="w-4 h-4" aria-hidden /> อนุมัติ
                   </button>
-                  <button onClick={() => reject(a.id)} className="btn-secondary btn-sm inline-flex items-center gap-1">
-                    <X className="w-4 h-4" /> Reject
+                  <button type="button" onClick={() => reject(a.id)} className="btn-secondary btn-sm inline-flex items-center gap-1">
+                    <X className="w-4 h-4" aria-hidden /> ปฏิเสธ
                   </button>
                 </div>
               </div>

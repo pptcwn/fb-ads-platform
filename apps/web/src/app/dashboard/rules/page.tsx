@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { accountsApi, rulesApi } from '@/lib/api-client';
 import { Zap, TrendingUp, TrendingDown, Bell, Pencil, Timer, Hourglass, ClipboardList, Target, RefreshCw, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
-import Modal from '@/components/Modal';
+import AutomationLayout from '@/components/layout/AutomationLayout';
 import { ConfirmModal } from '@/components/Modal';
 
 type RuleCondition = { metric: string; operator: string; value: number; window?: string };
@@ -58,7 +57,7 @@ export default function RulesPage() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
   // Form state
@@ -131,7 +130,7 @@ export default function RulesPage() {
         await rulesApi.create(dto);
         setMsg('✅ Rule created!');
       }
-      setShowForm(false);
+      setSelectedRuleId(null);
       setEditId(null);
       resetForm();
       loadAll();
@@ -154,12 +153,13 @@ export default function RulesPage() {
       await rulesApi.remove(deleteConfirm.id);
       setMsg('🗑️ Rule deleted');
       setDeleteConfirm(null);
+      if (deleteConfirm.id === selectedRuleId) setSelectedRuleId(null);
       loadAll();
     } catch {}
     setDeleting(false);
   };
 
-  const editRule = (rule: Rule) => {
+  const selectRule = (rule: Rule) => {
     setForm({
       name: rule.name,
       description: rule.description || '',
@@ -172,15 +172,18 @@ export default function RulesPage() {
       adAccountId: rule.adAccount?.id || '',
     });
     setEditId(rule.id);
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSelectedRuleId(rule.id);
   };
 
   const openNewRule = () => {
     resetForm();
     setEditId(null);
-    setShowForm(!showForm);
+    setSelectedRuleId('new');
   };
+
+  const selectedRule = selectedRuleId && selectedRuleId !== 'new'
+    ? rules.find((r) => r.id === selectedRuleId)
+    : null;
 
   const viewLogs = async (ruleId: string) => {
     setShowLogs(ruleId);
@@ -230,27 +233,11 @@ export default function RulesPage() {
     </Shell>
   );
 
-  return (
-    <Shell>
-      <div className="p-6 space-y-6">
-        <PageHeader
-          title="⚡ Rule Engine"
-          subtitle={rules.length > 0 ? `${rules.length} rules configured` : undefined}
-          actions={
-            <button onClick={openNewRule} className="btn-primary btn-sm inline-flex items-center gap-1">
-              {showForm ? <><X className="w-4 h-4" /> Close</> : '+ New Rule'}
-            </button>
-          }
-        />
-
-        {/* Messages */}
-        {msg && <div className={`${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
-        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
-
-        {/* Create Form */}
-        {showForm && (
-          <div className="card p-6">
-            <h3 className="text-lg font-semibold mb-4 text-ink inline-flex items-center gap-2">{editId ? <><Pencil className="w-4 h-4" /> Edit Rule</> : 'Create Rule'}</h3>
+  const ruleForm = (
+    <>
+      <h3 className="text-lg font-semibold mb-4 text-ink inline-flex items-center gap-2">
+        {editId ? <><Pencil className="w-4 h-4" /> แก้ไขกฎ</> : 'สร้างกฎใหม่'}
+      </h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-ink mb-1">Rule Name</label>
@@ -359,128 +346,134 @@ export default function RulesPage() {
               </div>
             </div>
 
-            <button onClick={saveRule}
-              className="btn-primary btn-sm inline-flex items-center gap-1">
-              {editId ? <><Save className="w-4 h-4" /> Update Rule</> : <><Save className="w-4 h-4" /> Save Rule</>}
-            </button>
-          </div>
+      <div className="flex gap-2 mt-4">
+        <button onClick={saveRule} className="btn-primary btn-sm inline-flex items-center gap-1">
+          {editId ? <><Save className="w-4 h-4" /> บันทึก</> : <><Save className="w-4 h-4" /> สร้างกฎ</>}
+        </button>
+        {selectedRule && (
+          <button onClick={() => setDeleteConfirm({ id: selectedRule.id, name: selectedRule.name })}
+            className="btn-danger btn-sm inline-flex items-center gap-1">
+            <Trash2 className="w-4 h-4" /> ลบ
+          </button>
         )}
+      </div>
+    </>
+  );
 
-        {/* Rules List */}
-        {rules.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Zap className="w-12 h-12 mx-auto mb-3 text-ink-200" />
-            <p className="text-ink-300 text-lg mb-4">No rules yet</p>
-            <button onClick={() => setShowForm(true)}
-              className="btn-primary btn-sm inline-flex items-center gap-1">
-              + Create your first rule
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rules.map((rule) => (
-              <div key={rule.id} className="card overflow-hidden">
-                <div className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-semibold text-ink">{rule.name}</h3>
-                        <span className={`badge-${rule.isEnabled ? 'success' : 'ink'} text-xs`}>{rule.isEnabled ? 'Active' : 'Disabled'}</span>
-                        <span className="badge-ink text-xs">{SCOPE_LABELS[rule.scope] || rule.scope}</span>
-                      </div>
-                      {rule.description && <p className="text-sm text-ink-300 mb-2">{rule.description}</p>}
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => editRule(rule)}
-                        className="btn-secondary btn-xs inline-flex items-center gap-1">
-                        <Pencil className="w-3 h-3" /> Edit
-                      </button>
-                      <button onClick={() => toggleRule(rule.id)}
-                        className={`btn-xs ${rule.isEnabled ? 'btn bg-warning-muted text-warning border border-warning-border hover:bg-warning/20' : 'btn bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
-                        {rule.isEnabled ? 'Disable' : 'Enable'}
-                      </button>
-                      <button onClick={() => setDeleteConfirm({ id: rule.id, name: rule.name })}
-                        className="btn-danger btn-xs">
-                        Delete
-                      </button>
-                    </div>
-                  </div>
+  return (
+    <Shell>
+      {msg && <div className={`mb-4 ${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
+      {error && <div className="msg-error mb-4">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
 
-                  {/* Conditions */}
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {(rule.conditions as RuleCondition[]).map((c, i) => (
+      <AutomationLayout
+        title="กฎอัตโนมัติ"
+        subtitle={rules.length > 0 ? `${rules.length} กฎ` : undefined}
+        selectedId={selectedRuleId}
+        actions={
+          <button onClick={openNewRule} className="btn-primary btn-sm inline-flex items-center gap-1">
+            + สร้างใหม่
+          </button>
+        }
+        list={
+          rules.length === 0 ? (
+            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีกฎ</p>
+          ) : (
+            <div className="space-y-1">
+              {rules.map((rule) => (
+                <div
+                  key={rule.id}
+                  className={`flex items-stretch gap-1 rounded-lg transition-colors ${
+                    selectedRuleId === rule.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => selectRule(rule)}
+                    className="flex-1 text-left p-3 min-w-0"
+                  >
+                    <span className="font-medium text-sm text-ink truncate block">{rule.name}</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`badge-${rule.isEnabled ? 'success' : 'ink'} text-[10px]`}>
+                        {rule.isEnabled ? 'ใช้งาน' : 'ปิด'}
+                      </span>
+                      <span className="text-[10px] text-ink-300">{SCOPE_LABELS[rule.scope] || rule.scope}</span>
+                      <span className="text-[10px] text-ink-300">{rule.triggerCount}x</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleRule(rule.id)}
+                    className={`shrink-0 self-center mx-2 btn-xs ${rule.isEnabled ? 'bg-warning-muted text-warning border border-warning-border' : 'bg-success-muted text-success border border-success-border'}`}
+                    title={rule.isEnabled ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}
+                  >
+                    {rule.isEnabled ? 'ปิด' : 'เปิด'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )
+        }
+        detail={
+          selectedRuleId ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setSelectedRuleId(null)}
+                className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+              >
+                ← กลับ
+              </button>
+              {ruleForm}
+              {selectedRule && (
+                <div className="mt-6 pt-4 border-t border-surface-300 space-y-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selectedRule.conditions as RuleCondition[]).map((c, i) => (
                       <span key={i} className="px-2 py-1 bg-accent-muted text-accent text-xs rounded-md">
                         {metricLabel(c.metric)} {operatorLabel(c.operator)} {c.value}
                       </span>
                     ))}
-                    <span className="px-2 py-1 bg-surface-100 text-ink-300 text-xs rounded-md font-medium">
-                      {rule.logic}
-                    </span>
                   </div>
-
-                  {/* Actions */}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {rule.actions.map((a, i) => (
-                      <span key={i} className={`px-2 py-1 text-xs rounded-md ${actionColor(a)}`}>
-                        {actionLabel(a)}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Meta */}
-                  <div className="mt-3 flex items-center gap-4 text-xs text-ink-300">
-                    <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Triggered {rule.triggerCount} times</span>
-                    <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> Cooldown: {rule.cooldownMinutes}m</span>
-                    {rule.remainingCooldown > 0 && (
-                      <span className="text-warning font-medium inline-flex items-center gap-1">
-                        <Hourglass className="w-3 h-3" /> Cooldown remaining: {Math.floor(rule.remainingCooldown / 60)}m {rule.remainingCooldown % 60}s
-                      </span>
+                  <div className="flex flex-wrap gap-3 text-xs text-ink-300">
+                    <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> ทริกเกอร์ {selectedRule.triggerCount} ครั้ง</span>
+                    <span className="inline-flex items-center gap-1"><ClipboardList className="w-3 h-3" /> ล็อก {selectedRule._count?.logs || 0}</span>
+                    {selectedRule.campaign && (
+                      <span className="inline-flex items-center gap-1"><Target className="w-3 h-3" /> {selectedRule.campaign.name}</span>
                     )}
-                    <span className="inline-flex items-center gap-1"><ClipboardList className="w-3 h-3" /> Logs: {rule._count?.logs || 0}</span>
-                    {rule.lastTriggeredAt && <span>Last fired: {fmtDate(rule.lastTriggeredAt)}</span>}
-                    {rule.campaign && <span className="inline-flex items-center gap-1"><Target className="w-3 h-3" /> {rule.campaign.name} ({rule.campaign.status})</span>}
                   </div>
-
-                  {/* View logs button */}
-                  <button onClick={() => viewLogs(rule.id)}
-                    className="mt-2 text-xs text-accent hover:text-accent/80">
-                    {showLogs === rule.id ? 'Hide logs' : 'View logs'}
+                  <button onClick={() => viewLogs(selectedRule.id)} className="text-xs text-accent hover:text-accent/80">
+                    {showLogs === selectedRule.id ? 'ซ่อนล็อก' : 'ดูล็อก'}
                   </button>
-
-                  {/* Logs */}
-                  {showLogs === rule.id && (
-                    <div className="mt-3 pt-3 border-t border-surface-300">
+                  {showLogs === selectedRule.id && (
+                    <div className="max-h-48 overflow-y-auto space-y-1">
                       {loadingLogs ? (
-                        <p className="text-sm text-ink-300">Loading...</p>
+                        <p className="text-sm text-ink-300">กำลังโหลด...</p>
                       ) : logs.length === 0 ? (
-                        <p className="text-sm text-ink-300">No logs yet</p>
+                        <p className="text-sm text-ink-300">ยังไม่มีล็อก</p>
                       ) : (
-                        <div className="max-h-60 overflow-y-auto space-y-1">
-                          {logs.map((log: any) => (
-                            <div key={log.id} className={`text-xs p-2 rounded ${
-                              log.success ? 'bg-success-muted' : 'bg-danger-muted'
-                            }`}>
-                              <span className="font-medium text-ink">{fmtDate(log.triggeredAt)}</span>
-                              {' — '}
-                              <span className={log.success ? 'text-success' : 'text-danger'}>
-                                {log.success ? 'Success' : `Failed: ${log.errorMessage || ''}`}
-                              </span>
-                              {' — '}
-                              <span className="text-ink-300">
-                                {JSON.stringify(log.action)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                        logs.map((log: any) => (
+                          <div key={log.id} className={`text-xs p-2 rounded ${log.success ? 'bg-success-muted' : 'bg-danger-muted'}`}>
+                            <span className="font-medium text-ink">{fmtDate(log.triggeredAt)}</span>
+                            {' — '}
+                            <span className={log.success ? 'text-success' : 'text-danger'}>
+                              {log.success ? 'สำเร็จ' : `ล้มเหลว: ${log.errorMessage || ''}`}
+                            </span>
+                          </div>
+                        ))
                       )}
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[320px] text-center text-ink-300">
+              <Zap className="w-10 h-10 mb-3 text-ink-200" />
+              <p>เลือกรายการจากด้านซ้าย</p>
+              <button onClick={openNewRule} className="btn-primary btn-sm mt-4">+ สร้างใหม่</button>
+            </div>
+          )
+        }
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

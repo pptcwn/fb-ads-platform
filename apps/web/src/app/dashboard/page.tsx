@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import Link from 'next/link';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
+import PageLayout from '@/components/layout/PageLayout';
+import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import Skeleton from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 import { fmtCurr, fmtNum } from '@/lib/utils';
-import { RefreshCw, BarChart3, Link, Sparkles, ClipboardList, TrendingUp, Flame, SkipForward } from 'lucide-react';
+import { RefreshCw, BarChart3, Link as LinkIcon, Sparkles, ClipboardList, TrendingUp, Flame, SkipForward } from 'lucide-react';
 import { useFbStatus, useFbAuthUrl, useFbDisconnect, useSyncStatus, useTriggerSync, useInsights, useSyncInsights, useDashboardSummary, useWarmupStatus, useWarmupActions } from '@/hooks/use-dashboard';
 import { useAdAccounts } from '@/hooks/use-accounts';
 
@@ -137,8 +139,7 @@ export default function DashboardPage() {
   // ─── Loading skeleton ───
   if (fbLoading) return (
     <Shell>
-      <div className="p-6">
-        <PageHeader title="Dashboard" />
+      <PageLayout title="ภาพรวม">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="card p-4 space-y-2">
@@ -147,15 +148,38 @@ export default function DashboardPage() {
           ))}
         </div>
         <Skeleton variant="card" count={6} />
-      </div>
+      </PageLayout>
     </Shell>
   );
 
+  const checklist = [
+    { done: !!fbStatus?.connected, label: 'เชื่อมต่อ Meta', href: '/dashboard' },
+    { done: (summary?.totalCampaigns ?? 0) > 0, label: 'ซิงค์แคมเปญ', href: '/dashboard' },
+    { done: (summary?.totalCampaigns ?? 0) > 0, label: 'สร้างแคมเปญแรก', href: '/dashboard/campaigns/create' },
+  ];
+
   return (
-    <Shell>
-      <div className="p-6">
+    <Shell onSync={fbStatus?.connected ? handleSync : undefined} syncing={triggerSync.isPending}>
+      <PageLayout title="ภาพรวม" subtitle="สถานะบัญชีและ KPI หลัก">
+        <ConnectionBanner connected={!!fbStatus?.connected} />
+
+        <div className="card p-4 mb-6">
+          <h2 className="text-sm font-semibold text-ink mb-3">เริ่มต้นใช้งาน</h2>
+          <ol className="space-y-2">
+            {checklist.map((item, i) => (
+              <li key={i} className="flex items-center gap-3 text-sm">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${item.done ? 'bg-success-muted text-success' : 'bg-surface-200 text-ink-300'}`}>
+                  {item.done ? '✓' : i + 1}
+                </span>
+                <Link href={item.href} className={item.done ? 'text-ink-200 line-through' : 'text-ink hover:text-accent'}>
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <PageHeader title="Dashboard" />
           {fbStatus?.connected && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-ink-300 bg-surface-100 border border-surface-300 rounded-lg px-2.5 py-1">
@@ -203,7 +227,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <p className="text-sm text-ink-200">Connect Facebook to manage ad accounts.</p>
               <button onClick={connectFacebook} className="btn-primary btn-sm">
-                <Link className="w-4 h-4" /> Connect Facebook
+                <LinkIcon className="w-4 h-4" aria-hidden /> เชื่อมต่อ Meta
               </button>
             </div>
           )}
@@ -384,7 +408,7 @@ export default function DashboardPage() {
             <p className="text-xs mt-1">Connect your Facebook account above to start managing ads.</p>
           </div>
         )}
-      </div>
+      </PageLayout>
     </Shell>
   );
 }

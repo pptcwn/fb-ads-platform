@@ -316,8 +316,10 @@ export const alertsApi = {
 export const analyticsApi = {
   overview: (from: string, to: string) =>
     api.get('/api/analytics/overview', { params: { from, to } }),
-  trends: (from: string, to: string, granularity: string) =>
-    api.get('/api/analytics/trends', { params: { from, to, granularity } }),
+  trends: (from: string, to: string, granularity: string, accountId?: string) =>
+    api.get('/api/analytics/trends', {
+      params: { from, to, granularity, ...(accountId ? { accountId } : {}) },
+    }),
   comparison: (period: string) =>
     api.get('/api/analytics/comparison', { params: { period } }),
   accounts: () => api.get('/api/analytics/accounts'),

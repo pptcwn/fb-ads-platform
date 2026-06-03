@@ -3,8 +3,30 @@
 import { useEffect, useState, useCallback } from 'react';
 import { alertsApi } from '@/lib/api-client';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
-import { Bell, Settings, ClipboardList, Bot, Download, Send, Unplug, FileText, Link } from 'lucide-react';
+import PageLayout from '@/components/layout/PageLayout';
+import {
+  Settings,
+  ClipboardList,
+  Bot,
+  Download,
+  Send,
+  Unplug,
+  FileText,
+  Link,
+  Wallet,
+  Eye,
+  MousePointer,
+  DollarSign,
+  TrendingUp,
+  Target,
+  BarChart3,
+  XCircle,
+  CheckCircle,
+  Key,
+  RefreshCw,
+  AlertTriangle,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface AlertConfig {
   id: string;
@@ -31,21 +53,31 @@ interface AlertItem {
   metadata: any;
 }
 
-const METRIC_LABELS: Record<string, string> = {
-  BUDGET_USAGE: '💰 Budget Usage',
-  INSIGHT_IMPRESSIONS: '👁️ Impressions',
-  INSIGHT_CLICKS: '🖱️ Clicks',
-  INSIGHT_SPEND: '💵 Spend',
-  INSIGHT_CTR: '📈 CTR',
-  INSIGHT_CPC: '💲 CPC',
-  INSIGHT_CPA: '🎯 CPA',
-  INSIGHT_ROAS: '📊 ROAS',
-  CAMPAIGN_REJECTED: '❌ Campaign Rejected',
-  CAMPAIGN_COMPLETED: '✅ Campaign Completed',
-  TOKEN_EXPIRING: '🔑 Token Expiring',
-  A_B_TEST_DONE: '🔁 A/B Test Done',
-  SYNC_FAILED: '⚠️ Sync Failed',
+const METRIC_META: Record<string, { label: string; icon: LucideIcon }> = {
+  BUDGET_USAGE: { label: 'Budget Usage', icon: Wallet },
+  INSIGHT_IMPRESSIONS: { label: 'Impressions', icon: Eye },
+  INSIGHT_CLICKS: { label: 'Clicks', icon: MousePointer },
+  INSIGHT_SPEND: { label: 'Spend', icon: DollarSign },
+  INSIGHT_CTR: { label: 'CTR', icon: TrendingUp },
+  INSIGHT_CPC: { label: 'CPC', icon: DollarSign },
+  INSIGHT_CPA: { label: 'CPA', icon: Target },
+  INSIGHT_ROAS: { label: 'ROAS', icon: BarChart3 },
+  CAMPAIGN_REJECTED: { label: 'Campaign Rejected', icon: XCircle },
+  CAMPAIGN_COMPLETED: { label: 'Campaign Completed', icon: CheckCircle },
+  TOKEN_EXPIRING: { label: 'Token Expiring', icon: Key },
+  A_B_TEST_DONE: { label: 'A/B Test Done', icon: RefreshCw },
+  SYNC_FAILED: { label: 'Sync Failed', icon: AlertTriangle },
 };
+
+function metricLabel(metric: string) {
+  return METRIC_META[metric]?.label ?? metric;
+}
+
+function MetricIcon({ metric, className = 'w-3.5 h-3.5' }: { metric: string; className?: string }) {
+  const Icon = METRIC_META[metric]?.icon;
+  if (!Icon) return null;
+  return <Icon className={className} aria-hidden />;
+}
 
 const SEVERITY_STYLES: Record<string, string> = {
   CRITICAL: 'border-l-4 border-danger bg-danger-muted',
@@ -146,7 +178,13 @@ export default function NotificationsPage() {
     } catch { setMsg('❌ Failed to mark read'); }
   };
 
-  const deleteAlert = async (id: string) => {
+  const handleAlertClick = async (alert: AlertItem) => {
+    if (alert.isRead) return;
+    await markRead(alert.id);
+  };
+
+  const deleteAlert = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await alertsApi.deleteHistory(id);
       await fetchAll();
@@ -202,225 +240,265 @@ export default function NotificationsPage() {
     </Shell>
   );
 
+  const tabButtons = (
+    <div className="flex gap-2 flex-wrap">
+      <button
+        type="button"
+        onClick={() => setTab('configs')}
+        className={`btn-sm inline-flex items-center gap-1.5 ${tab === 'configs' ? 'btn-primary' : 'btn-secondary'}`}
+      >
+        <Settings className="w-4 h-4" /> ตั้งค่า
+      </button>
+      <button
+        type="button"
+        onClick={() => setTab('history')}
+        className={`btn-sm inline-flex items-center gap-1.5 ${tab === 'history' ? 'btn-primary' : 'btn-secondary'}`}
+      >
+        <ClipboardList className="w-4 h-4" /> ประวัติ
+        {alerts.unreadCount > 0 && (
+          <span className="ml-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-accent text-white font-medium">
+            {alerts.unreadCount}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setTab('telegram')}
+        className={`btn-sm inline-flex items-center gap-1.5 ${tab === 'telegram' ? 'btn-primary' : 'btn-secondary'}`}
+      >
+        <Bot className="w-4 h-4" /> Telegram
+      </button>
+    </div>
+  );
+
   return (
     <Shell>
-      <div className="p-6 space-y-6">
-        <PageHeader
-          title={<><Bell className="w-4 h-4" /> Notifications</>}
-          subtitle={alerts.unreadCount > 0 ? `${alerts.unreadCount} unread` : undefined}
-          actions={
-            <div className="flex gap-2">
-              <button onClick={() => setTab('configs')}
-                className={`btn-sm ${tab === 'configs' ? 'btn-primary' : 'btn-secondary'}`}>
-                                <Settings className="w-4 h-4" /> Configs
-              </button>
-              <button onClick={() => setTab('history')}
-                className={`btn-sm ${tab === 'history' ? 'btn-primary' : 'btn-secondary'}`}>
-                                <ClipboardList className="w-4 h-4" /> History {alerts.unreadCount > 0 && `(${alerts.unreadCount})`}
-              </button>
-              <button onClick={() => setTab('telegram')}
-                className={`btn-sm ${tab === 'telegram' ? 'btn-primary' : 'btn-secondary'}`}>
-                <Bot className="w-4 h-4" /> Telegram
-              </button>
-            </div>
-          }
-        />
+      <div className="p-6">
+        <PageLayout
+          title="การแจ้งเตือน"
+          subtitle={alerts.unreadCount > 0 ? `${alerts.unreadCount} ยังไม่อ่าน` : undefined}
+          actions={tabButtons}
+        >
+          {msg && <div className={`${msg.includes('✅') ? 'msg-success' : 'msg-error'}`}>{msg}</div>}
 
-        {msg && <div className={`${msg.includes('✅') ? 'msg-success' : 'msg-error'}`}>{msg}</div>}
-
-        {tab === 'configs' && (
-          <>
-            {/* Alert Configs */}
-            <div className="card">
-              <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink"><Settings className="w-4 h-4 inline" /> Alert Configurations</h3>
-                <div className="flex gap-2">
-                  <button onClick={initDefaults} disabled={saving}
-                    className="btn-sm bg-success-muted text-success border border-success-border hover:bg-success/20 disabled:opacity-50 font-medium">
-                                        <Download className="w-4 h-4" /> Add Defaults
-                  </button>
-                  <button onClick={() => setShowForm(!showForm)}
-                    className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">
-                    + New Config
-                  </button>
-                </div>
-              </div>
-
-              {showForm && (
-                <div className="px-6 py-4 bg-surface-50 border-b border-surface-300">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-ink mb-1">Name</label>
-                      <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                        placeholder="e.g. Budget alert" className="w-full px-3 py-2 text-sm bg-white text-ink" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-ink mb-1">Metric</label>
-                      <select value={form.metric} onChange={e => setForm({...form, metric: e.target.value})}
-                        className="w-full px-3 py-2 text-sm bg-white text-ink">
-                        {Object.entries(METRIC_LABELS).map(([k, v]) => (
-                          <option key={k} value={k}>{v}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-ink mb-1">Condition</label>
-                      <select value={form.condition} onChange={e => setForm({...form, condition: e.target.value})}
-                        className="w-full px-3 py-2 text-sm bg-white text-ink">
-                        <option value="ABOVE">Above</option>
-                        <option value="BELOW">Below</option>
-                        <option value="EQUALS">Equals</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-ink mb-1">Threshold</label>
-                      <input type="number" value={form.threshold} onChange={e => setForm({...form, threshold: Number(e.target.value) || 0})}
-                        className="w-full px-3 py-2 text-sm bg-white text-ink" min={0} step={0.1} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-ink mb-1">Unit</label>
-                      <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}
-                        className="w-full px-3 py-2 text-sm bg-white text-ink">
-                        <option value="percent">Percent</option>
-                        <option value="amount">Amount</option>
-                        <option value="days">Days</option>
-                        <option value="ratio">Ratio</option>
-                        <option value="">None</option>
-                      </select>
-                    </div>
-                    <div className="flex items-end pb-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={form.notifyTelegram} onChange={e => setForm({...form, notifyTelegram: e.target.checked})}
-                          className="rounded" />
-                        <span className="text-sm text-ink">Notify Telegram</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-3">
-                    <button onClick={() => setShowForm(false)} className="btn-secondary btn-sm">Cancel</button>
-                    <button onClick={createConfig} disabled={saving}
-                      className="btn-primary btn-sm">
-                      {saving ? 'Creating...' : 'Create'}
+          {tab === 'configs' && (
+            <>
+              <div className="card">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
+                  <h3 className="text-sm font-semibold text-ink inline-flex items-center gap-2">
+                    <Settings className="w-4 h-4" /> Alert Configurations
+                  </h3>
+                  <div className="flex gap-2">
+                    <button onClick={initDefaults} disabled={saving}
+                      className="btn-sm bg-success-muted text-success border border-success-border hover:bg-success/20 disabled:opacity-50 font-medium">
+                      <Download className="w-4 h-4" /> Add Defaults
+                    </button>
+                    <button onClick={() => setShowForm(!showForm)}
+                      className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">
+                      + New Config
                     </button>
                   </div>
                 </div>
-              )}
 
-              {configs.length === 0 ? (
-                <div className="px-6 py-8 text-center text-ink-300">
-                  No alert configs yet. Click &quot;Add Defaults&quot; to get started or create one manually.
-                </div>
-              ) : (
-                <div className="divide-y" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
-                  {configs.map((cfg) => (
-                    <div key={cfg.id} className="px-6 py-4 flex items-center justify-between hover:bg-surface-100">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm text-ink">{cfg.name}</p>
-                          <span className={`badge-${cfg.enabled ? 'success' : 'ink'} text-[10px]`}>
-                            {cfg.enabled ? 'ON' : 'OFF'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-ink-300 mt-0.5">
-                          {METRIC_LABELS[cfg.metric] || cfg.metric} · {cfg.condition} {cfg.threshold}{cfg.unit === 'percent' ? '%' : cfg.unit ? ` ${cfg.unit}` : ''}
-                        </p>
+                {showForm && (
+                  <div className="px-6 py-4 bg-surface-50 border-b border-surface-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-ink mb-1">Name</label>
+                        <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                          placeholder="e.g. Budget alert" className="w-full px-3 py-2 text-sm bg-white text-ink" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => toggleConfig(cfg.id)}
-                          className={`btn-xs ${cfg.enabled ? 'btn-secondary' : 'bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
-                          {cfg.enabled ? 'Pause' : 'Enable'}
-                        </button>
-                        <button onClick={() => deleteConfig(cfg.id, cfg.name)}
-                          className="btn-xs text-danger hover:text-danger/80 font-medium">
-                          Delete
-                        </button>
+                      <div>
+                        <label className="block text-xs font-medium text-ink mb-1">Metric</label>
+                        <select value={form.metric} onChange={e => setForm({...form, metric: e.target.value})}
+                          className="w-full px-3 py-2 text-sm bg-white text-ink">
+                          {Object.entries(METRIC_META).map(([k, v]) => (
+                            <option key={k} value={k}>{v.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink mb-1">Condition</label>
+                        <select value={form.condition} onChange={e => setForm({...form, condition: e.target.value})}
+                          className="w-full px-3 py-2 text-sm bg-white text-ink">
+                          <option value="ABOVE">Above</option>
+                          <option value="BELOW">Below</option>
+                          <option value="EQUALS">Equals</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink mb-1">Threshold</label>
+                        <input type="number" value={form.threshold} onChange={e => setForm({...form, threshold: Number(e.target.value) || 0})}
+                          className="w-full px-3 py-2 text-sm bg-white text-ink" min={0} step={0.1} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-ink mb-1">Unit</label>
+                        <select value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}
+                          className="w-full px-3 py-2 text-sm bg-white text-ink">
+                          <option value="percent">Percent</option>
+                          <option value="amount">Amount</option>
+                          <option value="days">Days</option>
+                          <option value="ratio">Ratio</option>
+                          <option value="">None</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end pb-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={form.notifyTelegram} onChange={e => setForm({...form, notifyTelegram: e.target.checked})}
+                            className="rounded" />
+                          <span className="text-sm text-ink">Notify Telegram</span>
+                        </label>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
+                    <div className="flex justify-end gap-2 mt-3">
+                      <button onClick={() => setShowForm(false)} className="btn-secondary btn-sm">Cancel</button>
+                      <button onClick={createConfig} disabled={saving}
+                        className="btn-primary btn-sm">
+                        {saving ? 'Creating...' : 'Create'}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-        {tab === 'history' && (
-          <>
-            {/* Alert History */}
-            <div className="card">
+                {configs.length === 0 ? (
+                  <div className="px-6 py-8 text-center text-ink-300">
+                    No alert configs yet. Click &quot;Add Defaults&quot; to get started or create one manually.
+                  </div>
+                ) : (
+                  <div className="divide-y" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+                    {configs.map((cfg) => (
+                      <div key={cfg.id} className="px-6 py-4 flex items-center justify-between hover:bg-surface-100">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm text-ink">{cfg.name}</p>
+                            <span className={`badge-${cfg.enabled ? 'success' : 'ink'} text-[10px]`}>
+                              {cfg.enabled ? 'ON' : 'OFF'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-ink-300 mt-0.5 inline-flex items-center gap-1.5">
+                            <MetricIcon metric={cfg.metric} />
+                            {metricLabel(cfg.metric)} · {cfg.condition} {cfg.threshold}{cfg.unit === 'percent' ? '%' : cfg.unit ? ` ${cfg.unit}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => toggleConfig(cfg.id)}
+                            className={`btn-xs ${cfg.enabled ? 'btn-secondary' : 'bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
+                            {cfg.enabled ? 'Pause' : 'Enable'}
+                          </button>
+                          <button onClick={() => deleteConfig(cfg.id, cfg.name)}
+                            className="btn-xs text-danger hover:text-danger/80 font-medium">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {tab === 'history' && (
+            <div className="card overflow-hidden">
               <div className="px-6 py-4 flex items-center justify-between border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink"><ClipboardList className="w-4 h-4 inline" /> Alert History</h3>
+                <h3 className="text-sm font-semibold text-ink inline-flex items-center gap-2">
+                  <ClipboardList className="w-4 h-4" /> ประวัติการแจ้งเตือน
+                </h3>
                 {alerts.alerts.some(a => !a.isRead) && (
-                  <button onClick={() => markRead()}
-                    className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">
-                    Mark All Read
+                  <button
+                    type="button"
+                    onClick={() => markRead()}
+                    className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"
+                  >
+                    อ่านทั้งหมด
                   </button>
                 )}
               </div>
 
               {alerts.alerts.length === 0 ? (
                 <div className="px-6 py-8 text-center text-ink-300">
-                  No alerts yet. They will appear here when conditions are met.
+                  ยังไม่มีการแจ้งเตือน — จะแสดงที่นี่เมื่อเงื่อนไขถูกต้อง
                 </div>
               ) : (
-                <div className="divide-y" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.06)' }}>
+                <ul className="divide-y divide-surface-300" role="list">
                   {alerts.alerts.map((alert) => (
-                    <div key={alert.id} className={`px-6 py-4 ${SEVERITY_STYLES[alert.severity] || ''} ${!alert.isRead ? '' : ''}`}>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className={`text-sm ${!alert.isRead ? 'font-bold text-ink' : 'font-medium text-ink'}`}>{alert.title}</p>
-                            {!alert.isRead && <span className="w-2 h-2 bg-accent rounded-full" title="Unread" />}
-                            <span className={`px-2 py-0.5 text-[10px] rounded-full ${CATEGORY_COLORS[alert.category] || 'badge-ink'}`}>
-                              {alert.category}
-                            </span>
-                            <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${
-                              alert.severity === 'CRITICAL' ? 'badge-danger' :
-                              alert.severity === 'WARNING' ? 'badge-warning' : 'bg-accent-muted text-accent border border-accent-border'
-                            }`}>
-                              {alert.severity}
-                            </span>
+                    <li key={alert.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleAlertClick(alert)}
+                        className={`w-full text-left px-6 py-4 transition-colors hover:bg-surface-100 ${
+                          SEVERITY_STYLES[alert.severity] || ''
+                        } ${!alert.isRead ? 'bg-surface-50/80' : ''}`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {!alert.isRead && (
+                                <span
+                                  className="w-2 h-2 shrink-0 bg-accent rounded-full"
+                                  title="ยังไม่อ่าน"
+                                  aria-hidden
+                                />
+                              )}
+                              <p className={`text-sm truncate ${!alert.isRead ? 'font-semibold text-ink' : 'font-medium text-ink-200'}`}>
+                                {alert.title}
+                              </p>
+                              <span className={`px-2 py-0.5 text-[10px] rounded-full ${CATEGORY_COLORS[alert.category] || 'badge-ink'}`}>
+                                {alert.category}
+                              </span>
+                              <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${
+                                alert.severity === 'CRITICAL' ? 'badge-danger' :
+                                alert.severity === 'WARNING' ? 'badge-warning' : 'bg-accent-muted text-accent border border-accent-border'
+                              }`}>
+                                {alert.severity}
+                              </span>
+                            </div>
+                            <p className={`text-sm mt-1 ${!alert.isRead ? 'text-ink' : 'text-ink-200'}`}>{alert.message}</p>
+                            <p className="text-xs text-ink-300 mt-1">
+                              {new Date(alert.createdAt).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </p>
                           </div>
-                          <p className="text-sm text-ink-200 mt-1">{alert.message}</p>
-                          <p className="text-xs text-ink-300 mt-1">
-                            {new Date(alert.createdAt).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}
-                          </p>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          {!alert.isRead && (
-                            <button onClick={() => markRead(alert.id)}
-                              className="btn-xs text-accent hover:text-accent/80">
-                              Read
+                          <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                            {!alert.isRead && (
+                              <button
+                                type="button"
+                                onClick={() => markRead(alert.id)}
+                                className="btn-xs text-accent hover:text-accent/80"
+                              >
+                                อ่านแล้ว
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => deleteAlert(alert.id, e)}
+                              className="btn-xs text-danger hover:text-danger/80"
+                            >
+                              ลบ
                             </button>
-                          )}
-                          <button onClick={() => deleteAlert(alert.id)}
-                            className="btn-xs text-danger hover:text-danger/80">
-                            Del
-                          </button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </button>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </div>
-          </>
-        )}
+          )}
 
-        {tab === 'telegram' && (
-          <>
-            {/* Telegram Settings */}
+          {tab === 'telegram' && (
             <div className="card">
               <div className="px-6 py-4 border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink"><Bot className="w-4 h-4 inline" /> Telegram Integration</h3>
+                <h3 className="text-sm font-semibold text-ink inline-flex items-center gap-2">
+                  <Bot className="w-4 h-4" /> Telegram Integration
+                </h3>
               </div>
               <div className="px-6 py-6">
                 {tgSettings?.hasBotToken && tgSettings?.hasChatId ? (
                   <div className="space-y-4">
-                    {/* Connected status */}
                     <div className="flex items-center gap-3 bg-success-muted border border-success-border rounded-lg px-4 py-3">
                       <span className="w-3 h-3 bg-success rounded-full" />
                       <div>
-                        <p className="font-medium text-sm text-success">✅ Telegram Connected</p>
+                        <p className="font-medium text-sm text-success">Telegram Connected</p>
                         <p className="text-xs text-success/80">
                           Bot: {tgSettings.botTokenPreview} · Chat ID: {tgSettings.chatId}
                         </p>
@@ -434,21 +512,22 @@ export default function NotificationsPage() {
                       </button>
                       <button onClick={disconnectTelegram}
                         className="btn-sm border border-danger-border text-danger hover:bg-danger-muted">
-                                                <Unplug className="w-4 h-4" /> Disconnect
+                        <Unplug className="w-4 h-4" /> Disconnect
                       </button>
                     </div>
 
                     <div className="bg-accent-muted border border-accent-border rounded-lg px-4 py-3">
-                      <p className="text-sm font-medium text-accent"><FileText className="w-4 h-4 inline" /> How to set up:</p>
+                      <p className="text-sm font-medium text-accent inline-flex items-center gap-1">
+                        <FileText className="w-4 h-4" /> How to set up:
+                      </p>
                       <ol className="text-xs text-accent/80 mt-2 list-decimal list-inside space-y-1">
-                        <li>Create a bot at <a href="https://t.me/BotFather" target="_blank" className="underline">@BotFather</a> on Telegram</li>
+                        <li>Create a bot at <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="underline">@BotFather</a> on Telegram</li>
                         <li>Get your Bot Token from BotFather</li>
                         <li>Find your Chat ID — send a message to your bot, then visit <code className="bg-accent-muted px-1 rounded">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code></li>
                         <li>Enter new Bot Token + Chat ID below to overwrite</li>
                       </ol>
                     </div>
 
-                    {/* Reconfigure */}
                     <div className="pt-4 border-t border-surface-300">
                       <p className="text-sm font-medium text-ink mb-3">Update Settings</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -473,16 +552,17 @@ export default function NotificationsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Not connected */}
                     <div className="bg-warning-muted border border-warning-border rounded-lg px-4 py-3">
-                      <p className="font-medium text-sm text-warning">⚠️ Telegram Not Connected</p>
+                      <p className="font-medium text-sm text-warning">Telegram Not Connected</p>
                       <p className="text-xs text-warning/80 mt-1">Enter your Bot Token and Chat ID to receive alerts on Telegram.</p>
                     </div>
 
                     <div className="bg-accent-muted border border-accent-border rounded-lg px-4 py-3">
-                      <p className="text-sm font-medium text-accent"><FileText className="w-4 h-4 inline" /> How to get started:</p>
+                      <p className="text-sm font-medium text-accent inline-flex items-center gap-1">
+                        <FileText className="w-4 h-4" /> How to get started:
+                      </p>
                       <ol className="text-xs text-accent/80 mt-2 list-decimal list-inside space-y-2">
-                        <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank" className="underline font-medium">@BotFather</a></li>
+                        <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="underline font-medium">@BotFather</a></li>
                         <li>Send <code className="bg-accent-muted px-1 rounded">/newbot</code> and follow the prompts</li>
                         <li>Copy the Bot Token (looks like <code className="bg-accent-muted px-1 rounded">123456:ABC-DEF...</code>)</li>
                         <li>Start a chat with your new bot and send <code className="bg-accent-muted px-1 rounded">/start</code></li>
@@ -520,8 +600,8 @@ export default function NotificationsPage() {
                 )}
               </div>
             </div>
-          </>
-        )}
+          )}
+        </PageLayout>
       </div>
     </Shell>
   );

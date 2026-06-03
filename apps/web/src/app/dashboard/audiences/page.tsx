@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { Target, Users, Save, Plus, RefreshCw, Trash2, Folder, BarChart3, Upload, X, FileText, Check, AlertTriangle, Ban } from 'lucide-react';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
+import PageLayout from '@/components/layout/PageLayout';
 import Modal, { ConfirmModal } from '@/components/Modal';
 import { useAudiences, useCreateCustomAudience, useCreateLookalikeAudience, useDeleteAudience, useSyncAudiences, useUploadAudienceCsv } from '@/hooks/use-audiences';
 import { useAdAccounts } from '@/hooks/use-accounts';
@@ -11,8 +11,9 @@ import type { Audience } from '@/lib/api-client';
 
 const fmtNum = (n: number | null) => n ? (n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString()) : '-';
 
-const TYPE_ICONS: Record<string, any> = { CUSTOM: <Target className="w-4 h-4" />, LOOKALIKE: <Users className="w-4 h-4" />, SAVED: <Save className="w-4 h-4" /> };
+const TYPE_ICONS: Record<string, ReactNode> = { CUSTOM: <Target className="w-4 h-4" />, LOOKALIKE: <Users className="w-4 h-4" />, SAVED: <Save className="w-4 h-4" /> };
 const TYPE_LABELS: Record<string, string> = { CUSTOM: 'Custom', LOOKALIKE: 'Lookalike', SAVED: 'Saved Audience' };
+const TYPE_LABELS_TH: Record<string, string> = { CUSTOM: 'กำหนดเอง', LOOKALIKE: 'Lookalike', SAVED: 'บันทึกไว้' };
 const STATUS_COLORS: Record<string, string> = {
   READY: 'badge-success',
   IS_EXCLUDED: 'badge-danger',
@@ -35,6 +36,7 @@ export default function AudiencesPage() {
   // ─── UI state ───
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [showLookalikeModal, setShowLookalikeModal] = useState(false);
   const [customForm, setCustomForm] = useState({ adAccountId: '', name: '', description: '' });
@@ -51,6 +53,9 @@ export default function AudiencesPage() {
   const [uploading, setUploading] = useState(false);
   const [pdpaConsent, setPdpaConsent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedAudience = selectedId ? audiences.find((a) => a.id === selectedId) : null;
+  const showDetailMobile = selectedId != null;
 
   // ─── Mutations ───
 
@@ -89,6 +94,7 @@ export default function AudiencesPage() {
     try {
       const data = await deleteAudienceMutation.mutateAsync(deleteConfirm.id);
       setMsg(data.message);
+      if (deleteConfirm.id === selectedId) setSelectedId(null);
       setDeleteConfirm(null);
     } catch (err: any) { setError(err?.response?.data?.message || err.message); }
   };
@@ -179,82 +185,176 @@ export default function AudiencesPage() {
   if (isLoading) return (
     <Shell>
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-ink-300 animate-pulse">Loading audiences...</p>
+        <p className="text-ink-300 animate-pulse">กำลังโหลดกลุ่มเป้าหมาย...</p>
       </div>
     </Shell>
   );
 
   return (
     <Shell>
-      <div className="p-6 space-y-6">
-        <PageHeader
-          title={<><Users className="w-4 h-4 inline mr-1" />Audience Management</>}
-          subtitle={`${audiences.length} audiences`}
+      <div className="p-6">
+        <PageLayout
+          title="กลุ่มเป้าหมาย"
+          subtitle={`${audiences.length} กลุ่ม`}
           actions={
             <>
               <button onClick={() => setShowCustomModal(true)} className="btn-primary btn-sm inline-flex items-center gap-1"><Plus className="w-4 h-4" /> Custom</button>
               <button onClick={() => setShowLookalikeModal(true)} className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg inline-flex items-center gap-1"><Users className="w-4 h-4" /> Lookalike</button>
-              <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> Refresh</button>
+              <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> รีเฟรช</button>
             </>
           }
-        />
+        >
+          {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
+          {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
 
-        {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
-        {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
-
-        <div className="flex flex-wrap gap-2">
-          {accounts.map(acc => (
-            <button key={acc.id} onClick={() => handleSync(acc.id)} disabled={syncAudiencesMutation.isPending}
-              className="btn-secondary btn-xs">
-              {syncAudiencesMutation.isPending ? '⟳ Syncing...' : `⟳ Sync ${acc.name}`}
-            </button>
-          ))}
-        </div>
-
-        {audiences.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Target className="w-12 h-12 mx-auto mb-3 text-ink-200" />
-            <p className="text-lg font-medium mb-1 text-ink">No audiences yet</p>
-            <p className="text-sm text-ink-300">Sync your ad accounts or create a new audience.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {audiences.map(a => (
-              <div key={a.id} className="card p-4 hover:border-surface-300 transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-lg">{TYPE_ICONS[a.type] || <Target className="w-4 h-4" />}</span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink truncate max-w-[180px]">{a.name}</p>
-                      <p className="text-[10px] text-ink-300">{TYPE_LABELS[a.type] || a.type} · {a.accountName}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setDeleteConfirm(a)}
-                    className="text-ink-300 hover:text-danger text-xs shrink-0"><Trash2 className="w-4 h-4" /></button>
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 min-h-[480px]">
+            {/* Left: list */}
+            <div
+              className={`card p-3 overflow-y-auto max-h-[70vh] lg:max-h-none ${
+                showDetailMobile ? 'hidden lg:block' : 'block'
+              }`}
+            >
+              {audiences.length === 0 ? (
+                <div className="text-center py-8">
+                  <Target className="w-10 h-10 mx-auto mb-2 text-ink-200" />
+                  <p className="text-sm font-medium text-ink">ยังไม่มีกลุ่มเป้าหมาย</p>
+                  <p className="text-xs text-ink-300 mt-1">ซิงค์บัญชีหรือสร้างกลุ่มใหม่</p>
                 </div>
-
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg font-bold text-accent">{fmtNum(a.approximateCount)}</span>
-                  <span className="text-[10px] text-ink-300">people</span>
-                  <span className={`badge-ink text-[10px] ${STATUS_COLORS[a.status] || 'badge-ink'}`}>{a.status}</span>
+              ) : (
+                <div className="space-y-1">
+                  {audiences.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => setSelectedId(a.id)}
+                      className={`w-full text-left p-3 rounded-lg transition-colors ${
+                        selectedId === a.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 min-w-0">
+                        <span className="shrink-0 text-ink-300">{TYPE_ICONS[a.type] || <Target className="w-4 h-4" />}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-ink truncate">{a.name}</p>
+                          <p className="text-[10px] text-ink-300 truncate">{a.accountName}</p>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className="badge-ink text-[10px]">{TYPE_LABELS_TH[a.type] || a.type}</span>
+                            <span className="text-xs font-semibold text-accent">{fmtNum(a.approximateCount)}</span>
+                            <span className={`badge-ink text-[10px] ${STATUS_COLORS[a.status] || 'badge-ink'}`}>{a.status}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
+              )}
+            </div>
 
-                {a.description && <p className="text-[11px] text-ink-300 mb-2 line-clamp-2">{a.description}</p>}
-
-                <div className="flex flex-wrap gap-1 text-[10px] text-ink-300">
-                  {a.subtype && <span className="bg-surface-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1"><Folder className="w-3 h-3" /> {a.subtype}</span>}
-                  {a.type === 'LOOKALIKE' && a.lookalikeRatio && <span className="bg-surface-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1"><BarChart3 className="w-3 h-3" /> {a.lookalikeRatio}% ratio</span>}
-                </div>
-                {a.type === 'CUSTOM' && a.status === 'READY' && (
-                  <button onClick={() => setUploadTarget(a)}
-                    className="mt-2 w-full text-[10px] py-1 rounded-lg bg-surface-50 border border-surface-200/50 text-ink-300 hover:text-accent hover:border-accent-border transition-colors inline-flex items-center justify-center gap-1">
-                    <Upload className="w-3 h-3" /> Upload CSV
+            {/* Right: detail */}
+            <div
+              className={`card p-5 overflow-y-auto ${
+                showDetailMobile ? 'block' : 'hidden lg:block'
+              }`}
+            >
+              {selectedAudience ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(null)}
+                    className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+                  >
+                    ← กลับ
                   </button>
-                )}
-              </div>
-            ))}
+
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-ink-300">{TYPE_ICONS[selectedAudience.type]}</span>
+                        <h2 className="text-lg font-semibold text-ink truncate">{selectedAudience.name}</h2>
+                      </div>
+                      <p className="text-xs text-ink-300">
+                        {TYPE_LABELS[selectedAudience.type] || selectedAudience.type} · {selectedAudience.accountName}
+                      </p>
+                    </div>
+                    <span className={`badge-ink text-[10px] shrink-0 ${STATUS_COLORS[selectedAudience.status] || 'badge-ink'}`}>
+                      {selectedAudience.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline gap-2 mb-4">
+                    <span className="text-3xl font-bold text-accent">{fmtNum(selectedAudience.approximateCount)}</span>
+                    <span className="text-sm text-ink-300">คน</span>
+                  </div>
+
+                  {selectedAudience.description && (
+                    <p className="text-sm text-ink-200 mb-4">{selectedAudience.description}</p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 text-xs text-ink-300 mb-6">
+                    {selectedAudience.subtype && (
+                      <span className="bg-surface-50 px-2 py-1 rounded inline-flex items-center gap-1">
+                        <Folder className="w-3 h-3" /> {selectedAudience.subtype}
+                      </span>
+                    )}
+                    {selectedAudience.type === 'LOOKALIKE' && selectedAudience.lookalikeRatio && (
+                      <span className="bg-surface-50 px-2 py-1 rounded inline-flex items-center gap-1">
+                        <BarChart3 className="w-3 h-3" /> {selectedAudience.lookalikeRatio}% ratio
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-4 border-t border-surface-300">
+                    <button
+                      onClick={() => handleSync(selectedAudience.adAccountId)}
+                      disabled={syncAudiencesMutation.isPending}
+                      className="btn-secondary btn-sm inline-flex items-center gap-1"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      {syncAudiencesMutation.isPending ? 'กำลังซิงค์...' : 'ซิงค์บัญชี'}
+                    </button>
+                    {selectedAudience.type === 'CUSTOM' && selectedAudience.status === 'READY' && (
+                      <button
+                        onClick={() => setUploadTarget(selectedAudience)}
+                        className="btn-secondary btn-sm inline-flex items-center gap-1"
+                      >
+                        <Upload className="w-4 h-4" /> อัปโหลด CSV
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setDeleteConfirm(selectedAudience)}
+                      className="btn-danger btn-sm inline-flex items-center gap-1"
+                    >
+                      <Trash2 className="w-4 h-4" /> ลบ
+                    </button>
+                  </div>
+
+                  {accounts.length > 1 && (
+                    <div className="mt-6 pt-4 border-t border-surface-300">
+                      <p className="text-xs text-ink-300 mb-2">ซิงค์บัญชีอื่น</p>
+                      <div className="flex flex-wrap gap-2">
+                        {accounts.filter((acc) => acc.id !== selectedAudience.adAccountId).map((acc) => (
+                          <button
+                            key={acc.id}
+                            onClick={() => handleSync(acc.id)}
+                            disabled={syncAudiencesMutation.isPending}
+                            className="btn-secondary btn-xs"
+                          >
+                            {syncAudiencesMutation.isPending ? '⟳...' : `⟳ ${acc.name}`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center min-h-[320px] text-center text-ink-300">
+                  <Users className="w-10 h-10 mb-3 text-ink-200" />
+                  <p>เลือกกลุ่มเป้าหมายจากรายการด้านซ้าย</p>
+                  <p className="text-xs mt-1">หรือสร้าง Custom / Lookalike ใหม่</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </PageLayout>
       </div>
 
       {/* ─── Create Custom ─── */}

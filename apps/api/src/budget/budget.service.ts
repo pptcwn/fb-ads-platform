@@ -60,7 +60,7 @@ export class BudgetService {
       take: 100,
     });
 
-    return schedules.map(s => ({
+    return schedules.map((s: (typeof schedules)[number]) => ({
       ...s,
       value: s.value ? Number(s.value) : null,
     }));

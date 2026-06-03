@@ -12,12 +12,19 @@
   --bg: #000000;
   --surface: #0f0f0f;
   --surface-50: #0a0a0a;
+  --surface-elevated: #141414;
   --border-shadow: 0px 0px 0px 1px rgba(255,255,255,0.06);
   --border-shadow-light: 0px 0px 0px 1px rgba(255,255,255,0.03);
   --ink: #f5f5f5;
   --ink-secondary: #b0b0b0;
   --ink-muted: #808080;
   --accent: #0070f3;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --meta: #a78bfa;
+  --estimate: #38bdf8;
+  --budget-preview: #737373;
 }
 
 * { box-sizing: border-box; }
@@ -258,6 +265,16 @@ body {
 
 .animate-slideUp {
   animation: slideUp 0.3s ease-out;
+}
+
+.safe-area-pb {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 639px) {
+  .campaign-card-list .card-row {
+    display: block;
+  }
 }
 
 .animate-fade-out {

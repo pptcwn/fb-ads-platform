@@ -1,30 +1,18 @@
 'use client';
 
-import { AnimatePresence } from 'framer-motion';
-import { usePathname } from 'next/navigation';
-import Sidebar from './Sidebar';
-import ErrorBoundary from './ErrorBoundary';
-import { PageTransition } from './motion-wrapper';
+import AppShell from './layout/AppShell';
 
 interface ShellProps {
   children: React.ReactNode;
+  onSync?: () => void;
+  syncing?: boolean;
 }
 
-export default function Shell({ children }: ShellProps) {
-  const pathname = usePathname();
-
+/** @deprecated Use AppShell via dashboard layout; kept for gradual migration */
+export default function Shell({ children, onSync, syncing }: ShellProps) {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-x-hidden">
-        <ErrorBoundary>
-          <AnimatePresence mode="wait">
-            <PageTransition key={pathname}>
-              {children}
-            </PageTransition>
-          </AnimatePresence>
-        </ErrorBoundary>
-      </main>
-    </div>
+    <AppShell onSync={onSync} syncing={syncing}>
+      {children}
+    </AppShell>
   );
 }

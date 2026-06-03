@@ -63,6 +63,23 @@ const config: Config = {
           muted: 'rgba(239, 68, 68, 0.08)',
           border: 'rgba(239, 68, 68, 0.2)',
         },
+        meta: {
+          DEFAULT: '#a78bfa',
+          muted: 'rgba(167, 139, 250, 0.1)',
+          border: 'rgba(167, 139, 250, 0.25)',
+        },
+        estimate: {
+          DEFAULT: '#38bdf8',
+          muted: 'rgba(56, 189, 248, 0.1)',
+          border: 'rgba(56, 189, 248, 0.25)',
+        },
+        'budget-preview': {
+          DEFAULT: '#a3a3a3',
+          muted: 'rgba(163, 163, 163, 0.08)',
+          border: 'rgba(163, 163, 163, 0.2)',
+        },
+        'surface-elevated': '#141414',
+        bg: '#000000',
       },
       boxShadow: {
         'border': '0px 0px 0px 1px rgba(255,255,255,0.06)',

@@ -187,7 +187,7 @@ export default function AbTestPage() {
   if (loading) return (
     <Shell>
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-ink-300 animate-pulse">Loading A/B tests...</p>
+        <p className="text-ink-300 animate-pulse">กำลังโหลดทดสอบ A/B…</p>
       </div>
     </Shell>
   );
@@ -196,12 +196,12 @@ export default function AbTestPage() {
     <Shell>
       <div className="p-6 space-y-6">
         <PageHeader
-          title={<><GitBranch className="w-4 h-4" /> A/B Testing</>}
-          subtitle={tests.length > 0 ? `${tests.length} tests` : undefined}
+          title={<><GitBranch className="w-4 h-4" aria-hidden /> ทดสอบ A/B</>}
+          subtitle={tests.length > 0 ? `${tests.length} รายการทดสอบ` : undefined}
           actions={
-            <button onClick={openCreate}
+            <button type="button" onClick={openCreate}
               className="btn-primary btn-sm">
-              + New A/B Test
+              + สร้างทดสอบ A/B
             </button>
           }
         />
@@ -212,8 +212,8 @@ export default function AbTestPage() {
         {tests.length === 0 ? (
           <div className="card p-12 text-center">
             <p className="text-4xl mb-4"><GitBranch className="w-4 h-4" /></p>
-            <p className="text-lg font-medium text-ink mb-1">No A/B tests yet</p>
-            <p className="text-sm text-ink-300">Create an A/B test to compare campaign variants side by side</p>
+            <p className="text-lg font-medium text-ink mb-1">ยังไม่มีทดสอบ A/B</p>
+            <p className="text-sm text-ink-300">สร้างทดสอบ A/B เพื่อเปรียบเทียบแคมเปญแบบคู่ขนาน</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -230,20 +230,20 @@ export default function AbTestPage() {
                     <span className={`badge-${test.status === 'ACTIVE' ? 'success' : 'ink'} text-xs`}>{test.status}</span>
                     {test.status === 'ACTIVE' && (
                       <>
-                        <button onClick={() => pauseTest(test.id)}
-                          className="btn-xs bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 font-medium"><Pause className="w-4 h-4" /> Pause</button>
-                        <button onClick={() => stopTest(test.id)}
-                          className="btn-xs badge-danger hover:bg-danger font-medium"><Square className="w-4 h-4" /> Stop</button>
+                        <button type="button" onClick={() => pauseTest(test.id)}
+                          className="btn-xs bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 font-medium"><Pause className="w-4 h-4" aria-hidden /> หยุดชั่วคราว</button>
+                        <button type="button" onClick={() => stopTest(test.id)}
+                          className="btn-xs badge-danger hover:bg-danger font-medium"><Square className="w-4 h-4" aria-hidden /> จบทดสอบ</button>
                       </>
                     )}
                     {test.status === 'PAUSED' && (
-                      <button onClick={() => resumeTest(test.id)}
-                        className="btn-xs bg-success-muted text-success border border-success-border hover:bg-success/20 font-medium"><Play className="w-4 h-4" /> Resume All</button>
+                      <button type="button" onClick={() => resumeTest(test.id)}
+                        className="btn-xs bg-success-muted text-success border border-success-border hover:bg-success/20 font-medium"><Play className="w-4 h-4" aria-hidden /> เปิดทั้งหมด</button>
                     )}
-                    <button onClick={() => loadVariants(test.id)}
-                      className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"><RefreshCw className="w-4 h-4" /> Refresh</button>
-                    <button onClick={() => setDeleteConfirm({ type: 'test', id: test.id, name: test.name })}
-                      className="btn-xs bg-surface-100 text-ink-300 hover:bg-danger-muted hover:text-danger font-medium"><Trash2 className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => loadVariants(test.id)}
+                      className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"><RefreshCw className="w-4 h-4" aria-hidden /> รีเฟรช</button>
+                    <button type="button" onClick={() => setDeleteConfirm({ type: 'test', id: test.id, name: test.name })}
+                      className="btn-xs bg-surface-100 text-ink-300 hover:bg-danger-muted hover:text-danger font-medium" aria-label={`ลบทดสอบ ${test.name}`}><Trash2 className="w-4 h-4" aria-hidden /></button>
                   </div>
                 </div>
 
@@ -282,14 +282,15 @@ export default function AbTestPage() {
                               <td className={`px-4 py-3 text-right ${winColor(convs, idx)}`}>{v.conversions}</td>
                               <td className="px-4 py-3 text-center">
                                 <div className="flex items-center justify-center gap-1">
-                                  <button onClick={() => toggleVariant(v.id)}
-                                    className={`btn-xs ${v.status === 'ACTIVE' ? 'bg-warning-muted text-warning border border-warning-border hover:bg-warning/20' : 'bg-success-muted text-success border border-success-border hover:bg-success/20'}`}>
-                                    {v.status === 'ACTIVE' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                                  <button type="button" onClick={() => toggleVariant(v.id)}
+                                    className={`btn-xs ${v.status === 'ACTIVE' ? 'bg-warning-muted text-warning border border-warning-border hover:bg-warning/20' : 'bg-success-muted text-success border border-success-border hover:bg-success/20'}`}
+                                    aria-label={v.status === 'ACTIVE' ? `หยุด variant ${v.name}` : `เปิด variant ${v.name}`}>
+                                    {v.status === 'ACTIVE' ? <Pause className="w-4 h-4" aria-hidden /> : <Play className="w-4 h-4" aria-hidden />}
                                   </button>
-                                  <button onClick={() => openEdit(v)}
-                                    className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"><Pencil className="w-4 h-4" /></button>
-                                  <button onClick={() => setDeleteConfirm({ type: 'variant', id: v.id, name: v.name })}
-                                    className="btn-xs bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 font-medium"><Trash2 className="w-4 h-4" /></button>
+                                  <button type="button" onClick={() => openEdit(v)}
+                                    className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium" aria-label={`แก้ไข ${v.name}`}><Pencil className="w-4 h-4" aria-hidden /></button>
+                                  <button type="button" onClick={() => setDeleteConfirm({ type: 'variant', id: v.id, name: v.name })}
+                                    className="btn-xs bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 font-medium" aria-label={`ลบ variant ${v.name}`}><Trash2 className="w-4 h-4" aria-hidden /></button>
                                 </div>
                               </td>
                             </tr>
@@ -312,7 +313,7 @@ export default function AbTestPage() {
       </div>
 
       {/* Create Modal */}
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={<><GitBranch className="w-4 h-4" /> New A/B Test</>} maxWidth="max-w-2xl">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={<><GitBranch className="w-4 h-4" aria-hidden /> สร้างทดสอบ A/B</>} maxWidth="max-w-2xl">
         <div className="mb-4">
           <label className="block text-xs font-medium text-ink mb-1">Source Campaign</label>
           <select value={selectedCamp} onChange={e => setSelectedCamp(e.target.value)}
@@ -343,8 +344,8 @@ export default function AbTestPage() {
                   }}
                   className="flex-1 px-3 py-2 text-sm bg-surface-100 text-ink" />
                 {variants.length > 2 && (
-                  <button onClick={() => removeVariant(idx)}
-                    className="text-xs text-danger hover:text-danger/80"><X className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => removeVariant(idx)}
+                    className="text-xs text-danger hover:text-danger/80" aria-label={`ลบ variant #${idx + 1}`}><X className="w-4 h-4" aria-hidden /></button>
                 )}
               </div>
             ))}
@@ -352,16 +353,16 @@ export default function AbTestPage() {
         </div>
 
         <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
-          <button onClick={() => setShowCreate(false)} className="btn-secondary btn-sm">Cancel</button>
-          <button onClick={createTest} disabled={saving}
+          <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary btn-sm">ยกเลิก</button>
+          <button type="button" onClick={createTest} disabled={saving}
             className="btn-primary btn-sm">
-            {saving ? 'Creating...' : 'Create A/B Test'}
+            {saving ? 'กำลังสร้าง…' : 'สร้างทดสอบ A/B'}
           </button>
         </div>
       </Modal>
 
       {/* Edit Variant Modal */}
-      <Modal open={!!editVariant} onClose={() => setEditVariant(null)} title={<><Pencil className="w-4 h-4" /> Edit Variant</>} maxWidth="max-w-sm">
+      <Modal open={!!editVariant} onClose={() => setEditVariant(null)} title={<><Pencil className="w-4 h-4" aria-hidden /> แก้ไข Variant</>} maxWidth="max-w-sm">
         <div className="space-y-3">
           <div>
             <label className="block text-xs font-medium text-ink mb-1">Name</label>
@@ -375,10 +376,10 @@ export default function AbTestPage() {
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-4 pt-4 -mx-5 px-5 border-t border-surface-300">
-          <button onClick={() => setEditVariant(null)} className="btn-secondary btn-sm">Cancel</button>
-          <button onClick={saveEdit} disabled={editSaving}
+          <button type="button" onClick={() => setEditVariant(null)} className="btn-secondary btn-sm">ยกเลิก</button>
+          <button type="button" onClick={saveEdit} disabled={editSaving}
             className="btn-primary btn-sm">
-            {editSaving ? 'Saving...' : 'Save'}
+            {editSaving ? 'กำลังบันทึก…' : 'บันทึก'}
           </button>
         </div>
       </Modal>

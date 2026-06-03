@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { accountsApi, budgetSchedulesApi } from '@/lib/api-client';
-import { Timer, Play, DollarSign, BarChart3, Pencil, Clock, RefreshCw, Calendar, Trash2, Save, X } from 'lucide-react';
+import { Timer, Pencil, Clock, RefreshCw, Trash2, Save, X } from 'lucide-react';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
-import Modal from '@/components/Modal';
+import AutomationLayout from '@/components/layout/AutomationLayout';
 import { ConfirmModal } from '@/components/Modal';
 
 interface BudgetSchedule {
@@ -32,13 +31,6 @@ interface AccountOption {
   id: string;
   name: string;
 }
-
-const ACTION_LABELS: Record<string, any> = {
-  PAUSE: <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> Pause</span>,
-  RESUME: <span className="inline-flex items-center gap-1"><Play className="w-3 h-3" /> Resume</span>,
-  SET_BUDGET: <span className="inline-flex items-center gap-1"><DollarSign className="w-3 h-3" /> Set Budget</span>,
-  ADJUST_PERCENT: <span className="inline-flex items-center gap-1"><BarChart3 className="w-3 h-3" /> Adjust %</span>,
-};
 
 const ACTION_COLORS: Record<string, string> = {
   PAUSE: 'badge-danger',
@@ -68,8 +60,7 @@ export default function BudgetPage() {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
 
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -146,13 +137,17 @@ export default function BudgetPage() {
     setCustomCron('');
   };
 
+  const selectedBudget = selectedBudgetId && selectedBudgetId !== 'new'
+    ? schedules.find((s) => s.id === selectedBudgetId)
+    : null;
+
   const openNew = () => {
     resetForm();
     setEditId(null);
-    setShowModal(true);
+    setSelectedBudgetId('new');
   };
 
-  const openEdit = (s: BudgetSchedule) => {
+  const selectBudget = (s: BudgetSchedule) => {
     setForm({
       name: s.name,
       action: s.action,
@@ -171,7 +166,7 @@ export default function BudgetPage() {
       setCustomCron(s.cronExpr);
     }
     setEditId(s.id);
-    setShowModal(true);
+    setSelectedBudgetId(s.id);
   };
 
   const saveSchedule = async () => {
@@ -209,7 +204,7 @@ export default function BudgetPage() {
         setMsg('✅ Schedule created!');
       }
 
-      setShowModal(false);
+      setSelectedBudgetId(null);
       loadAll();
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message);
@@ -234,6 +229,7 @@ export default function BudgetPage() {
       await budgetSchedulesApi.remove(deleteConfirm.id);
       setMsg(`🗑️ Schedule "${deleteConfirm.name}" deleted`);
       setDeleteConfirm(null);
+      if (deleteConfirm.id === selectedBudgetId) setSelectedBudgetId(null);
       loadAll();
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message);
@@ -262,246 +258,209 @@ export default function BudgetPage() {
     </Shell>
   );
 
-  return (
-    <Shell>
-      <div className="p-6 space-y-6">
-        <PageHeader
-          title="⏰ Budget Automation"
-          subtitle={schedules.length > 0 ? `${schedules.length} schedules` : undefined}
-          actions={
-            <button onClick={openNew} className="btn-primary btn-sm">
-              + New Schedule
-            </button>
-          }
-        />
-
-        {/* Messages */}
-        {msg && (
-          <div className={`${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>
-            {msg}
-            <button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button>
+  const budgetForm = (
+    <>
+      <h3 className="text-lg font-semibold mb-4 text-ink inline-flex items-center gap-2">
+        {editId ? <><Pencil className="w-4 h-4" /> แก้ไขงบประมาณ</> : 'สร้างงบประมาณอัตโนมัติ'}
+      </h3>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">ชื่อ</label>
+          <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+            className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg" placeholder="เช่น หยุดตอนกลางคืน" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">การกระทำ</label>
+          <select value={form.action} onChange={e => setForm({...form, action: e.target.value})}
+            className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg">
+            <option value="PAUSE">หยุดแคมเปญ</option>
+            <option value="RESUME">เริ่มแคมเปญ</option>
+            <option value="SET_BUDGET">ตั้งงบประมาณ</option>
+            <option value="ADJUST_PERCENT">ปรับงบเป็น %</option>
+          </select>
+        </div>
+        {(form.action === 'SET_BUDGET' || form.action === 'ADJUST_PERCENT') && (
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1">
+              {form.action === 'SET_BUDGET' ? 'งบใหม่ (บาท)' : 'ปรับเปอร์เซ็นต์'}
+            </label>
+            <input type="number" value={form.value}
+              onChange={e => setForm({...form, value: parseFloat(e.target.value) || 0})}
+              className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink"
+              min={form.action === 'SET_BUDGET' ? 1 : undefined}
+              step="1" />
           </div>
         )}
-        {error && (
-          <div className="msg-error">
-            {error}
-            <button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">บัญชีโฆษณา (ไม่บังคับ)</label>
+            <select value={form.adAccountId} onChange={e => setForm({...form, adAccountId: e.target.value})}
+              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg">
+              <option value="">ทุกบัญชี</option>
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
           </div>
-        )}
-
-        {schedules.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Clock className="w-12 h-12 mx-auto mb-3 text-ink-200" />
-            <p className="text-ink-300 text-lg mb-4">No budget schedules yet</p>
-            <p className="text-ink-300 text-sm mb-4">
-              Schedule automatic budget changes for your campaigns — pause at night, increase on weekends, and more.
-            </p>
-            <button onClick={openNew}
-              className="btn-primary btn-sm">
-              + Create your first schedule
-            </button>
+          <div>
+            <label className="block text-xs text-ink-300 mb-1">แคมเปญ (ไม่บังคับ)</label>
+            <select value={form.campaignId} onChange={e => setForm({...form, campaignId: e.target.value})}
+              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg">
+              <option value="">ทุกแคมเปญ</option>
+              {filteredCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {schedules.map((s) => (
-              <div key={s.id} className="card overflow-hidden">
-                <div className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-semibold text-ink">{s.name}</h3>
-                        <span className={`badge-${s.isEnabled ? 'success' : 'ink'} text-xs`}>
-                          {s.isEnabled ? 'Active' : 'Disabled'}
-                        </span>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${ACTION_COLORS[s.action] || 'badge-ink'}`}>
-                          {ACTION_LABELS[s.action] || s.action}
-                        </span>
-                        {actionValueLabel(s) && (
-                          <span className="px-2 py-0.5 text-xs bg-surface-100 text-ink rounded-full font-mono">
-                            {actionValueLabel(s)}
-                          </span>
-                        )}
-                        <span className="px-2 py-0.5 text-xs bg-accent-muted text-accent border border-accent-border rounded-full">
-                          {scopeLabel(s)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => openEdit(s)}
-                        className="btn-secondary btn-xs inline-flex items-center gap-1">
-                        <Pencil className="w-3 h-3" /> Edit
-                      </button>
-                      <button onClick={() => toggleSchedule(s.id)}
-                        className={`btn-xs ${
-                          s.isEnabled
-                            ? 'bg-warning-muted text-warning border border-warning-border hover:bg-warning/20'
-                            : 'bg-success-muted text-success border border-success-border hover:bg-success/20'
-                        }`}>
-                        {s.isEnabled ? 'Disable' : 'Enable'}
-                      </button>
-                      <button onClick={() => setDeleteConfirm({ id: s.id, name: s.name })}
-                        className="btn-danger btn-xs">
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Schedule details */}
-                  <div className="mt-3 flex items-center gap-4 text-xs text-ink-300">
-                    <span className="font-mono bg-surface-50 px-2 py-1 rounded text-ink inline-flex items-center gap-1">
-                      <Timer className="w-3 h-3" /> {s.cronExpr}
-                    </span>
-                    <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {s.timezone}</span>
-                    <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Last run: {fmtDate(s.lastRunAt)}</span>
-                    <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> Created: {fmtDate(s.createdAt)}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">ตาราง (Cron)</label>
+          <select value={cronPreset} onChange={e => {
+            const val = e.target.value;
+            setCronPreset(val);
+            if (val !== 'custom') setForm({...form, cronExpr: val});
+          }}
+            className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg mb-2">
+            {CRON_PRESETS.map(p => <option key={p.label} value={p.value}>{p.label}</option>)}
+          </select>
+          {cronPreset === 'custom' && (
+            <input value={customCron} onChange={e => {
+              setCustomCron(e.target.value);
+              setForm({...form, cronExpr: e.target.value});
+            }}
+              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink font-mono border border-surface-200 rounded-lg"
+              placeholder="เช่น 30 9 * * 1-5" />
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">เขตเวลา</label>
+          <select value={form.timezone} onChange={e => setForm({...form, timezone: e.target.value})}
+            className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg">
+            <option value="Asia/Bangkok">Asia/Bangkok (ICT)</option>
+            <option value="Asia/Ho_Chi_Minh">Asia/Ho Chi Minh</option>
+            <option value="Asia/Singapore">Asia/Singapore</option>
+            <option value="Asia/Shanghai">Asia/Shanghai</option>
+            <option value="Asia/Tokyo">Asia/Tokyo</option>
+            <option value="Asia/Seoul">Asia/Seoul</option>
+            <option value="America/New_York">America/New York</option>
+            <option value="America/Chicago">America/Chicago</option>
+            <option value="America/Los_Angeles">America/Los Angeles</option>
+            <option value="Europe/London">Europe/London</option>
+            <option value="Europe/Berlin">Europe/Berlin</option>
+            <option value="UTC">UTC</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex gap-2 mt-4">
+        <button onClick={saveSchedule} disabled={saving} className="btn-primary btn-sm">
+          {saving ? 'กำลังบันทึก...' : editId ? <><Save className="w-4 h-4" /> บันทึก</> : <><Save className="w-4 h-4" /> สร้าง</>}
+        </button>
+        {selectedBudget && (
+          <button onClick={() => setDeleteConfirm({ id: selectedBudget.id, name: selectedBudget.name })}
+            className="btn-danger btn-sm inline-flex items-center gap-1">
+            <Trash2 className="w-4 h-4" /> ลบ
+          </button>
         )}
       </div>
+    </>
+  );
 
-      {/* Create / Edit Modal */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title={editId ? '✏️ Edit Schedule' : '⏰ New Budget Schedule'} maxWidth="max-w-lg">
-        <div className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1">Schedule Name</label>
-            <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink" placeholder="e.g. Pause at night" />
-          </div>
+  return (
+    <Shell>
+      {msg && (
+        <div className={`mb-4 ${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>
+          {msg}
+          <button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button>
+        </div>
+      )}
+      {error && (
+        <div className="msg-error mb-4">
+          {error}
+          <button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button>
+        </div>
+      )}
 
-          {/* Action */}
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1">Action</label>
-            <select value={form.action} onChange={e => setForm({...form, action: e.target.value})}
-              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink">
-              <option value="PAUSE"><Timer className="w-4 h-4 inline" /> Pause Campaign(s)</option>
-              <option value="RESUME"><Play className="w-4 h-4 inline" /> Resume Campaign(s)</option>
-              <option value="SET_BUDGET"><DollarSign className="w-4 h-4 inline" /> Set Budget</option>
-              <option value="ADJUST_PERCENT"><BarChart3 className="w-4 h-4 inline" /> Adjust Budget by %</option>
-            </select>
-          </div>
-
-          {/* Value (for SET_BUDGET and ADJUST_PERCENT) */}
-          {(form.action === 'SET_BUDGET' || form.action === 'ADJUST_PERCENT') && (
-            <div>
-              <label className="block text-sm font-medium text-ink mb-1">
-                {form.action === 'SET_BUDGET' ? 'New Budget (THB)' : 'Percentage Adjustment'}
-              </label>
-              <div className="flex items-center gap-2">
-                <input type="number" value={form.value}
-                  onChange={e => setForm({...form, value: parseFloat(e.target.value) || 0})}
-                  className="flex-1 border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink"
-                  min={form.action === 'SET_BUDGET' ? 1 : undefined}
-                  step="1" />
-                {form.action === 'ADJUST_PERCENT' && (
-                  <span className="text-xs text-ink-300">
-                    (positive = increase, negative = decrease)
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Scope */}
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1">Scope</label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-ink-300 mb-1">Ad Account (optional)</label>
-                <select value={form.adAccountId} onChange={e => setForm({...form, adAccountId: e.target.value})}
-                  className="w-full px-3 py-2 text-sm bg-surface-50 text-ink">
-                  <option value="">All accounts</option>
-                  {accounts.map(a => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-ink-300 mb-1">Campaign (optional)</label>
-                <select value={form.campaignId} onChange={e => setForm({...form, campaignId: e.target.value})}
-                  className="w-full px-3 py-2 text-sm bg-surface-50 text-ink">
-                  <option value="">All campaigns</option>
-                  {filteredCampaigns.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Cron Expression */}
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1">Schedule (Cron)</label>
-            <select value={cronPreset} onChange={e => {
-              const val = e.target.value;
-              setCronPreset(val);
-              if (val !== 'custom') {
-                setForm({...form, cronExpr: val});
-              }
-            }}
-              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink mb-2">
-              {CRON_PRESETS.map(p => (
-                <option key={p.label} value={p.value}>{p.label}</option>
+      <AutomationLayout
+        title="งบประมาณอัตโนมัติ"
+        subtitle={schedules.length > 0 ? `${schedules.length} รายการ` : undefined}
+        selectedId={selectedBudgetId}
+        actions={
+          <button onClick={openNew} className="btn-primary btn-sm">+ สร้างใหม่</button>
+        }
+        list={
+          schedules.length === 0 ? (
+            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีรายการ</p>
+          ) : (
+            <div className="space-y-1">
+              {schedules.map((s) => (
+                <div
+                  key={s.id}
+                  className={`flex items-stretch gap-1 rounded-lg transition-colors ${
+                    selectedBudgetId === s.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100'
+                  }`}
+                >
+                  <button type="button" onClick={() => selectBudget(s)} className="flex-1 text-left p-3 min-w-0">
+                    <p className="font-medium text-sm text-ink truncate">{s.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${ACTION_COLORS[s.action] || 'badge-ink'}`}>
+                        {s.action}
+                      </span>
+                      {actionValueLabel(s) && (
+                        <span className="text-[10px] text-ink-300 font-mono">{actionValueLabel(s)}</span>
+                      )}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleSchedule(s.id)}
+                    className={`shrink-0 self-center mx-2 btn-xs ${
+                      s.isEnabled
+                        ? 'bg-warning-muted text-warning border border-warning-border'
+                        : 'bg-success-muted text-success border border-success-border'
+                    }`}
+                  >
+                    {s.isEnabled ? 'ปิด' : 'เปิด'}
+                  </button>
+                </div>
               ))}
-            </select>
-            {cronPreset === 'custom' && (
-              <input value={customCron} onChange={e => {
-                setCustomCron(e.target.value);
-                setForm({...form, cronExpr: e.target.value});
-              }}
-                className="w-full px-3 py-2 text-sm bg-surface-50 text-ink font-mono"
-                placeholder="e.g. 30 9 * * 1-5" />
-            )}
-            <p className="text-xs text-ink-300 mt-1">
-              Format: minute hour day-of-month month day-of-week (e.g., &quot;0 6 * * *&quot; = daily at 6 AM)
-            </p>
-          </div>
+            </div>
+          )
+        }
+        detail={
+          selectedBudgetId ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setSelectedBudgetId(null)}
+                className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+              >
+                ← กลับ
+              </button>
+              {budgetForm}
+              {selectedBudget && (
+                <div className="mt-4 pt-4 border-t border-surface-300 flex flex-wrap gap-3 text-xs text-ink-300">
+                  <span className="font-mono bg-surface-50 px-2 py-1 rounded text-ink inline-flex items-center gap-1">
+                    <Timer className="w-3 h-3" /> {selectedBudget.cronExpr}
+                  </span>
+                  <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {selectedBudget.timezone}</span>
+                  <span className="inline-flex items-center gap-1"><RefreshCw className="w-3 h-3" /> รันล่าสุด: {fmtDate(selectedBudget.lastRunAt)}</span>
+                  <span>{scopeLabel(selectedBudget)}</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[320px] text-center text-ink-300">
+              <Clock className="w-10 h-10 mb-3 text-ink-200" />
+              <p>เลือกรายการจากด้านซ้าย</p>
+              <button onClick={openNew} className="btn-primary btn-sm mt-4">+ สร้างใหม่</button>
+            </div>
+          )
+        }
+      />
 
-          {/* Timezone */}
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1">Timezone</label>
-            <select value={form.timezone} onChange={e => setForm({...form, timezone: e.target.value})}
-              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink">
-              <option value="Asia/Bangkok">Asia/Bangkok (ICT)</option>
-              <option value="Asia/Ho_Chi_Minh">Asia/Ho Chi Minh</option>
-              <option value="Asia/Singapore">Asia/Singapore</option>
-              <option value="Asia/Shanghai">Asia/Shanghai</option>
-              <option value="Asia/Tokyo">Asia/Tokyo</option>
-              <option value="Asia/Seoul">Asia/Seoul</option>
-              <option value="America/New_York">America/New York</option>
-              <option value="America/Chicago">America/Chicago</option>
-              <option value="America/Los_Angeles">America/Los Angeles</option>
-              <option value="Europe/London">Europe/London</option>
-              <option value="Europe/Berlin">Europe/Berlin</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-6 pt-4 -mx-5 px-5 border-t border-surface-300">
-          <button onClick={() => setShowModal(false)}
-            className="btn-secondary btn-sm">
-            Cancel
-          </button>
-          <button onClick={saveSchedule} disabled={saving}
-            className="btn-primary btn-sm">
-            {saving ? 'Saving...' : editId ? <><Save className="w-4 h-4" /> Update</> : <><Save className="w-4 h-4" /> Create</>}
-          </button>
-        </div>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         open={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
         onConfirm={confirmDelete}
-        title="Delete Schedule"
-        message={deleteConfirm ? `Are you sure you want to delete "${deleteConfirm.name}"? This action cannot be undone.` : ''}
+        title="ลบรายการ"
+        message={deleteConfirm ? `ลบ "${deleteConfirm.name}"?` : ''}
         busy={deleting}
-        icon="🗑️"
         danger
       />
     </Shell>

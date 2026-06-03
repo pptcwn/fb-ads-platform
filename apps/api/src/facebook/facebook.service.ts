@@ -195,7 +195,7 @@ export class FacebookService implements OnModuleInit {
 
     // Delete in order to respect FK constraints
     const adAccounts = await this.prisma.adAccount.findMany({ where: { fbUserId: fbUser.id } });
-    const adAccountIds = adAccounts.map(a => a.id);
+    const adAccountIds = adAccounts.map((a: { id: string }) => a.id);
 
     for (const accountId of adAccountIds) {
       const campaigns = await this.prisma.campaign.findMany({ where: { adAccountId: accountId } });
@@ -718,7 +718,7 @@ export class FacebookService implements OnModuleInit {
       where: { fbUserId },
       orderBy: { name: 'asc' },
     });
-    return pages.map(p => ({
+    return pages.map((p: (typeof pages)[number]) => ({
       id: p.id,
       pageId: p.pageId,
       name: p.name,

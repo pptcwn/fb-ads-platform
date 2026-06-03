@@ -8,7 +8,7 @@ import { ChevronRight, X, BarChart3, User, MapPin, Target, Users, Smartphone, Se
 interface Interest { id: string; name: string; audienceSize?: number | null; }
 interface Location { key: string; name: string; type: string; countryCode?: string; }
 interface AudienceItem { id: string; fbAudienceId: string; name: string; type: string; approximateCount: number | null; }
-interface TargetingState {
+export interface TargetingState {
   age_min?: number; age_max?: number; genders?: number[];
   geo_locations?: { countries?: string[]; regions?: { key: string }[]; cities?: { key: string }[]; };
   interests?: { id: string; name: string }[];
@@ -105,7 +105,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
     if (!adAccountId || Object.keys(value).length === 0) return;
     const timer = setTimeout(async () => {
       try {
-        const { data } = await targetingApi.estimate(value, adAccountId);
+        const { data } = await targetingApi.estimate(value as Record<string, unknown>, adAccountId);
         setAudienceSize({ daily: data.dailyUniqueReach || 0, monthly: data.monthlyUniqueReach || 0 });
       } catch { setAudienceSize(null); }
     }, 800);

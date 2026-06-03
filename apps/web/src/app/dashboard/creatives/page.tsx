@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import {
   accountsApi,
   creativesApi,
@@ -9,7 +9,7 @@ import {
   type FbPageItem,
 } from '@/lib/api-client';
 import Shell from '@/components/Shell';
-import PageHeader from '@/components/PageHeader';
+import PageLayout from '@/components/layout/PageLayout';
 import Modal from '@/components/Modal';
 import { Sparkles, Download, Image, Video, FileText, Copy, Camera, Megaphone, Pencil, Palette, RefreshCw } from 'lucide-react';
 
@@ -35,6 +35,17 @@ const STATUS_BADGE: Record<string, string> = {
   USED: 'badge-warning',
 };
 
+const TYPE_ICONS: Record<string, ReactNode> = {
+  IMAGE: <Image className="w-4 h-4" />,
+  VIDEO: <Video className="w-4 h-4" />,
+  TEXT: <FileText className="w-4 h-4" />,
+};
+
+function imageSrc(url: string | null | undefined) {
+  if (!url) return null;
+  return url.startsWith('http') || url.startsWith('/') ? url : `/${url}`;
+}
+
 export default function CreativesPage() {
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +53,9 @@ export default function CreativesPage() {
 
   // Tab
   const [tab, setTab] = useState<'creatives' | 'import'>('creatives');
+
+  // Master-detail
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Create/Edit
   const [showForm, setShowForm] = useState(false);
@@ -55,9 +69,6 @@ export default function CreativesPage() {
   // Upload
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState<string | null>(null);
-
-  // Detail view
-  const [detail, setDetail] = useState<Creative | null>(null);
 
   // ─── Page Import ───
   const [pages, setPages] = useState<FbPage[]>([]);
@@ -74,6 +85,9 @@ export default function CreativesPage() {
   const [fbPublishModal, setFbPublishModal] = useState<string | null>(null);
   const [fbPublishAccountId, setFbPublishAccountId] = useState('');
   const [fbPublishing, setFbPublishing] = useState(false);
+
+  const selectedCreative = selectedId ? creatives.find((c) => c.id === selectedId) : null;
+  const showDetailMobile = selectedId != null;
 
   // ─── Helpers ───
 
@@ -203,6 +217,7 @@ export default function CreativesPage() {
     try {
       await creativesApi.remove(id);
       setMsg('✅ Deleted');
+      if (id === selectedId) setSelectedId(null);
       await fetchAll();
     } catch { setMsg('❌ Delete failed'); }
   };
@@ -253,7 +268,6 @@ export default function CreativesPage() {
     }
   };
 
-  // ─── Clone ───
   const cloneCreative = async (id: string, name: string) => {
     try {
       const newName = `Copy of ${name}`;
@@ -265,211 +279,315 @@ export default function CreativesPage() {
     }
   };
 
-  // ─── Post to Page Modal ───
   const [showPostModal, setShowPostModal] = useState<string | null>(null);
 
   if (loading) return (
     <Shell>
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-ink-300 animate-pulse">Loading...</p>
+        <p className="text-ink-300 animate-pulse">กำลังโหลด...</p>
       </div>
     </Shell>
+  );
+
+  const tabSwitcher = (
+    <div className="flex gap-1 bg-surface-50 rounded-lg border border-surface-200/50 p-1">
+      <button onClick={() => setTab('creatives')}
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          tab === 'creatives' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
+        }`}>
+        <Sparkles className="w-4 h-4 inline mr-1" /> ครีเอทีฟของฉัน
+      </button>
+      <button onClick={() => setTab('import')}
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          tab === 'import' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
+        }`}>
+        <Download className="w-4 h-4 inline mr-1" /> นำเข้าจากเพจ
+      </button>
+    </div>
   );
 
   return (
     <Shell>
       <div className="p-6">
-        {/* Tabs */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-1 bg-surface-50 rounded-lg border border-surface-200/50 p-1">
-            <button onClick={() => setTab('creatives')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                tab === 'creatives' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
-              }`}>
-                            <Sparkles className="w-4 h-4" /> My Creatives
-            </button>
-            <button onClick={() => setTab('import')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                tab === 'import' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
-              }`}>
-                            <Download className="w-4 h-4" /> Import from Page
-            </button>
-          </div>
-          {tab === 'creatives' && (
-            <button onClick={() => { resetForm(); setShowForm(true); }}
-              className="btn-primary btn-sm">
-              + New Creative
-            </button>
-          )}
-        </div>
-
-        {msg && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.includes('✅') ? 'msg-success' : 'msg-error'}`}>
-            {msg}
-          </div>
-        )}
-
-        {/* ════════════════════════════════════════════
-            TAB: Import from Page
-            ════════════════════════════════════════════ */}
-        {tab === 'import' && (
-          <div>
-            {loadingPages ? (
-              <div className="text-center py-12 text-ink-300">Loading pages...</div>
-            ) : pages.length === 0 ? (
-              <div className="card px-6 py-12 text-center">
-                <p className="text-ink-300 mb-3">No Facebook pages found.</p>
-                <p className="text-sm text-ink-300">Make sure your Facebook App has page permissions and you manage at least one page.</p>
-                <a href="/dashboard"
-                  className="inline-block mt-4 text-sm text-accent hover:text-accent underline">
-                  Re-connect Facebook account →
-                </a>
-              </div>
+        <PageLayout
+          title="ครีเอทีฟ"
+          subtitle={tab === 'creatives' ? `${creatives.length} รายการ` : 'นำเข้าโพสต์จาก Facebook Page'}
+          actions={
+            tab === 'creatives' ? (
+              <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary btn-sm">
+                + สร้างใหม่
+              </button>
             ) : (
-              <div>
-                {/* Page Selector */}
-                <div className="card p-4 mb-4">
-                  <label className="block text-sm font-medium text-ink mb-2">Select Page</label>
-                  <select value={selectedPage} onChange={e => setSelectedPage(e.target.value)}
-                    className="w-full max-w-md px-3 py-2 text-sm text-ink bg-surface-50">
-                    {pages.map(p => (
-                      <option key={p.pageId} value={p.pageId}>{p.name} {p.category ? `(${p.category})` : ''}</option>
-                    ))}
-                  </select>
-                </div>
+              <button onClick={syncAndLoadPages} disabled={loadingPages} className="btn-secondary btn-sm inline-flex items-center gap-1">
+                <RefreshCw className="w-4 h-4" /> ซิงค์เพจ
+              </button>
+            )
+          }
+        >
+          <div className="mb-4">{tabSwitcher}</div>
 
-                {/* Posts List */}
-                {loadingPosts ? (
-                  <div className="text-center py-12 text-ink-300">Loading posts...</div>
-                ) : pagePosts.length === 0 ? (
-                  <div className="card px-6 py-12 text-center text-ink-300">
-                    No posts found on this page.
+          {msg && (
+            <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.includes('✅') ? 'msg-success' : 'msg-error'}`}>
+              {msg}
+            </div>
+          )}
+
+          {/* Import tab — full width */}
+          {tab === 'import' && (
+            <div>
+              {loadingPages ? (
+                <div className="text-center py-12 text-ink-300">กำลังโหลดเพจ...</div>
+              ) : pages.length === 0 ? (
+                <div className="card px-6 py-12 text-center">
+                  <p className="text-ink-300 mb-3">ไม่พบ Facebook Page</p>
+                  <p className="text-sm text-ink-300">ตรวจสอบสิทธิ์เพจในแอป Facebook และเชื่อมต่อบัญชีใหม่</p>
+                  <a href="/dashboard"
+                    className="inline-block mt-4 text-sm text-accent hover:text-accent underline">
+                    เชื่อมต่อ Facebook อีกครั้ง →
+                  </a>
+                </div>
+              ) : (
+                <div>
+                  <div className="card p-4 mb-4">
+                    <label className="block text-sm font-medium text-ink mb-2">เลือกเพจ</label>
+                    <select value={selectedPage} onChange={e => setSelectedPage(e.target.value)}
+                      className="w-full max-w-md px-3 py-2 text-sm text-ink bg-surface-50">
+                      {pages.map(p => (
+                        <option key={p.pageId} value={p.pageId}>{p.name} {p.category ? `(${p.category})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {loadingPosts ? (
+                    <div className="text-center py-12 text-ink-300">กำลังโหลดโพสต์...</div>
+                  ) : pagePosts.length === 0 ? (
+                    <div className="card px-6 py-12 text-center text-ink-300">
+                      ไม่พบโพสต์ในเพจนี้
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {pagePosts.map((post) => (
+                        <div key={post.postId} className="card overflow-hidden hover:shadow-md transition-shadow">
+                          {post.imageUrl && (
+                            <div className="h-40 bg-surface-100 overflow-hidden">
+                              <img src={post.imageUrl} alt="" className="w-full h-full object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            </div>
+                          )}
+                          <div className="p-4">
+                            <p className="text-sm text-ink line-clamp-3 mb-2">
+                              {post.message || <span className="text-ink-300 italic">(ไม่มีข้อความ)</span>}
+                            </p>
+                            <p className="text-[11px] text-ink-300 mb-3">
+                              {new Date(post.createdTime).toLocaleDateString('th-TH', {
+                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                              })}
+                              {' · '}
+                              <a href={post.permalinkUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-accent hover:underline">ดูบน FB</a>
+                            </p>
+                            <button onClick={() => importPost(selectedPage, post)}
+                              disabled={importing === post.postId}
+                              className="w-full text-sm bg-accent text-white px-3 py-2 rounded-lg hover:bg-accent/90 disabled:opacity-50">
+                              {importing === post.postId ? 'กำลังนำเข้า...' : <><Download className="w-4 h-4 inline" /> นำเข้าเป็นครีเอทีฟ</>}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Creatives tab — master-detail */}
+          {tab === 'creatives' && (
+            <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 min-h-[480px]">
+              {/* Left: compact list */}
+              <div
+                className={`card p-3 overflow-y-auto max-h-[70vh] lg:max-h-none ${
+                  showDetailMobile ? 'hidden lg:block' : 'block'
+                }`}
+              >
+                {creatives.length === 0 ? (
+                  <div className="text-center py-8 text-ink-300">
+                    <p className="text-sm">ยังไม่มีครีเอทีฟ</p>
+                    <p className="text-xs mt-1">สร้างใหม่หรือนำเข้าจากเพจ</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {pagePosts.map((post) => (
-                      <div key={post.postId} className="card overflow-hidden hover:shadow-md transition-shadow">
-                        {post.imageUrl && (
-                          <div className="h-40 bg-surface-100 overflow-hidden">
-                            <img src={post.imageUrl} alt="" className="w-full h-full object-cover"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  <div className="space-y-1">
+                    {creatives.map((c) => {
+                      const src = imageSrc(c.imageUrl);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setSelectedId(c.id)}
+                          className={`w-full text-left p-2 rounded-lg transition-colors flex gap-2 ${
+                            selectedId === c.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100 border border-transparent'
+                          }`}
+                        >
+                          <div className="w-12 h-12 shrink-0 rounded bg-surface-100 overflow-hidden flex items-center justify-center">
+                            {src ? (
+                              <img src={src} alt="" className="w-full h-full object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                            ) : (
+                              <span className="text-ink-400">{TYPE_ICONS[c.type]}</span>
+                            )}
                           </div>
-                        )}
-                        <div className="p-4">
-                          <p className="text-sm text-ink line-clamp-3 mb-2">
-                            {post.message || <span className="text-ink-300 italic">(no text)</span>}
-                          </p>
-                          <p className="text-[11px] text-ink-300 mb-3">
-                            {new Date(post.createdTime).toLocaleDateString('th-TH', {
-                              year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                            })}
-                            {' · '}
-                            <a href={post.permalinkUrl} target="_blank" rel="noopener noreferrer"
-                              className="text-accent hover:underline">View on FB</a>
-                          </p>
-                          <button onClick={() => importPost(selectedPage, post)}
-                            disabled={importing === post.postId}
-                            className="w-full text-sm bg-accent text-white px-3 py-2 rounded-lg hover:bg-accent/90 disabled:opacity-50">
-                            {importing === post.postId ? 'Importing...' : <><Download className="w-4 h-4" /> Import as Creative</>}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-ink truncate">{c.name}</p>
+                            <p className="text-[10px] text-ink-300">{c.type} · ใช้ {c.usedCount}x</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${STATUS_BADGE[c.status] || 'badge-ink'}`}>{c.status}</span>
+                              {c.fbCreativeId ? (
+                                <span className="text-[10px] text-success">Meta ✓</span>
+                              ) : (
+                                <span className="text-[10px] text-ink-400">ยังไม่ publish</span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
 
-        {/* ════════════════════════════════════════════
-            TAB: My Creatives
-            ════════════════════════════════════════════ */}
-        {tab === 'creatives' && (
-          <>
-            {creatives.length === 0 ? (
-              <div className="card px-6 py-12 text-center text-ink-300">
-                No creatives yet. Click &quot;+ New Creative&quot; to get started, or switch to &quot;Import from Page&quot; tab.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {creatives.map((c) => (
-                  <div key={c.id} className="card overflow-hidden hover:shadow-md transition-shadow">
-                    {/* Image preview */}
-                    <div className="h-40 bg-surface-100 relative overflow-hidden flex items-center justify-center">
-                      {c.imageUrl ? (
-                        <img src={c.imageUrl.startsWith('http') || c.imageUrl.startsWith('/') ? c.imageUrl : `/${c.imageUrl}`}
-                          alt={c.name} className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                      ) : (
-                        <div className={`text-4xl ${c.type === 'TEXT' ? '' : 'text-ink-400'}`}>
-                          {c.type === 'IMAGE' ? <Image className="w-4 h-4" /> : c.type === 'VIDEO' ? <Video className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-                        </div>
-                      )}
-                      <span className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        STATUS_BADGE[c.status] || 'badge-ink'
-                      }`}>{c.status}</span>
-                    </div>
+              {/* Right: detail */}
+              <div
+                className={`card p-5 overflow-y-auto ${
+                  showDetailMobile ? 'block' : 'hidden lg:block'
+                }`}
+              >
+                {selectedCreative ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(null)}
+                      className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+                    >
+                      ← กลับ
+                    </button>
 
-                    {/* Info */}
-                    <div className="p-4">
-                      <p className="font-medium text-sm text-ink truncate">{c.name}</p>
-                      <p className="text-xs text-ink-300 mt-1">{c.type} · Used {c.usedCount}x</p>
-                      {c.fbCreativeId ? (
-                        <p className="text-[10px] text-success mt-1 font-medium">✓ On Meta · {c.fbCreativeId}</p>
-                      ) : (
-                        <p className="text-[10px] text-ink-400 mt-1">ยังไม่อยู่บน Meta — กด FB Publish</p>
-                      )}
-                      {c.primaryText && <p className="text-xs text-ink-200 mt-1 line-clamp-2">{c.primaryText}</p>}
-                      {c.headline && <p className="text-xs font-medium text-ink mt-1">{c.headline}</p>}
-
-                      {/* Campaign tags */}
-                      {c.campaigns.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {c.campaigns.slice(0, 3).map((cc, i) => (
-                            <span key={i} className="text-[10px] bg-surface-50 text-ink-200 px-1.5 py-0.5 rounded">
-                              {cc.campaign.name}
-                            </span>
-                          ))}
-                          {c.campaigns.length > 3 && <span className="text-[10px] text-ink-400">+{c.campaigns.length - 3}</span>}
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-1 mt-3 pt-3 flex-wrap border-t border-surface-300">
-                        <button onClick={() => openEdit(c)}
-                          className="text-xs text-accent hover:text-accent/80 px-2 py-1 font-medium">Edit</button>
-                        <button onClick={() => deleteCreative(c.id, c.name)}
-                          className="text-xs text-danger hover:text-danger/80 px-2 py-1 font-medium">Del</button>
-                        <button onClick={() => cloneCreative(c.id, c.name)}
-                          className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1 font-medium"><Copy className="w-4 h-4" /> Clone</button>
-                        {c.type !== 'TEXT' && (
-                          <>
-                            <input type="file" ref={fileRef} accept="image/*" className="hidden"
-                              onChange={() => uploadImage(c.id)} />
-                            <button onClick={() => fileRef.current?.click()} disabled={uploading === c.id}
-                              className="text-xs text-purple-600 hover:text-purple-800 px-2 py-1">
-                              {uploading === c.id ? '...' : <Camera className="w-4 h-4" />}
-                            </button>
-                          </>
+                    <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                      <div className="w-full sm:w-48 h-40 bg-surface-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative">
+                        {imageSrc(selectedCreative.imageUrl) ? (
+                          <img
+                            src={imageSrc(selectedCreative.imageUrl)!}
+                            alt={selectedCreative.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <span className="text-ink-400 text-4xl">{TYPE_ICONS[selectedCreative.type]}</span>
                         )}
-                        <button onClick={() => openFbPublish(c.id)}
-                          className="text-xs text-success hover:text-success/80 px-2 py-1 font-medium">
-                          FB Publish
-                        </button>
-                        {pages.length > 0 && (
-                          <button onClick={() => setShowPostModal(c.id)}
-                            className="text-xs text-orange-600 hover:text-orange-800 px-2 py-1 font-medium"><Megaphone className="w-4 h-4" /> Post to Page
-                          </button>
+                        <span className={`absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          STATUS_BADGE[selectedCreative.status] || 'badge-ink'
+                        }`}>{selectedCreative.status}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-semibold text-ink">{selectedCreative.name}</h2>
+                        <p className="text-xs text-ink-300 mt-1">{selectedCreative.type} · ใช้ในแคมเปญ {selectedCreative.usedCount} ครั้ง</p>
+                        {selectedCreative.fbCreativeId ? (
+                          <p className="text-xs text-success mt-2 font-medium">✓ อยู่บน Meta · {selectedCreative.fbCreativeId}</p>
+                        ) : (
+                          <p className="text-xs text-ink-400 mt-2">ยังไม่อยู่บน Meta — กด FB Publish</p>
                         )}
                       </div>
                     </div>
+
+                    {selectedCreative.primaryText && (
+                      <div className="mb-3">
+                        <p className="text-xs text-ink-300 mb-1">Primary Text</p>
+                        <p className="text-sm text-ink whitespace-pre-wrap">{selectedCreative.primaryText}</p>
+                      </div>
+                    )}
+                    {selectedCreative.headline && (
+                      <div className="mb-3">
+                        <p className="text-xs text-ink-300 mb-1">Headline</p>
+                        <p className="text-sm font-medium text-ink">{selectedCreative.headline}</p>
+                      </div>
+                    )}
+                    {selectedCreative.description && (
+                      <div className="mb-3">
+                        <p className="text-xs text-ink-300 mb-1">Description</p>
+                        <p className="text-sm text-ink-200">{selectedCreative.description}</p>
+                      </div>
+                    )}
+                    {selectedCreative.linkUrl && (
+                      <div className="mb-3">
+                        <p className="text-xs text-ink-300 mb-1">Link</p>
+                        <a href={selectedCreative.linkUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline break-all">
+                          {selectedCreative.linkUrl}
+                        </a>
+                      </div>
+                    )}
+
+                    {selectedCreative.campaigns.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-xs text-ink-300 mb-1">แคมเปญที่ใช้</p>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedCreative.campaigns.map((cc, i) => (
+                            <span key={i} className="text-[10px] bg-surface-50 text-ink-200 px-2 py-0.5 rounded">
+                              {cc.campaign.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-surface-300">
+                      <button onClick={() => openEdit(selectedCreative)} className="btn-secondary btn-sm">
+                        <Pencil className="w-4 h-4 inline" /> แก้ไข
+                      </button>
+                      <button onClick={() => openFbPublish(selectedCreative.id)} className="btn-primary btn-sm">
+                        FB Publish
+                      </button>
+                      <button onClick={() => cloneCreative(selectedCreative.id, selectedCreative.name)} className="btn-secondary btn-sm">
+                        <Copy className="w-4 h-4 inline" /> Clone
+                      </button>
+                      {selectedCreative.type !== 'TEXT' && (
+                        <>
+                          <input type="file" ref={fileRef} accept="image/*" className="hidden"
+                            onChange={() => uploadImage(selectedCreative.id)} />
+                          <button
+                            onClick={() => fileRef.current?.click()}
+                            disabled={uploading === selectedCreative.id}
+                            className="btn-secondary btn-sm"
+                          >
+                            <Camera className="w-4 h-4 inline" />
+                            {uploading === selectedCreative.id ? 'กำลังอัปโหลด...' : 'อัปโหลดรูป'}
+                          </button>
+                        </>
+                      )}
+                      {pages.length > 0 && (
+                        <button onClick={() => setShowPostModal(selectedCreative.id)} className="btn-secondary btn-sm">
+                          <Megaphone className="w-4 h-4 inline" /> โพสต์ไปเพจ
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteCreative(selectedCreative.id, selectedCreative.name)}
+                        className="btn-danger btn-sm"
+                      >
+                        ลบ
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center min-h-[320px] text-center text-ink-300">
+                    <Sparkles className="w-10 h-10 mb-3 text-ink-200" />
+                    <p>เลือกครีเอทีฟจากรายการด้านซ้าย</p>
+                    <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary btn-sm mt-4">
+                      + สร้างใหม่
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </>
-        )}
+            </div>
+          )}
+        </PageLayout>
 
         {/* Create/Edit Form Modal */}
         <Modal open={showForm} onClose={resetForm} title={editId ? <><Pencil className="w-4 h-4" /> Edit Creative</> : <><Palette className="w-4 h-4" /> New Creative</>} maxWidth="max-w-2xl">
@@ -577,7 +695,7 @@ export default function CreativesPage() {
               <p className="text-sm text-ink-300 mb-4">No pages found. Sync your pages first.</p>
               <button onClick={() => { syncAndLoadPages(); setShowPostModal(null); }}
                 className="btn-primary btn-sm">
-                                <RefreshCw className="w-4 h-4" /> Sync Pages
+                <RefreshCw className="w-4 h-4" /> Sync Pages
               </button>
             </div>
           ) : (
