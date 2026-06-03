@@ -7,7 +7,9 @@
     "test": "turbo test",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "install:wsl": "bash scripts/wsl-install.sh",
+    "install:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/win-install.ps1"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
