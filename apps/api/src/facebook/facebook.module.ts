@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { FacebookController } from './facebook.controller';
 import { FacebookService } from './facebook.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { SyncModule } from '../sync/sync.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { PrismaModule } from '../prisma/prisma.module';
       maxRedirects: 5,
     }),
     PrismaModule,
+    forwardRef(() => SyncModule),
   ],
   controllers: [FacebookController],
   providers: [FacebookService],

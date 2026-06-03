@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
@@ -48,6 +48,12 @@ export default function DashboardPage() {
   const [insightDays, setInsightDays] = useState(7);
   const { data: insights = [] } = useInsights(insightAccountId, insightDays);
 
+  useEffect(() => {
+    if (!insightAccountId && accounts.length > 0) {
+      setInsightAccountId(accounts[0].id);
+    }
+  }, [accounts, insightAccountId]);
+
   // ─── UI state ───
   const [syncMsg, setSyncMsg] = useState('');
 
@@ -65,9 +71,14 @@ export default function DashboardPage() {
   const handleSyncInsights = async () => {
     setSyncMsg('');
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const data = await syncInsightsMutation.mutateAsync(undefined as any);
-      setSyncMsg(`✅ Insights synced: ${data.campaignDays} campaign-days, ${data.accountInsightDays} account-days`);
+      if (data?.queued) {
+        setSyncMsg(`✅ ${data.message || 'Insights sync queued — updating in background.'}`);
+      } else {
+        setSyncMsg(
+          `✅ Insights synced: ${data.campaignDays ?? 0} campaign-days, ${data.accountInsightDays ?? 0} account-days`,
+        );
+      }
     } catch (err: any) {
       setSyncMsg(`❌ Insights sync failed: ${err?.response?.data?.message || err.message}`);
     }
@@ -143,17 +154,20 @@ export default function DashboardPage() {
   return (
     <Shell>
       <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <PageHeader title="Dashboard" />
           {fbStatus?.connected && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-ink-300 bg-surface-100 border border-surface-300 rounded-lg px-2.5 py-1">
+                Auto-sync: campaigns ~15m · insights ~1h · UI refresh ~1–2m
+              </span>
               <button onClick={handleSync} disabled={triggerSync.isPending}
-                className="btn-primary btn-sm">
-                {triggerSync.isPending ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync Now</>}
+                className="btn-secondary btn-sm">
+                {triggerSync.isPending ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync now</>}
               </button>
               <button onClick={handleSyncInsights} disabled={syncInsightsMutation.isPending}
-                className="btn-secondary btn-sm">
-                {syncInsightsMutation.isPending ? 'Loading...' : <><BarChart3 className="w-4 h-4" /> Get Insights</>}
+                className="btn-ghost btn-sm">
+                {syncInsightsMutation.isPending ? 'Loading...' : <><BarChart3 className="w-4 h-4" /> Insights 30d</>}
               </button>
             </div>
           )}
@@ -242,6 +256,11 @@ export default function DashboardPage() {
                     <p className="text-lg font-bold mt-1 text-ink">
                       {new Date(syncStatus.lastSync).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
+                    {(syncStatus as { lastSyncSource?: string }).lastSyncSource && (
+                      <p className="text-[10px] text-ink-300 mt-0.5">
+                        source: {(syncStatus as { lastSyncSource?: string }).lastSyncSource}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

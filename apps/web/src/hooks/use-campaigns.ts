@@ -15,6 +15,8 @@ export function useCampaigns() {
       const { data } = await campaignsApi.list();
       return data;
     },
+    staleTime: 30 * 1000,
+    refetchInterval: 2 * 60 * 1000,
   });
 }
 

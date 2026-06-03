@@ -12,6 +12,7 @@ export function useFbStatus() {
       const { data } = await facebookApi.me();
       return data;
     },
+    refetchInterval: 5 * 60_000,
   });
 }
 
@@ -43,6 +44,7 @@ export function useSyncStatus() {
       const { data } = await syncApi.status();
       return data;
     },
+    refetchInterval: 60_000,
   });
 }
 

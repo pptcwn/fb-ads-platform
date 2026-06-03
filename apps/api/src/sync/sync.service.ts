@@ -111,7 +111,10 @@ export class SyncService implements OnModuleInit {
     return map[status.toUpperCase()] || 'PAUSED';
   }
 
-  async syncAll(userId: string): Promise<{ accountsSynced: number; campaignsSynced: number }> {
+  async syncAll(
+    userId: string,
+    options?: { source?: 'manual' | 'auto' | 'connect' },
+  ): Promise<{ accountsSynced: number; campaignsSynced: number }> {
     const fbUser = await this.prisma.fbUser.findFirst({ where: { userId } });
     if (!fbUser) throw new NotFoundException('Facebook account not connected');
 
@@ -191,6 +194,7 @@ export class SyncService implements OnModuleInit {
         metadata: {
           accountsSynced: accounts.length,
           campaignsSynced: totalCampaigns,
+          source: options?.source ?? 'manual',
         },
       },
     });
@@ -253,6 +257,15 @@ export class SyncService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { accounts, campaigns, adsets, ads, lastSync: recentSync?.createdAt || null };
+    const meta = recentSync?.metadata as { source?: string } | null;
+
+    return {
+      accounts,
+      campaigns,
+      adsets,
+      ads,
+      lastSync: recentSync?.createdAt || null,
+      lastSyncSource: meta?.source ?? null,
+    };
   }
 }

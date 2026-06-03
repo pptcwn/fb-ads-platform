@@ -1,4 +1,14 @@
-import { Injectable, InternalServerErrorException, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+  UnauthorizedException,
+  forwardRef,
+} from '@nestjs/common';
+import { SyncService } from '../sync/sync.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -27,6 +37,8 @@ export class FacebookService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly http: HttpService,
+    @Inject(forwardRef(() => SyncService))
+    private readonly syncService: SyncService,
   ) {}
 
   onModuleInit() {
@@ -162,6 +174,10 @@ export class FacebookService implements OnModuleInit {
 
     // 4. Store encrypted token
     const stored = await this.storeFbUser(userId, fbUserInfo, longLived.access_token, longLived.expires_in);
+
+    this.syncService.syncAll(userId, { source: 'connect' }).catch((err: Error) => {
+      this.logger.warn(`Initial sync after FB connect failed: ${err.message}`);
+    });
 
     return {
       id: stored.id,

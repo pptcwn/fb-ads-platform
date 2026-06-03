@@ -108,7 +108,15 @@ export const facebookApi = {
 
 export const syncApi = {
   trigger: () => api.post('/api/sync/trigger'),
-  status: () => api.get<{ accounts: number; campaigns: number; adsets: number; ads: number; lastSync: string | null }>('/api/sync/status'),
+  status: () =>
+    api.get<{
+      accounts: number;
+      campaigns: number;
+      adsets: number;
+      ads: number;
+      lastSync: string | null;
+      lastSyncSource?: string | null;
+    }>('/api/sync/status'),
 };
 
 // ─── Insights ───

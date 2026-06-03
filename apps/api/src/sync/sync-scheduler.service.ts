@@ -10,27 +10,38 @@ export class SyncSchedulerService implements OnModuleInit {
   constructor(@InjectQueue('sync') private readonly queue: Queue) {}
 
   async onModuleInit() {
+    const campaignsMs = parseInt(
+      process.env.SYNC_CAMPAIGNS_INTERVAL_MS ?? String(15 * 60 * 1000),
+      10,
+    );
+    const insightsMs = parseInt(
+      process.env.SYNC_INSIGHTS_INTERVAL_MS ?? String(60 * 60 * 1000),
+      10,
+    );
+
     await registerRepeatableJob(
       this.queue,
       'sync-campaigns',
       'sync-campaigns-repeat',
       {
-        repeat: { every: 15 * 60 * 1000 },
+        repeat: { every: campaignsMs },
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
       },
       this.logger,
     );
+    this.logger.log(`Auto-sync campaigns scheduled every ${campaignsMs / 60000} min`);
     await registerRepeatableJob(
       this.queue,
       'sync-insights',
       'sync-insights-repeat',
       {
-        repeat: { every: 60 * 60 * 1000 },
+        repeat: { every: insightsMs },
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
       },
       this.logger,
     );
+    this.logger.log(`Auto-sync insights scheduled every ${insightsMs / 60000} min`);
   }
 }

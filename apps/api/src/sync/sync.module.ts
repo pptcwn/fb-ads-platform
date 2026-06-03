@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { SyncController } from './sync.controller';
 import { SyncService } from './sync.service';
@@ -9,7 +9,7 @@ import { FacebookModule } from '../facebook/facebook.module';
   imports: [
     HttpModule.register({ timeout: 30000, maxRedirects: 5 }),
     PrismaModule,
-    FacebookModule,
+    forwardRef(() => FacebookModule),
   ],
   controllers: [SyncController],
   providers: [SyncService],
