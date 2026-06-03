@@ -51,4 +51,15 @@ jobs:
             docker compose up -d --force-recreate --renew-anon-volumes
             docker compose exec -T api sh -c 'cd apps/api && npx prisma migrate deploy'
             docker compose ps
+            echo "Waiting for API health..."
+            for i in $(seq 1 30); do
+              if docker compose exec -T api wget -q -O- http://127.0.0.1:4000/api/health 2>/dev/null | grep -q '"status":"ok"'; then
+                echo "API healthy after ${i}0s"
+                exit 0
+              fi
+              sleep 10
+            done
+            echo "API failed health check — container logs:"
+            docker compose logs api --tail 80
+            exit 1
           EOF
