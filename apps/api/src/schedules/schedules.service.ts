@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
+import { FbMutationService } from '../fb-mutation/fb-mutation.service';
 
 @Injectable()
 export class SchedulesService {
@@ -11,6 +12,7 @@ export class SchedulesService {
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
     private readonly campaignLock: CampaignLockService,
+    private readonly fbMutation: FbMutationService,
   ) {}
 
   // ─── CRUD ───
@@ -218,16 +220,17 @@ export class SchedulesService {
       await this.campaignLock.withCampaignLock(
         campaign.id,
         async () => {
-          await this.facebookService.updateCampaignStatus(
-            campaign.adAccount.accountId,
-            campaign.campaignId,
-            fbStatus,
-            accessToken,
+          await this.fbMutation.setCampaignStatus(
+            {
+              campaignDbId: campaign.id,
+              fbCampaignId: campaign.campaignId,
+              accountId: campaign.adAccount.accountId,
+              accessToken,
+              fbUserId: campaign.adAccount.fbUser.id,
+              status: fbStatus,
+            },
+            `Schedules:${action}`,
           );
-          await this.prisma.campaign.update({
-            where: { id: campaign.id },
-            data: { status: fbStatus as any, statusOverriddenAt: new Date() },
-          });
         },
         `Schedules:${action}`,
       );

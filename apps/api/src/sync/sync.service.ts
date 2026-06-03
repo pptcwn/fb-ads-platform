@@ -1,8 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
+import { FB_GRAPH_BASE_URL } from '../common/facebook-api.config';
+import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AccountStatus, CampaignObjective, CampaignStatus } from '@prisma/client';
 
 interface FBAdAccount {
@@ -38,19 +40,20 @@ interface FBPage<T> {
   };
 }
 
-const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
-const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
-
 @Injectable()
-export class SyncService {
+export class SyncService implements OnModuleInit {
   private readonly logger = new Logger(SyncService.name);
-  private readonly baseUrl = FB_BASE_URL;
+  private readonly baseUrl = FB_GRAPH_BASE_URL;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly http: HttpService,
     private readonly facebookService: FacebookService,
   ) {}
+
+  onModuleInit() {
+    setupFacebookRateLimitInterceptors(this.http.axiosRef);
+  }
 
   private mapAccountStatus(code: number): AccountStatus {
     switch (code) {

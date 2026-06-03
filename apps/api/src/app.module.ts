@@ -22,6 +22,10 @@ import { AudiencesModule } from './audiences/audiences.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { TemplatesModule } from './templates/templates.module';
 import { CampaignLockModule } from './campaign-lock/campaign-lock.module';
+import { ReconcileModule } from './reconcile/reconcile.module';
+import { CommonModule } from './common/common.module';
+import { ApprovalsModule } from './approvals/approvals.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -29,6 +33,7 @@ import { CampaignLockModule } from './campaign-lock/campaign-lock.module';
       connection: { url: process.env.REDIS_URL ?? 'redis://localhost:6379' },
     }),
     PrismaModule,
+    CommonModule,
     CampaignLockModule,
     AuthModule,
     FacebookModule,
@@ -49,6 +54,9 @@ import { CampaignLockModule } from './campaign-lock/campaign-lock.module';
     AudiencesModule,
     SchedulesModule,
     TemplatesModule,
+    ReconcileModule,
+    ApprovalsModule,
+    WebhooksModule,
   ],
   controllers: [HealthController],
 })

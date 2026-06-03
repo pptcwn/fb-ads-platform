@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { registerRepeatableJob } from '../common/bullmq-scheduler.util';
 
 @Injectable()
 export class SyncSchedulerService implements OnModuleInit {
@@ -9,24 +10,27 @@ export class SyncSchedulerService implements OnModuleInit {
   constructor(@InjectQueue('sync') private readonly queue: Queue) {}
 
   async onModuleInit() {
-    await this.queue.add(
+    await registerRepeatableJob(
+      this.queue,
       'sync-campaigns',
-      {},
+      'sync-campaigns-repeat',
       {
         repeat: { every: 15 * 60 * 1000 },
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
       },
+      this.logger,
     );
-    await this.queue.add(
+    await registerRepeatableJob(
+      this.queue,
       'sync-insights',
-      {},
+      'sync-insights-repeat',
       {
         repeat: { every: 60 * 60 * 1000 },
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
       },
+      this.logger,
     );
-    this.logger.log('Sync jobs scheduled via BullMQ');
   }
 }

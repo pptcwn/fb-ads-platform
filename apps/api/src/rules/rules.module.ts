@@ -9,6 +9,7 @@ import { RulesSchedulerService } from './rules-scheduler.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { FacebookModule } from '../facebook/facebook.module';
 import { CampaignLockModule } from '../campaign-lock/campaign-lock.module';
+import { FbMutationModule } from '../fb-mutation/fb-mutation.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { CampaignLockModule } from '../campaign-lock/campaign-lock.module';
     PrismaModule,
     FacebookModule,
     CampaignLockModule,
+    FbMutationModule,
   ],
   controllers: [RulesController],
   providers: [RulesService, RulesEngineService, RulesProcessor, RulesSchedulerService],

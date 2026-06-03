@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { registerRepeatableJob } from '../common/bullmq-scheduler.util';
 
 @Injectable()
 export class RulesSchedulerService implements OnModuleInit {
@@ -9,15 +10,16 @@ export class RulesSchedulerService implements OnModuleInit {
   constructor(@InjectQueue('rules') private readonly queue: Queue) {}
 
   async onModuleInit() {
-    await this.queue.add(
+    await registerRepeatableJob(
+      this.queue,
       'evaluate-rules',
-      {},
+      'rules-evaluate-repeat',
       {
         repeat: { every: 5 * 60 * 1000 },
         attempts: 3,
         backoff: { type: 'exponential', delay: 5000 },
       },
+      this.logger,
     );
-    this.logger.log('Rules evaluation job scheduled via BullMQ');
   }
 }

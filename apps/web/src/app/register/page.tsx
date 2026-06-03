@@ -17,8 +17,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await axios.post('/api/auth/register', { name, email, password });
-      localStorage.setItem('token', data.accessToken);
+      await axios.post('/api/auth/register', { name, email, password }, { withCredentials: true });
       router.push('/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Registration failed');

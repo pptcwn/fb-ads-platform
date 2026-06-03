@@ -41,11 +41,16 @@ export class AudiencesController {
   async uploadUsers(
     @Param('id') id: string,
     @UploadedFile() file: any,
-    @Body() body: { schema?: string },
+    @Body() body: { schema?: string; consentConfirmed?: string },
     @Req() req: any,
   ) {
     if (!file) throw new BadRequestException('CSV file is required');
     const schemaMapping = body.schema ? JSON.parse(body.schema) : null;
-    return this.audiencesService.uploadUsers(req.user.id, id, file, schemaMapping);
+    const consentConfirmed = body.consentConfirmed === 'true';
+    const ipAddress = req.ip || req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim();
+    return this.audiencesService.uploadUsers(req.user.id, id, file, schemaMapping, {
+      consentConfirmed,
+      ipAddress,
+    });
   }
 }

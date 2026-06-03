@@ -11,6 +11,7 @@ import {
   Zap,
   Calendar,
   Banknote,
+  ShieldCheck,
   FlaskConical,
   BarChart3,
   Bell,
@@ -47,6 +48,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { label: 'Rules', href: '/dashboard/rules', icon: Zap, exact: false },
       { label: 'Schedules', href: '/dashboard/schedules', icon: Calendar, exact: false },
       { label: 'Budget', href: '/dashboard/budget', icon: Banknote, exact: false },
+      { label: 'Approvals', href: '/dashboard/approvals', icon: ShieldCheck, exact: false },
       { label: 'A/B Test', href: '/dashboard/abtest', icon: FlaskConical, exact: false },
     ],
   },
@@ -112,7 +114,12 @@ export default function Sidebar() {
       {/* Footer */}
       <div className="px-3 py-4 border-t border-surface-300">
         <button
-          onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
+          onClick={async () => {
+            try {
+              await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            } catch { /* ignore */ }
+            window.location.href = '/';
+          }}
           className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-ink-100 hover:text-danger transition-all hover:bg-danger-muted cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent"
           style={{ letterSpacing: '-0.01em' }}
           aria-label="Sign out"

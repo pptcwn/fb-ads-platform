@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
+import { FbMutationService } from '../fb-mutation/fb-mutation.service';
 
 @Injectable()
 export class BudgetService {
@@ -11,6 +12,7 @@ export class BudgetService {
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
     private readonly campaignLock: CampaignLockService,
+    private readonly fbMutation: FbMutationService,
   ) {}
 
   // ─── CRUD ───
@@ -172,209 +174,313 @@ export class BudgetService {
 
     const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
 
+    let succeeded = false;
     switch (schedule.action) {
       case 'PAUSE':
-        await this.executePause(schedule, accessToken);
+        succeeded = await this.executePause(schedule, accessToken);
         break;
       case 'RESUME':
-        await this.executeResume(schedule, accessToken);
+        succeeded = await this.executeResume(schedule, accessToken);
         break;
       case 'SET_BUDGET':
-        await this.executeSetBudget(schedule, accessToken);
+        succeeded = await this.executeSetBudget(schedule, accessToken);
         break;
       case 'ADJUST_PERCENT':
-        await this.executeAdjustPercent(schedule, accessToken);
+        succeeded = await this.executeAdjustPercent(schedule, accessToken);
         break;
     }
 
-    // Update last run time
-    await this.prisma.budgetSchedule.update({
-      where: { id: schedule.id },
-      data: { lastRunAt: new Date() },
-    });
-
-    this.logger.log(`✅ Budget schedule executed: ${schedule.name}`);
+    if (succeeded) {
+      await this.prisma.budgetSchedule.update({
+        where: { id: schedule.id },
+        data: { lastRunAt: new Date() },
+      });
+      this.logger.log(`✅ Budget schedule executed: ${schedule.name}`);
+    } else {
+      this.logger.warn(
+        `Budget schedule "${schedule.name}" due now but no campaigns were updated (locked, missing, or failed)`,
+      );
+    }
   }
 
-  private async executePause(schedule: any, accessToken: string) {
+  private async applyCampaignMutation(
+    campaignDbId: string,
+    context: string,
+    mutate: () => Promise<void>,
+  ): Promise<boolean> {
+    const result = await this.campaignLock.withCampaignLock(campaignDbId, mutate, context);
+    return result !== null;
+  }
+
+  private async executePause(schedule: any, accessToken: string): Promise<boolean> {
     if (schedule.campaignId) {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: schedule.campaignId },
         include: { adAccount: true },
       });
-      if (!campaign) return;
-      await this.campaignLock.withCampaignLock(
+      if (!campaign) return false;
+      return this.applyCampaignMutation(
         campaign.id,
-        async () => {
-          await this.facebookService.updateCampaignStatus(
-            campaign.adAccount.accountId,
-            campaign.campaignId,
-            'PAUSED',
-            accessToken,
-          );
-          await this.prisma.campaign.update({
-            where: { id: campaign.id },
-            data: { status: 'PAUSED' as any, statusOverriddenAt: new Date() },
-          });
-        },
         'Budget:PAUSE',
+        async () => {
+          await this.fbMutation.setCampaignStatus(
+            {
+              campaignDbId: campaign.id,
+              fbCampaignId: campaign.campaignId,
+              accountId: campaign.adAccount.accountId,
+              accessToken,
+              userId: schedule.userId,
+              fbUserId: campaign.adAccount.fbUserId,
+              status: 'PAUSED',
+            },
+            'Budget:PAUSE',
+          );
+        },
       );
-    } else if (schedule.adAccountId) {
+    }
+    if (schedule.adAccountId) {
       const campaigns = await this.prisma.campaign.findMany({
         where: { adAccountId: schedule.adAccountId },
         include: { adAccount: true },
       });
+      let succeeded = false;
       for (const campaign of campaigns) {
         try {
-          await this.campaignLock.withCampaignLock(
+          const ok = await this.applyCampaignMutation(
             campaign.id,
-            async () => {
-              await this.facebookService.updateCampaignStatus(
-                campaign.adAccount.accountId,
-                campaign.campaignId,
-                'PAUSED',
-                accessToken,
-              );
-              await this.prisma.campaign.update({
-                where: { id: campaign.id },
-                data: { status: 'PAUSED' as any, statusOverriddenAt: new Date() },
-              });
-            },
             'Budget:PAUSE_ACCOUNT',
+            async () => {
+              await this.fbMutation.setCampaignStatus(
+                {
+                  campaignDbId: campaign.id,
+                  fbCampaignId: campaign.campaignId,
+                  accountId: campaign.adAccount.accountId,
+                  accessToken,
+                  userId: schedule.userId,
+                  fbUserId: campaign.adAccount.fbUserId,
+                  status: 'PAUSED',
+                },
+                'Budget:PAUSE_ACCOUNT',
+              );
+            },
           );
+          if (ok) succeeded = true;
         } catch (err: any) {
           this.logger.warn(`Failed to pause ${campaign.name}: ${err.message}`);
         }
       }
+      return succeeded;
     }
+    return false;
   }
 
-  private async executeResume(schedule: any, accessToken: string) {
+  private async executeResume(schedule: any, accessToken: string): Promise<boolean> {
     if (schedule.campaignId) {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: schedule.campaignId },
         include: { adAccount: true },
       });
-      if (!campaign) return;
-      await this.campaignLock.withCampaignLock(
+      if (!campaign) return false;
+      return this.applyCampaignMutation(
         campaign.id,
-        async () => {
-          await this.facebookService.updateCampaignStatus(
-            campaign.adAccount.accountId,
-            campaign.campaignId,
-            'ACTIVE',
-            accessToken,
-          );
-          await this.prisma.campaign.update({
-            where: { id: campaign.id },
-            data: { status: 'ACTIVE' as any, statusOverriddenAt: new Date() },
-          });
-        },
         'Budget:RESUME',
+        async () => {
+          await this.fbMutation.setCampaignStatus(
+            {
+              campaignDbId: campaign.id,
+              fbCampaignId: campaign.campaignId,
+              accountId: campaign.adAccount.accountId,
+              accessToken,
+              userId: schedule.userId,
+              fbUserId: campaign.adAccount.fbUserId,
+              status: 'ACTIVE',
+            },
+            'Budget:RESUME',
+          );
+        },
       );
-    } else if (schedule.adAccountId) {
+    }
+    if (schedule.adAccountId) {
       const campaigns = await this.prisma.campaign.findMany({
         where: { adAccountId: schedule.adAccountId },
         include: { adAccount: true },
       });
+      let succeeded = false;
       for (const campaign of campaigns) {
         try {
-          await this.campaignLock.withCampaignLock(
+          const ok = await this.applyCampaignMutation(
             campaign.id,
-            async () => {
-              await this.facebookService.updateCampaignStatus(
-                campaign.adAccount.accountId,
-                campaign.campaignId,
-                'ACTIVE',
-                accessToken,
-              );
-              await this.prisma.campaign.update({
-                where: { id: campaign.id },
-                data: { status: 'ACTIVE' as any, statusOverriddenAt: new Date() },
-              });
-            },
             'Budget:RESUME_ACCOUNT',
+            async () => {
+              await this.fbMutation.setCampaignStatus(
+                {
+                  campaignDbId: campaign.id,
+                  fbCampaignId: campaign.campaignId,
+                  accountId: campaign.adAccount.accountId,
+                  accessToken,
+                  userId: schedule.userId,
+                  fbUserId: campaign.adAccount.fbUserId,
+                  status: 'ACTIVE',
+                },
+                'Budget:RESUME_ACCOUNT',
+              );
+            },
           );
+          if (ok) succeeded = true;
         } catch (err: any) {
           this.logger.warn(`Failed to resume ${campaign.name}: ${err.message}`);
         }
       }
+      return succeeded;
     }
+    return false;
   }
 
-  private async executeSetBudget(schedule: any, accessToken: string) {
+  private async executeSetBudget(schedule: any, accessToken: string): Promise<boolean> {
     const budgetValue = Number(schedule.value);
     if (budgetValue <= 0) {
       this.logger.warn(`Invalid budget value ${budgetValue} for schedule ${schedule.name}`);
-      return;
+      return false;
     }
 
     if (schedule.campaignId) {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: schedule.campaignId },
+        include: { adAccount: true },
       });
-      if (campaign) {
-        await this.facebookService.updateCampaignBudget(campaign.campaignId, budgetValue, accessToken);
-        await this.prisma.campaign.update({
-          where: { id: schedule.campaignId },
-          data: { dailyBudget: budgetValue },
-        });
-      }
-    } else if (schedule.adAccountId) {
-      // Set budget for all campaigns under this account
+      if (!campaign) return false;
+      return this.applyCampaignMutation(
+        campaign.id,
+        'Budget:SET_BUDGET',
+        async () => {
+          await this.fbMutation.setCampaignDailyBudget(
+            {
+              campaignDbId: campaign.id,
+              fbCampaignId: campaign.campaignId,
+              accessToken,
+              userId: schedule.userId,
+              fbUserId: campaign.adAccount.fbUserId,
+            },
+            budgetValue,
+            'Budget:SET_BUDGET',
+            false,
+            { source: 'budget', sourceId: schedule.id, action: schedule.action },
+          );
+        },
+      );
+    }
+    if (schedule.adAccountId) {
       const campaigns = await this.prisma.campaign.findMany({
         where: { adAccountId: schedule.adAccountId },
+        include: { adAccount: true },
       });
+      let succeeded = false;
       for (const campaign of campaigns) {
         try {
-          await this.facebookService.updateCampaignBudget(campaign.campaignId, budgetValue, accessToken);
-          await this.prisma.campaign.update({
-            where: { id: campaign.id },
-            data: { dailyBudget: budgetValue },
-          });
+          const ok = await this.applyCampaignMutation(
+            campaign.id,
+            'Budget:SET_BUDGET_ACCOUNT',
+            async () => {
+              await this.fbMutation.setCampaignDailyBudget(
+                {
+                  campaignDbId: campaign.id,
+                  fbCampaignId: campaign.campaignId,
+                  accessToken,
+                  userId: schedule.userId,
+                  fbUserId: campaign.adAccount.fbUserId,
+                },
+                budgetValue,
+                'Budget:SET_BUDGET_ACCOUNT',
+                false,
+                { source: 'budget', sourceId: schedule.id, action: schedule.action },
+              );
+            },
+          );
+          if (ok) succeeded = true;
         } catch (err: any) {
           this.logger.warn(`Failed to set budget for campaign ${campaign.name}: ${err.message}`);
         }
       }
+      return succeeded;
     }
+    return false;
   }
 
-  private async executeAdjustPercent(schedule: any, accessToken: string) {
+  private async executeAdjustPercent(schedule: any, accessToken: string): Promise<boolean> {
     const percent = Number(schedule.value);
-    if (percent === 0) return;
+    if (percent === 0) return false;
 
     if (schedule.campaignId) {
       const campaign = await this.prisma.campaign.findUnique({
         where: { id: schedule.campaignId },
+        include: { adAccount: true },
       });
-      if (campaign) {
-        const currentBudget = Number(campaign.dailyBudget || 0);
-        const newBudget = Math.max(1, Math.round(currentBudget * (1 + percent / 100)));
-        await this.facebookService.updateCampaignBudget(campaign.campaignId, newBudget, accessToken);
-        await this.prisma.campaign.update({
-          where: { id: schedule.campaignId },
-          data: { dailyBudget: newBudget },
-        });
-        this.logger.log(`Adjusted budget for ${campaign.name}: ${currentBudget} → ${newBudget} (${percent > 0 ? '+' : ''}${percent}%)`);
+      if (!campaign) return false;
+      const currentBudget = Number(campaign.dailyBudget || 0);
+      const newBudget = Math.max(1, Math.round(currentBudget * (1 + percent / 100)));
+      const ok = await this.applyCampaignMutation(
+        campaign.id,
+        'Budget:ADJUST_PERCENT',
+        async () => {
+          await this.fbMutation.setCampaignDailyBudget(
+            {
+              campaignDbId: campaign.id,
+              fbCampaignId: campaign.campaignId,
+              accessToken,
+              userId: schedule.userId,
+              fbUserId: campaign.adAccount.fbUserId,
+            },
+            newBudget,
+            'Budget:ADJUST_PERCENT',
+            false,
+            { source: 'budget', sourceId: schedule.id, action: schedule.action },
+          );
+        },
+      );
+      if (ok) {
+        this.logger.log(
+          `Adjusted budget for ${campaign.name}: ${currentBudget} → ${newBudget} (${percent > 0 ? '+' : ''}${percent}%)`,
+        );
       }
-    } else if (schedule.adAccountId) {
+      return ok;
+    }
+    if (schedule.adAccountId) {
       const campaigns = await this.prisma.campaign.findMany({
         where: { adAccountId: schedule.adAccountId },
+        include: { adAccount: true },
       });
+      let succeeded = false;
       for (const campaign of campaigns) {
         try {
           const currentBudget = Number(campaign.dailyBudget || 0);
           const newBudget = Math.max(1, Math.round(currentBudget * (1 + percent / 100)));
-          await this.facebookService.updateCampaignBudget(campaign.campaignId, newBudget, accessToken);
-          await this.prisma.campaign.update({
-            where: { id: campaign.id },
-            data: { dailyBudget: newBudget },
-          });
+          const ok = await this.applyCampaignMutation(
+            campaign.id,
+            'Budget:ADJUST_PERCENT_ACCOUNT',
+            async () => {
+              await this.fbMutation.setCampaignDailyBudget(
+                {
+                  campaignDbId: campaign.id,
+                  fbCampaignId: campaign.campaignId,
+                  accessToken,
+                  userId: schedule.userId,
+                  fbUserId: campaign.adAccount.fbUserId,
+                },
+                newBudget,
+                'Budget:ADJUST_PERCENT_ACCOUNT',
+                false,
+                { source: 'budget', sourceId: schedule.id, action: schedule.action },
+              );
+            },
+          );
+          if (ok) succeeded = true;
         } catch (err: any) {
           this.logger.warn(`Failed to adjust budget for campaign ${campaign.name}: ${err.message}`);
         }
       }
+      return succeeded;
     }
+    return false;
   }
 
   private shouldRunNow(cronExpr: string, timezone: string, lastRunAt: Date | null): boolean {

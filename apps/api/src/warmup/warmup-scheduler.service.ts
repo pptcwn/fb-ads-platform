@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { registerRepeatableJob } from '../common/bullmq-scheduler.util';
 
 @Injectable()
 export class WarmupSchedulerService implements OnModuleInit {
@@ -9,15 +10,16 @@ export class WarmupSchedulerService implements OnModuleInit {
   constructor(@InjectQueue('warmup') private readonly queue: Queue) {}
 
   async onModuleInit() {
-    await this.queue.add(
+    await registerRepeatableJob(
+      this.queue,
       'advance-warmup',
-      {},
+      'warmup-advance-repeat',
       {
         repeat: { pattern: '0 0 * * *' },
         attempts: 3,
         backoff: { type: 'exponential', delay: 10000 },
       },
+      this.logger,
     );
-    this.logger.log('Warmup advance job scheduled via BullMQ');
   }
 }

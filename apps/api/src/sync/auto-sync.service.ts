@@ -3,9 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { SyncService } from './sync.service';
 import { CampaignObjective } from '@prisma/client';
-
-const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
-const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
+import { InsightsService } from '../insights/insights.service';
 const STATUS_OVERRIDE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 @Injectable()
@@ -44,6 +42,7 @@ export class AutoSyncService {
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
     private readonly syncService: SyncService,
+    private readonly insightsService: InsightsService,
   ) {}
 
   /** Sync campaigns every 15 minutes */
@@ -115,7 +114,12 @@ export class AutoSyncService {
       for (const account of fbUser.adAccounts) {
         try {
           const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
-          await this.syncInsightsForAccount(account.id, account.accountId, accessToken);
+          await this.insightsService.syncSingleAccountInsights(
+            account.id,
+            account.accountId,
+            accessToken,
+            'yesterday',
+          );
           total++;
         } catch (err: any) {
           this.logger.warn(`Auto-insight sync failed for ${account.name}: ${err.message}`);
@@ -127,87 +131,4 @@ export class AutoSyncService {
     }
   }
 
-  private async syncInsightsForAccount(accountId: string, fbAccountId: string, accessToken: string) {
-    const { default: axios } = await import('axios');
-    const aid = fbAccountId.replace('act_', '');
-
-    // Account-level
-    try {
-      const { data } = await axios.get(`${FB_BASE_URL}/act_${aid}/insights`, {
-        params: {
-          fields: 'impressions,clicks,ctr,cpc,cpm,spend,conversions,reach,frequency',
-          level: 'account',
-          date_preset: 'yesterday',
-          access_token: accessToken,
-        },
-      });
-      for (const row of data.data || []) {
-        const date = new Date(row.date_start);
-        await this.prisma.accountInsight.upsert({
-          where: { adAccountId_date: { adAccountId: accountId, date } },
-          create: {
-            adAccountId: accountId, date,
-            impressions: parseInt(row.impressions || '0'),
-            clicks: parseInt(row.clicks || '0'),
-            spend: parseFloat(row.spend || '0'),
-            conversions: parseInt(row.conversions || '0'),
-            ctr: parseFloat(row.ctr || '0'),
-            cpc: parseFloat(row.cpc || '0'),
-          },
-          update: {
-            impressions: parseInt(row.impressions || '0'),
-            clicks: parseInt(row.clicks || '0'),
-            spend: parseFloat(row.spend || '0'),
-            conversions: parseInt(row.conversions || '0'),
-            ctr: parseFloat(row.ctr || '0'),
-            cpc: parseFloat(row.cpc || '0'),
-          },
-        });
-      }
-    } catch { /* skip if no data yet */ }
-
-    // Campaign-level
-    try {
-      const { data } = await axios.get(`${FB_BASE_URL}/act_${aid}/insights`, {
-        params: {
-          fields: 'campaign_id,impressions,clicks,ctr,cpc,cpm,spend,conversions,reach,frequency',
-          level: 'campaign',
-          date_preset: 'yesterday',
-          access_token: accessToken,
-        },
-      });
-      for (const row of data.data || []) {
-        if (!row.campaign_id) continue;
-        const campaign = await this.prisma.campaign.findUnique({ where: { campaignId: row.campaign_id } });
-        if (!campaign) continue;
-        const date = new Date(row.date_start);
-        await this.prisma.campaignInsight.upsert({
-          where: { campaignId_date: { campaignId: campaign.id, date } },
-          create: {
-            campaignId: campaign.id, date,
-            impressions: parseInt(row.impressions || '0'),
-            clicks: parseInt(row.clicks || '0'),
-            ctr: parseFloat(row.ctr || '0'),
-            cpc: parseFloat(row.cpc || '0'),
-            cpm: parseFloat(row.cpm || '0'),
-            spend: parseFloat(row.spend || '0'),
-            conversions: parseInt(row.conversions || '0'),
-            reach: parseInt(row.reach || '0'),
-            frequency: parseFloat(row.frequency || '0'),
-          },
-          update: {
-            impressions: parseInt(row.impressions || '0'),
-            clicks: parseInt(row.clicks || '0'),
-            ctr: parseFloat(row.ctr || '0'),
-            cpc: parseFloat(row.cpc || '0'),
-            cpm: parseFloat(row.cpm || '0'),
-            spend: parseFloat(row.spend || '0'),
-            conversions: parseInt(row.conversions || '0'),
-            reach: parseInt(row.reach || '0'),
-            frequency: parseFloat(row.frequency || '0'),
-          },
-        });
-      }
-    } catch { /* skip */ }
-  }
 }

@@ -6,6 +6,7 @@ import { SyncSchedulerService } from './sync-scheduler.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { FacebookModule } from '../facebook/facebook.module';
 import { SyncModule } from './sync.module';
+import { InsightsModule } from '../insights/insights.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SyncModule } from './sync.module';
     PrismaModule,
     FacebookModule,
     SyncModule,
+    InsightsModule,
   ],
   providers: [AutoSyncService, SyncProcessor, SyncSchedulerService],
   exports: [AutoSyncService],

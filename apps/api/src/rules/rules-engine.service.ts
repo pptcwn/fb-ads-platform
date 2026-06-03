@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CampaignLockService } from '../campaign-lock/campaign-lock.service';
+import { FbMutationService } from '../fb-mutation/fb-mutation.service';
 
 interface RuleCondition {
   metric: string;
@@ -18,6 +19,7 @@ export class RulesEngineService {
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
     private readonly campaignLock: CampaignLockService,
+    private readonly fbMutation: FbMutationService,
   ) {}
 
   /**
@@ -215,16 +217,18 @@ export class RulesEngineService {
         await this.campaignLock.withCampaignLock(
           rule.campaign.id,
           async () => {
-            await this.facebookService.updateCampaignStatus(
-              rule.campaign.adAccount.accountId,
-              rule.campaign.campaignId,
-              'PAUSED',
-              accessToken,
+            await this.fbMutation.setCampaignStatus(
+              {
+                campaignDbId: rule.campaign.id,
+                fbCampaignId: rule.campaign.campaignId,
+                accountId: rule.campaign.adAccount.accountId,
+                accessToken,
+                userId: rule.userId,
+                fbUserId: rule.campaign.adAccount.fbUserId,
+                status: 'PAUSED',
+              },
+              'RulesEngine:PAUSE_CAMPAIGN',
             );
-            await this.prisma.campaign.update({
-              where: { id: rule.campaign.id },
-              data: { status: 'PAUSED', statusOverriddenAt: new Date() },
-            });
           },
           'RulesEngine:PAUSE_CAMPAIGN',
         );
@@ -232,16 +236,21 @@ export class RulesEngineService {
       }
 
       case 'PAUSE_ADSET': {
-        // For v1, treat as pausing the campaign
         if (!rule.campaign) break;
         await this.campaignLock.withCampaignLock(
           rule.campaign.id,
           async () => {
-            await this.facebookService.updateCampaignStatus(
-              rule.campaign.adAccount.accountId,
-              rule.campaign.campaignId,
-              'PAUSED',
-              accessToken,
+            await this.fbMutation.setCampaignStatus(
+              {
+                campaignDbId: rule.campaign.id,
+                fbCampaignId: rule.campaign.campaignId,
+                accountId: rule.campaign.adAccount.accountId,
+                accessToken,
+                userId: rule.userId,
+                fbUserId: rule.campaign.adAccount.fbUserId,
+                status: 'PAUSED',
+              },
+              'RulesEngine:PAUSE_ADSET',
             );
           },
           'RulesEngine:PAUSE_ADSET',
@@ -251,20 +260,30 @@ export class RulesEngineService {
 
       case 'INCREASE_BUDGET_10':
       case 'INCREASE_BUDGET_20':
-    case 'INCREASE_BUDGET_50': {
+      case 'INCREASE_BUDGET_50': {
         if (!rule.campaign) break;
         const multipliers = { INCREASE_BUDGET_10: 1.1, INCREASE_BUDGET_20: 1.2, INCREASE_BUDGET_50: 1.5 };
         const currentBudget = rule.campaign.dailyBudget ? Number(rule.campaign.dailyBudget) : metrics.SPEND || 100;
-        const newBudget = Math.min(currentBudget * multipliers[action], 5000); // Cap at 5000
-        await this.facebookService.updateCampaignBudget(
-          rule.campaign.campaignId,
-          newBudget,
-          accessToken,
+        const newBudget = Math.min(currentBudget * multipliers[action], 5000);
+        await this.campaignLock.withCampaignLock(
+          rule.campaign.id,
+          async () => {
+            await this.fbMutation.setCampaignDailyBudget(
+              {
+                campaignDbId: rule.campaign.id,
+                fbCampaignId: rule.campaign.campaignId,
+                accessToken,
+                userId: rule.userId,
+                fbUserId: rule.campaign.adAccount.fbUserId,
+              },
+              newBudget,
+              `RulesEngine:${action}`,
+              false,
+              { source: 'rules', sourceId: rule.id, action },
+            );
+          },
+          `RulesEngine:${action}`,
         );
-        await this.prisma.campaign.update({
-          where: { id: rule.campaign.id },
-          data: { dailyBudget: newBudget },
-        });
         break;
       }
 
@@ -273,16 +292,26 @@ export class RulesEngineService {
         if (!rule.campaign) break;
         const downMultipliers = { DECREASE_BUDGET_10: 0.9, DECREASE_BUDGET_20: 0.8 };
         const curBudget = rule.campaign.dailyBudget ? Number(rule.campaign.dailyBudget) : metrics.SPEND || 100;
-        const reducedBudget = Math.max(curBudget * downMultipliers[action], 10); // Min 10
-        await this.facebookService.updateCampaignBudget(
-          rule.campaign.campaignId,
-          reducedBudget,
-          accessToken,
+        const reducedBudget = Math.max(curBudget * downMultipliers[action], 10);
+        await this.campaignLock.withCampaignLock(
+          rule.campaign.id,
+          async () => {
+            await this.fbMutation.setCampaignDailyBudget(
+              {
+                campaignDbId: rule.campaign.id,
+                fbCampaignId: rule.campaign.campaignId,
+                accessToken,
+                userId: rule.userId,
+                fbUserId: rule.campaign.adAccount.fbUserId,
+              },
+              reducedBudget,
+              `RulesEngine:${action}`,
+              false,
+              { source: 'rules', sourceId: rule.id, action },
+            );
+          },
+          `RulesEngine:${action}`,
         );
-        await this.prisma.campaign.update({
-          where: { id: rule.campaign.id },
-          data: { dailyBudget: reducedBudget },
-        });
         break;
       }
 

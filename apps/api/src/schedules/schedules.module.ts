@@ -8,12 +8,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { HttpModule } from '@nestjs/axios';
 import { CampaignLockModule } from '../campaign-lock/campaign-lock.module';
+import { FbMutationModule } from '../fb-mutation/fb-mutation.module';
 
 @Module({
   imports: [
     BullModule.registerQueue({ name: 'campaign-schedules' }),
     HttpModule,
     CampaignLockModule,
+    FbMutationModule,
   ],
   controllers: [SchedulesController],
   providers: [SchedulesService, SchedulesProcessor, SchedulesSchedulerService, PrismaService, FacebookService],

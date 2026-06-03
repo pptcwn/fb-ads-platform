@@ -91,10 +91,8 @@ export default function CreativesPage() {
   // ─── Helpers ───
 
   const tokenAxios = useCallback(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return null; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    return token;
+    axios.defaults.withCredentials = true;
+    return true;
   }, []);
 
   const fetchAll = useCallback(async () => {

@@ -84,9 +84,7 @@ export default function NotificationsPage() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) { window.location.href = '/'; return; }
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.withCredentials = true;
 
       const [configsRes, alertsRes, tgRes] = await Promise.all([
         axios.get('/api/alerts/configs').catch(() => ({ data: [] })),

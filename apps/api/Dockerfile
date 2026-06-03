@@ -11,7 +11,6 @@ COPY pnpm-lock.yaml* ./
 
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
-COPY packages/facebook-sdk-wrapper/package.json packages/facebook-sdk-wrapper/
 
 RUN pnpm install --frozen-lockfile
 

@@ -61,6 +61,24 @@ export interface Audience {
   lookalikeRatio: number | null; createdAt: string;
 }
 
+export interface AutomationApproval {
+  id: string;
+  source: string;
+  sourceId: string | null;
+  action: string;
+  payload: Record<string, unknown>;
+  status: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export const approvalsApi = {
+  list: (status = 'PENDING') =>
+    api.get<AutomationApproval[]>('/api/approvals', { params: { status } }),
+  approve: (id: string) => api.post(`/api/approvals/${id}/approve`),
+  reject: (id: string, note?: string) => api.post(`/api/approvals/${id}/reject`, { note }),
+};
+
 export const audiencesApi = {
   list: () => api.get<Audience[]>('/api/audiences'),
   createCustom: (dto: { adAccountId: string; name: string; description?: string }) =>

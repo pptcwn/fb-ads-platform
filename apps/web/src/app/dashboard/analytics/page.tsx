@@ -44,9 +44,7 @@ export default function AnalyticsPage() {
   const [granularity, setGranularity] = useState('day');
 
   const fetchData = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    axios.defaults.withCredentials = true;
 
     const from = daysAgo(range);
     const to = daysAgo(0);

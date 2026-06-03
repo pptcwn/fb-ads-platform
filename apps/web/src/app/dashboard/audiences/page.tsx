@@ -49,6 +49,7 @@ export default function AudiencesPage() {
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [schemaMapping, setSchemaMapping] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
+  const [pdpaConsent, setPdpaConsent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Mutations ───
@@ -141,6 +142,10 @@ export default function AudiencesPage() {
 
   const submitUpload = async () => {
     if (!uploadTarget) return;
+    if (!pdpaConsent) {
+      setUploadError('Please confirm PDPA consent before uploading.');
+      return;
+    }
     setUploading(true); setUploadError(''); setUploadResult(null);
     try {
       const file = fileInputRef.current?.files?.[0];
@@ -148,6 +153,7 @@ export default function AudiencesPage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('schema', JSON.stringify(schemaMapping));
+      formData.append('consentConfirmed', 'true');
       const data = await uploadMutation.mutateAsync({ id: uploadTarget.id, formData });
       setUploadResult(data);
     } catch (err: any) { setUploadError(err?.response?.data?.message || err.message); }
@@ -161,6 +167,7 @@ export default function AudiencesPage() {
     setCsvPreview(null);
     setCsvHeaders([]);
     setSchemaMapping({});
+    setPdpaConsent(false);
   };
 
   // ─── Derived ───
@@ -347,7 +354,7 @@ export default function AudiencesPage() {
       <Modal open={!!uploadTarget} onClose={closeUploadModal} title="Upload Users to Audience" icon={<Upload className="w-4 h-4" />} maxWidth="max-w-lg">
         <div className="space-y-3">
           <p className="text-sm text-ink font-medium">{uploadTarget?.name}</p>
-          <p className="text-xs text-ink-300">Upload a CSV file with customer data. Supported columns: email, phone, MADID, extern_id, name, zip, country.</p>
+          <p className="text-xs text-ink-300">Upload a CSV with customer data. PII is SHA-256 hashed server-side before sending to Meta (PDPA). Supported columns: email, phone, MADID, extern_id, name, zip, country.</p>
 
           {!csvPreview && (
             <div className="border-2 border-dashed border-surface-200 rounded-lg p-6 text-center">
@@ -432,6 +439,20 @@ export default function AudiencesPage() {
             </div>
           )}
 
+          {csvPreview && !uploadResult && (
+            <label className="flex items-start gap-2 text-xs text-ink cursor-pointer">
+              <input
+                type="checkbox"
+                checked={pdpaConsent}
+                onChange={(e) => setPdpaConsent(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                I confirm I have lawful basis and customer consent to upload this data for advertising purposes (PDPA).
+              </span>
+            </label>
+          )}
+
           {uploadError && (
             <div className="msg-error">{uploadError}</div>
           )}
@@ -441,7 +462,7 @@ export default function AudiencesPage() {
             {uploadResult ? 'Close' : 'Cancel'}
           </button>
           {csvPreview && !uploadResult && (
-            <button onClick={submitUpload} disabled={uploading || Object.values(schemaMapping).filter(Boolean).length === 0}
+            <button onClick={submitUpload} disabled={uploading || !pdpaConsent || Object.values(schemaMapping).filter(Boolean).length === 0}
               className="btn-primary btn-sm">
               {uploading ? 'Uploading...' : <><Upload className="w-4 h-4" /> Upload to Facebook</>}
             </button>

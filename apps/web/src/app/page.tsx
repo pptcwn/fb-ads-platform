@@ -17,9 +17,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await axios.post('/api/auth/login', { email, password });
-      localStorage.setItem('token', data.accessToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
+      await axios.post('/api/auth/login', { email, password }, { withCredentials: true });
       router.push('/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Invalid credentials');

@@ -96,9 +96,7 @@ export default function BudgetPage() {
   const [customCron, setCustomCron] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return; }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    axios.defaults.withCredentials = true;
     loadAll();
   }, []);
 

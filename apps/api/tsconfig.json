@@ -18,8 +18,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@shared/*": ["../../packages/shared/src/*"],
-      "@facebook-sdk/*": ["../../packages/facebook-sdk-wrapper/src/*"]
+      "@shared/*": ["../../packages/shared/src/*"]
     }
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
+import { hashAudienceDataRow, normalizeSchemaType } from '../common/audience-pii.util';
 
 @Injectable()
 export class AudiencesService {
@@ -200,7 +201,13 @@ export class AudiencesService {
     id: string,
     file: any,
     schemaMapping: Record<string, string> | null,
+    options: { consentConfirmed: boolean; ipAddress?: string },
   ) {
+    if (!options.consentConfirmed) {
+      throw new BadRequestException(
+        'PDPA consent is required: confirm you have lawful basis to upload this customer data.',
+      );
+    }
     const audience = await this.prisma.audience.findFirst({
       where: { id, adAccount: { fbUser: { userId } } },
       include: { adAccount: { include: { fbUser: true } } },
@@ -274,13 +281,38 @@ export class AudiencesService {
       );
     }
 
-    // Build data rows for Facebook
-    const schemaOrder = Object.values(mapping);
-    const dataRows = rows.map((row: string[]) => {
-      return headers.map((h: string, i: number) => mapping[h] ? row[i] : '').filter((v: string) => v.length > 0);
-    }).filter((r: string[]) => r.length > 0 && r.some((v: string) => v.length > 0));
+    const schemaColumns = Object.keys(mapping);
+    const schemaOrder = schemaColumns.map((col) => normalizeSchemaType(mapping[col]));
+    const dataRows = rows
+      .map((row: string[]) => {
+        const rawValues = schemaColumns.map((col) => {
+          const idx = headers.indexOf(col);
+          return idx >= 0 ? row[idx] : '';
+        });
+        return hashAudienceDataRow(schemaOrder, rawValues);
+      })
+      .filter((r: string[]) => r.some((v: string) => v.length > 0));
 
     if (dataRows.length === 0) throw new BadRequestException('No data rows with mapped columns found');
+
+    await this.prisma.activityLog.create({
+      data: {
+        userId,
+        fbUserId: audience.adAccount.fbUser.id,
+        action: 'AUDIENCE_UPLOAD_CONSENT',
+        entityType: 'audience',
+        entityId: audience.id,
+        ipAddress: options.ipAddress || null,
+        metadata: {
+          audienceName: audience.name,
+          fbAudienceId: audience.fbAudienceId,
+          rowCount: dataRows.length,
+          schema: schemaOrder,
+          piiHashed: true,
+          consentConfirmed: true,
+        },
+      },
+    });
 
     // Send in batches of 10000 (Facebook limit)
     const BATCH_SIZE = 10000;
@@ -304,13 +336,19 @@ export class AudiencesService {
     }
 
     return {
-      message: `Uploaded ${dataRows.length} users to "${audience.name}"`,
+      message: `Uploaded ${dataRows.length} users to "${audience.name}" (PII hashed per PDPA/Meta)`,
       totalRows: dataRows.length,
       added: totalAdded,
       invalid: totalInvalid,
       rejected: totalRejected,
       mapping,
-      preview: rows.slice(0, 5),
+      piiHashed: true,
+      preview: rows.slice(0, 5).map((row: string[]) =>
+        schemaColumns.map((col) => {
+          const idx = headers.indexOf(col);
+          return idx >= 0 ? '[redacted]' : '';
+        }),
+      ),
     };
   }
 }

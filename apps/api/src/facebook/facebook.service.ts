@@ -1,8 +1,10 @@
-import { Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptToken, decryptToken } from '../common/encryption.util';
+import { FB_GRAPH_BASE_URL, fbOAuthDialogBaseUrl } from '../common/facebook-api.config';
+import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AxiosResponse } from 'axios';
 
 interface FacebookTokenResponse {
@@ -17,18 +19,19 @@ interface FacebookUserResponse {
   email?: string;
 }
 
-const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
-const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
-
 @Injectable()
-export class FacebookService {
+export class FacebookService implements OnModuleInit {
   private readonly logger = new Logger(FacebookService.name);
-  private readonly baseUrl = FB_BASE_URL;
+  private readonly baseUrl = FB_GRAPH_BASE_URL;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly http: HttpService,
   ) {}
+
+  onModuleInit() {
+    setupFacebookRateLimitInterceptors(this.http.axiosRef);
+  }
 
   getAuthUrl(): string {
     throw new InternalServerErrorException('Use getAuthUrlWithState() instead');
@@ -48,7 +51,7 @@ export class FacebookService {
       response_type: 'code',
       state,
     });
-    return `https://www.facebook.com/${FB_API_VERSION}/dialog/oauth?${params}`;
+    return `${fbOAuthDialogBaseUrl()}?${params}`;
   }
 
   decryptState(state: string): string {
@@ -235,6 +238,32 @@ export class FacebookService {
     });
     if (!fbUser) throw new UnauthorizedException('Facebook account not found');
     return decryptToken(fbUser.accessToken);
+  }
+
+  async getCampaignState(
+    campaignId: string,
+    accessToken: string,
+  ): Promise<{ status: string; dailyBudget: number | null }> {
+    try {
+      const { data } = await firstValueFrom(
+        this.http.get<{ status: string; daily_budget?: string }>(`${this.baseUrl}/${campaignId}`, {
+          params: { fields: 'status,daily_budget', access_token: accessToken },
+        }),
+      );
+      return {
+        status: data.status,
+        dailyBudget:
+          data.daily_budget != null && data.daily_budget !== ''
+            ? Number(data.daily_budget) / 100
+            : null,
+      };
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to fetch campaign ${campaignId} state`,
+        err?.response?.data || err.message,
+      );
+      throw new InternalServerErrorException('Failed to fetch campaign state from Facebook');
+    }
   }
 
   async updateCampaignStatus(accountId: string, campaignId: string, status: string, accessToken: string): Promise<void> {

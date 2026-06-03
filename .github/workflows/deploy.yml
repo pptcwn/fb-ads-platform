@@ -6,7 +6,23 @@ on:
       - main
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm --filter api exec prisma generate
+      - run: pnpm --filter api test
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +39,11 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -i ~/.ssh/deploy_key root@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e
             cd /root/fb-ads-platform
             git pull origin main
             docker compose up -d --build
+            # Apply DB migrations (e.g. automation_approvals) after containers are up
+            docker compose exec -T api sh -c 'cd apps/api && npx prisma migrate deploy'
+            docker compose ps
           EOF

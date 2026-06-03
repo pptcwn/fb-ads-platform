@@ -86,6 +86,7 @@ model User {
   rules           Rule[]
   abTests         AbTest[]
   budgetSchedules BudgetSchedule[]
+  automationApprovals AutomationApproval[]
   alertConfigs    AlertConfig[]
   alertHistory    AlertHistory[]
   creatives       Creative[]
@@ -619,6 +620,30 @@ model BudgetSchedule {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@map("budget_schedules")
+}
+
+// ========================
+// Automation guardrails (approval queue)
+// ========================
+
+model AutomationApproval {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+
+  source      String    // rules | budget | manual
+  sourceId    String?   @map("source_id")
+  action      String
+  payload     Json
+  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  reason      String?   @db.Text
+  reviewedAt  DateTime? @map("reviewed_at")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@map("automation_approvals")
 }
 
 // ========================

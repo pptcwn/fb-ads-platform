@@ -41,7 +41,6 @@ services:
       - /app/node_modules
       - /app/apps/api/node_modules
       - /app/packages/shared/node_modules
-      - /app/packages/facebook-sdk-wrapper/node_modules
     ports:
       - "4001:4000"
     depends_on:
@@ -62,7 +61,6 @@ services:
       - /app/node_modules
       - /app/apps/web/node_modules
       - /app/packages/shared/node_modules
-      - /app/packages/facebook-sdk-wrapper/node_modules
     ports:
       - "3001:3000"
     depends_on:

@@ -1,6 +1,9 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
+import { FB_GRAPH_BASE_URL } from '../common/facebook-api.config';
+import { ObjectStorageService } from '../common/object-storage.service';
+import { extname } from 'path';
 
 interface UploadedFile {
   filename: string;
@@ -11,9 +14,6 @@ interface UploadedFile {
   fieldname: string;
 }
 
-const FB_API_VERSION = (process.env.FB_API_VERSION?.trim() || 'v24.0');
-const FB_BASE_URL = `https://graph.facebook.com/${FB_API_VERSION}`;
-
 @Injectable()
 export class CreativesService {
   private readonly logger = new Logger(CreativesService.name);
@@ -21,6 +21,7 @@ export class CreativesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly facebookService: FacebookService,
+    private readonly objectStorage: ObjectStorageService,
   ) {}
 
   // ─── CRUD ───
@@ -162,7 +163,15 @@ export class CreativesService {
     const creative = await this.prisma.creative.findFirst({ where: { id, userId } });
     if (!creative) throw new NotFoundException('Creative not found');
 
-    const imageUrl = `/api/creatives/uploads/${file.filename}`;
+    let imageUrl = `/api/creatives/uploads/${file.filename}`;
+    if (this.objectStorage.isEnabled() && file.path) {
+      const key = `creatives/${userId}/${id}${extname(file.originalname || file.filename)}`;
+      imageUrl = await this.objectStorage.uploadLocalFile(
+        file.path,
+        key,
+        file.mimetype || 'application/octet-stream',
+      );
+    }
 
     const updateData: any = { imageUrl };
     if (file.size) updateData.imageWidth = null; // We'll skip dimensions for now
@@ -212,7 +221,7 @@ export class CreativesService {
     }
 
     // Call Facebook API
-    const url = `${FB_BASE_URL}/act_${account.accountId}/creatives`;
+    const url = `${FB_GRAPH_BASE_URL}/act_${account.accountId}/creatives`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -243,13 +252,11 @@ export class CreativesService {
       // If it's a local upload, we need to read the file
       let sourceUrl = imageUrl;
       if (imageUrl.startsWith('/api/creatives/uploads/')) {
-        // File is on local disk — use the URL that FB can access
-        // For now, we'll skip local uploads since FB can't reach localhost
-        this.logger.warn('Local file upload to FB not supported yet. Use a public URL.');
+        this.logger.warn('Local file upload to FB not supported — configure S3/R2 for a public image URL.');
         return null;
       }
 
-      const response = await fetch(`${FB_BASE_URL}/act_${accountId}/adimages`, {
+      const response = await fetch(`${FB_GRAPH_BASE_URL}/act_${accountId}/adimages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -306,7 +313,7 @@ export class CreativesService {
       // Fallback: fetch post details from FB
       const accessToken = await this.facebookService.getPageAccessToken(pageId);
       const fields = 'id,message,permalink_url,created_time,full_picture,attachments{media,subattachments}';
-      const url = `${FB_BASE_URL}/${postId}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(accessToken)}`;
+      const url = `${FB_GRAPH_BASE_URL}/${postId}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(accessToken)}`;
       const response = await fetch(url);
       const post = await response.json();
       if (post.error) throw new BadRequestException(`Facebook error: ${post.error.message}`);
