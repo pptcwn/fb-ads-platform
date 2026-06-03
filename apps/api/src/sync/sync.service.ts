@@ -6,6 +6,7 @@ import { FacebookService } from '../facebook/facebook.service';
 import { FB_GRAPH_BASE_URL } from '../common/facebook-api.config';
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AccountStatus, CampaignObjective, CampaignStatus } from '@prisma/client';
+import { InsightsAsyncService } from '../insights/insights-async.service';
 
 interface FBAdAccount {
   id: string;
@@ -49,6 +50,7 @@ export class SyncService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly http: HttpService,
     private readonly facebookService: FacebookService,
+    private readonly insightsAsync: InsightsAsyncService,
   ) {}
 
   onModuleInit() {
@@ -199,7 +201,40 @@ export class SyncService implements OnModuleInit {
       },
     });
 
+    if (options?.source === 'connect') {
+      this.queueInsights30dForUser(userId).catch((err: Error) => {
+        this.logger.warn(`Post-connect 30d insights queue failed: ${err.message}`);
+      });
+    }
+
     return { accountsSynced: accounts.length, campaignsSynced: totalCampaigns };
+  }
+
+  private async queueInsights30dForUser(userId: string): Promise<void> {
+    const fbUser = await this.prisma.fbUser.findFirst({
+      where: { userId },
+      include: { adAccounts: true },
+    });
+    if (!fbUser?.adAccounts.length) return;
+
+    const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
+    for (const account of fbUser.adAccounts) {
+      await this.insightsAsync.enqueueInsightsFetch(
+        account.id,
+        account.accountId,
+        accessToken,
+        userId,
+        { level: 'account', datePreset: 'last_30d', timeIncrement: 1 },
+      );
+      await this.insightsAsync.enqueueInsightsFetch(
+        account.id,
+        account.accountId,
+        accessToken,
+        userId,
+        { level: 'campaign', datePreset: 'last_30d', timeIncrement: 1 },
+      );
+    }
+    this.logger.log(`Queued 30d insights for ${fbUser.adAccounts.length} account(s) after connect`);
   }
 
   private async fetchAdAccounts(accessToken: string): Promise<FBAdAccount[]> {

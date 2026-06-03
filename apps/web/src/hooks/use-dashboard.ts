@@ -71,6 +71,7 @@ export function useInsights(adAccountId: string | null, days: number = 7) {
       return data;
     },
     enabled: !!adAccountId,
+    refetchInterval: 3 * 60_000,
   });
 }
 

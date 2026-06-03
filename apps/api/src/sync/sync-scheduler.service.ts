@@ -18,6 +18,10 @@ export class SyncSchedulerService implements OnModuleInit {
       process.env.SYNC_INSIGHTS_INTERVAL_MS ?? String(60 * 60 * 1000),
       10,
     );
+    const insights30dMs = parseInt(
+      process.env.SYNC_INSIGHTS_30D_INTERVAL_MS ?? String(6 * 60 * 60 * 1000),
+      10,
+    );
 
     await registerRepeatableJob(
       this.queue,
@@ -42,6 +46,18 @@ export class SyncSchedulerService implements OnModuleInit {
       },
       this.logger,
     );
-    this.logger.log(`Auto-sync insights scheduled every ${insightsMs / 60000} min`);
+    this.logger.log(`Auto-sync insights (yesterday) every ${insightsMs / 60000} min`);
+    await registerRepeatableJob(
+      this.queue,
+      'sync-insights-30d',
+      'sync-insights-30d-repeat',
+      {
+        repeat: { every: insights30dMs },
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10000 },
+      },
+      this.logger,
+    );
+    this.logger.log(`Auto-sync insights (30d async) every ${insights30dMs / 60000} min`);
   }
 }

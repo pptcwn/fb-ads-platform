@@ -13,6 +13,8 @@ export class SyncProcessor extends WorkerHost {
       await this.autoSync.autoSyncCampaigns();
     } else if (job.name === 'sync-insights') {
       await this.autoSync.autoSyncInsights();
+    } else if (job.name === 'sync-insights-30d') {
+      await this.autoSync.autoSyncInsights30d();
     }
   }
 }

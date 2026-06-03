@@ -159,7 +159,7 @@ export default function DashboardPage() {
           {fbStatus?.connected && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-ink-300 bg-surface-100 border border-surface-300 rounded-lg px-2.5 py-1">
-                Auto-sync: campaigns ~15m · insights ~1h · UI refresh ~1–2m
+                Auto-sync: campaigns ~15m · insights yesterday ~1h · 30d ~6h · UI ~1–2m
               </span>
               <button onClick={handleSync} disabled={triggerSync.isPending}
                 className="btn-secondary btn-sm">
