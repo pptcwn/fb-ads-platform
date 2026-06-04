@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter api exec prisma generate
       - run: pnpm --filter api test
 
@@ -47,7 +47,19 @@ jobs:
             git fetch origin main
             # VPS must match repo exactly — discard stale local edits from dev mounts
             git reset --hard origin/main
-            docker compose build --no-cache api web
+            echo "=== Disk before cleanup ==="
+            df -h /
+            docker compose down --remove-orphans 2>/dev/null || true
+            docker system prune -af
+            docker builder prune -af 2>/dev/null || true
+            echo "=== Disk after cleanup ==="
+            df -h /
+            AVAIL=$(df / --output=avail -BG | tail -1 | tr -d 'G')
+            if [ "${AVAIL:-0}" -lt 5 ]; then
+              echo "ERROR: Need at least 5GB free on / (have ${AVAIL}G). Prune images/volumes manually."
+              exit 1
+            fi
+            docker compose build api web
             docker compose up -d --force-recreate --renew-anon-volumes
             docker compose exec -T api sh -c 'cd apps/api && npx prisma migrate deploy'
             docker compose ps
