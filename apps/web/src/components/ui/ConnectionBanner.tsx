@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 interface ConnectionBannerProps {
   connected: boolean;
@@ -12,22 +14,17 @@ export default function ConnectionBanner({ connected, message }: ConnectionBanne
   if (connected) return null;
 
   return (
-    <div
-      className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-lg border border-warning-border bg-warning-muted text-warning"
-      role="alert"
-    >
-      <div className="flex items-start gap-2 flex-1">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden />
-        <div>
-          <p className="text-sm font-medium">ยังไม่ได้เชื่อมต่อ Meta</p>
-          <p className="text-xs mt-0.5 opacity-90">
-            {message || 'เชื่อมต่อบัญชี Facebook เพื่อซิงค์แคมเปญและดึง Insights'}
-          </p>
-        </div>
-      </div>
-      <Link href="/dashboard" className="btn-primary btn-sm shrink-0">
-        เชื่อมต่อ Meta
-      </Link>
-    </div>
+    <Alert className="border-warning-border bg-warning-muted text-warning [&>svg]:text-warning">
+      <AlertCircle aria-hidden />
+      <AlertTitle>ยังไม่ได้เชื่อมต่อ Meta</AlertTitle>
+      <AlertDescription>
+        {message || 'เชื่อมต่อบัญชี Facebook เพื่อซิงค์แคมเปญและดึง Insights'}
+      </AlertDescription>
+      <AlertAction className="static sm:absolute sm:top-2 sm:right-2 mt-2 sm:mt-0">
+        <Button render={<Link href="/dashboard" />} size="sm" nativeButton={false}>
+          เชื่อมต่อ Meta
+        </Button>
+      </AlertAction>
+    </Alert>
   );
 }

@@ -3,7 +3,6 @@ import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
 import '@/lib/axios-setup';
-import { ToastProvider } from '@/components/Toast';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Providers } from './providers';
@@ -33,9 +32,7 @@ export default function RootLayout({
         </a>
         <Providers>
           <TooltipProvider>
-            <ToastProvider>
-              <div className="min-h-screen">{children}</div>
-            </ToastProvider>
+            <div className="min-h-screen">{children}</div>
             <Toaster />
           </TooltipProvider>
         </Providers>

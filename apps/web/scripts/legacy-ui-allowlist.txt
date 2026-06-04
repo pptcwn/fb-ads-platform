@@ -19,4 +19,3 @@ src/app/dashboard/approvals/page.tsx
 src/components/layout/AutomationLayout.tsx
 src/components/TargetingBuilder.tsx
 src/components/campaigns/TemplatesTab.tsx
-src/components/ui/ConnectionBanner.tsx

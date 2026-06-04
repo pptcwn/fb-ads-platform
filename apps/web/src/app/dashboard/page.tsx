@@ -6,7 +6,7 @@ import Link from 'next/link';
 import PageLayout from '@/components/layout/PageLayout';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import Skeleton from '@/components/Skeleton';
-import { useToast } from '@/components/Toast';
+import { toast } from '@/lib/toast';
 import { fmtCurr, fmtNum } from '@/lib/utils';
 import { RefreshCw, BarChart3, Link as LinkIcon, Sparkles, ClipboardList, TrendingUp, Flame, SkipForward } from 'lucide-react';
 import { useFbStatus, useFbAuthUrl, useFbDisconnect, useSyncStatus, useTriggerSync, useInsights, useSyncInsights, useDashboardSummary, useWarmupStatus, useWarmupActions } from '@/hooks/use-dashboard';
@@ -21,8 +21,6 @@ interface InsightRow { id: string; date: string; impressions: number; clicks: nu
 interface ChartData { date: string; spend: number; impressions: number; clicks: number; ctr: number }
 
 export default function DashboardPage() {
-  const toast = useToast();
-
   // ─── Queries ───
   const { data: fbStatus, isLoading: fbLoading } = useFbStatus();
   const { data: syncStatus } = useSyncStatus();
