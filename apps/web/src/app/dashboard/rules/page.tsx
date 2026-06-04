@@ -145,14 +145,28 @@ export default function RulesPage() {
       if (editId) {
         await rulesApi.update(editId, dto);
         setMsg('✅ Rule updated!');
+        await loadAll();
       } else {
-        await rulesApi.create(dto);
+        const { data: created } = await rulesApi.create(dto);
         setMsg('✅ Rule created!');
+        await loadAll();
+        const rule = created as Rule;
+        setEditId(rule.id);
+        setSelectedRuleId(rule.id);
+        setForm({
+          name: rule.name,
+          description: rule.description || '',
+          scope: rule.scope,
+          conditions: (rule.conditions as RuleCondition[]).length > 0
+            ? (rule.conditions as RuleCondition[])
+            : [{ metric: 'CTR', operator: 'LT', value: 1 }],
+          logic: rule.logic,
+          actions: rule.actions.length > 0 ? rule.actions : ['NOTIFY'],
+          cooldownMinutes: rule.cooldownMinutes,
+          campaignId: rule.campaign?.id || form.campaignId,
+          adAccountId: rule.adAccount?.id || selectedAccountId || '',
+        });
       }
-      setSelectedRuleId(null);
-      setEditId(null);
-      resetForm();
-      loadAll();
     } catch (err: any) {
       setMsg(`❌ Failed: ${err?.response?.data?.message || err.message}`);
     }
@@ -263,8 +277,10 @@ export default function RulesPage() {
   }, [selectedAccountId]);
 
   useEffect(() => {
-    if (selectedRuleId && !scopedRules.some((r) => r.id === selectedRuleId)) {
+    if (!selectedRuleId || selectedRuleId === 'new') return;
+    if (!scopedRules.some((r) => r.id === selectedRuleId)) {
       setSelectedRuleId(null);
+      setEditId(null);
     }
   }, [scopedRules, selectedRuleId]);
 
