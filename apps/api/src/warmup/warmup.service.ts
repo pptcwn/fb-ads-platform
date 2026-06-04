@@ -225,8 +225,8 @@ export class WarmupService {
           campaignName,
           'OUTCOME_AWARENESS',
           'ACTIVE',
-          dayBudget,
           accessToken,
+          dayBudget,
         );
 
         await this.prisma.campaign.create({

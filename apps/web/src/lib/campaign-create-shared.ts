@@ -6,6 +6,20 @@ export const CREATE_STEPS = [
   { id: 'review', label: 'สรุป' },
 ] as const;
 
+/** Default ad set optimization_goal per ODAX objective (must match API resolveAdSetDelivery). */
+export const DEFAULT_OPTIMIZATION_BY_OBJECTIVE: Record<string, string> = {
+  OUTCOME_AWARENESS: 'REACH',
+  OUTCOME_ENGAGEMENT: 'POST_ENGAGEMENT',
+  OUTCOME_TRAFFIC: 'LINK_CLICKS',
+  OUTCOME_LEADS: 'LEAD_GENERATION',
+  OUTCOME_SALES: 'OFFSITE_CONVERSIONS',
+  OUTCOME_APP_PROMOTION: 'APP_INSTALLS',
+};
+
+export function defaultOptimizationForObjective(objective: string): string {
+  return DEFAULT_OPTIMIZATION_BY_OBJECTIVE[objective] ?? 'LINK_CLICKS';
+}
+
 export const OBJECTIVES: { key: string; label: string; desc: string }[] = [
   { key: 'OUTCOME_AWARENESS', label: 'Awareness', desc: 'เข้าถึงคนให้มากที่สุด' },
   { key: 'OUTCOME_TRAFFIC', label: 'Traffic', desc: 'พาคนเข้าเว็บไซต์' },
@@ -40,7 +54,7 @@ export const initialCampaignForm = (): CampaignFormState => ({
   dailyBudget: 300,
   status: 'PAUSED',
   adSetName: '',
-  optimizationGoal: 'REACH',
+  optimizationGoal: 'LINK_CLICKS',
   billingEvent: 'IMPRESSIONS',
   adName: '',
   creativeMessage: '',

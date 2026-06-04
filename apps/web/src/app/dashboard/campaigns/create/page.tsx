@@ -18,6 +18,7 @@ import {
   OBJECTIVES,
   initialCampaignForm,
   estimateBudgetBreakdown,
+  defaultOptimizationForObjective,
   type CampaignFormState,
 } from '@/lib/campaign-create-shared';
 import { objLabel } from '@/lib/utils';
@@ -227,7 +228,13 @@ export default function CreateCampaignPage() {
                     <button
                       key={obj.key}
                       type="button"
-                      onClick={() => setForm({ ...form, objective: obj.key })}
+                      onClick={() =>
+                        setForm({
+                          ...form,
+                          objective: obj.key,
+                          optimizationGoal: defaultOptimizationForObjective(obj.key),
+                        })
+                      }
                       className={`text-left p-3 rounded-xl border-2 transition-all ${
                         form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300'
                       }`}

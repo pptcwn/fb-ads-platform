@@ -357,18 +357,20 @@ export class FacebookService implements OnModuleInit {
     name: string,
     objective: string,
     status: string,
-    dailyBudget: number,
     accessToken: string,
+    dailyBudget?: number | null,
   ): Promise<{ id: string }> {
     try {
       const params = new URLSearchParams({
         name,
         objective,
         status,
-        daily_budget: String(Math.round(dailyBudget * 100)),
         access_token: accessToken,
         special_ad_categories: 'NONE',
       });
+      if (dailyBudget != null && dailyBudget > 0) {
+        params.set('daily_budget', String(Math.round(dailyBudget * 100)));
+      }
       const { data } = await firstValueFrom(
         this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/campaigns`, params.toString(), {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -390,34 +392,39 @@ export class FacebookService implements OnModuleInit {
     optimizationGoal: string,
     billingEvent: string,
     bidAmount: number | null,
-    targeting: any,
+    targeting: Record<string, unknown>,
     status: string,
     accessToken: string,
     bidStrategy?: string,
   ): Promise<{ id: string }> {
     try {
-      const params: any = {
+      const params = new URLSearchParams({
         name,
         campaign_id: campaignId,
-        daily_budget: Math.round(dailyBudget * 100),
+        daily_budget: String(Math.round(dailyBudget * 100)),
         optimization_goal: optimizationGoal,
         billing_event: billingEvent,
-        targeting,
+        targeting: JSON.stringify(targeting),
         status,
         access_token: accessToken,
-      };
-      if (bidAmount) params.bid_amount = Math.round(bidAmount * 100);
-      params.bid_strategy = normalizeBidStrategy(bidStrategy);
+        bid_strategy: normalizeBidStrategy(bidStrategy),
+      });
+      if (bidAmount) params.set('bid_amount', String(Math.round(bidAmount * 100)));
       const { data } = await firstValueFrom(
-        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/adsets`, params, {
-          headers: { 'Content-Type': 'application/json' },
+        this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/adsets`, params.toString(), {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         }),
       );
       return data;
     } catch (err: any) {
-      this.logger.error('Failed to create ad set', err?.response?.data || err.message);
-      const detail = err?.response?.data?.error?.message || err.message;
-      throw new InternalServerErrorException(`Failed to create ad set on Facebook: ${detail}`);
+      const fbErr = err?.response?.data?.error;
+      this.logger.error('Failed to create ad set', fbErr || err.message);
+      const detail =
+        fbErr?.error_user_msg ||
+        fbErr?.message ||
+        err.message;
+      const sub = fbErr?.error_subcode ? ` (subcode ${fbErr.error_subcode})` : '';
+      throw new InternalServerErrorException(`Failed to create ad set on Facebook: ${detail}${sub}`);
     }
   }
 

@@ -25,6 +25,7 @@ import { campaignsApi, templatesApi } from '@/lib/api-client';
 import { useAdSets, useToggleAdSet, useUpdateAdSetBudget } from '@/hooks/use-adsets';
 import { useUsableAdAccounts } from '@/hooks/use-usable-ad-accounts';
 import type { AdSetItem } from '@/lib/api-client';
+import { defaultOptimizationForObjective } from '@/lib/campaign-create-shared';
 
 // ─── Types ───
 
@@ -127,7 +128,7 @@ function CampaignsPageInner() {
   const [form, setForm] = useState({
     adAccountId: '',
     name: '', objective: 'OUTCOME_TRAFFIC', dailyBudget: 300,
-    status: 'PAUSED', adSetName: '', optimizationGoal: 'REACH',
+    status: 'PAUSED', adSetName: '', optimizationGoal: 'LINK_CLICKS',
     billingEvent: 'IMPRESSIONS', adName: '', creativeMessage: '',
     creativeLink: '', pageId: '', createAd: false,
     creativeImageHash: '',
@@ -380,7 +381,7 @@ function CampaignsPageInner() {
       if (form.createAd && form.adName) {
         if (!form.adSetName) {
           dto.adSetName = 'Ad Set 1';
-          dto.optimizationGoal = form.optimizationGoal || 'REACH';
+          dto.optimizationGoal = form.optimizationGoal || 'LINK_CLICKS';
           dto.billingEvent = form.billingEvent || 'IMPRESSIONS';
           dto.targeting = Object.keys(form.targeting || {}).length > 0
             ? form.targeting
@@ -685,7 +686,7 @@ function CampaignsPageInner() {
                 <div>
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {OBJECTIVES.map(obj => (
-                      <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300 hover:border-surface-400'}`}>
+                      <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key, optimizationGoal: defaultOptimizationForObjective(obj.key) })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300 hover:border-surface-400'}`}>
                         <p className="font-semibold text-ink text-sm">{obj.label}</p>
                         <p className="text-xs text-ink-200 mt-0.5">{obj.desc}</p>
                       </button>
@@ -745,7 +746,7 @@ function CampaignsPageInner() {
                       <h3 className="text-sm font-semibold text-ink mb-3">Choose Objective</h3>
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         {OBJECTIVES.map(obj => (
-                          <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300 hover:border-surface-400'}`}>
+                          <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key, optimizationGoal: defaultOptimizationForObjective(obj.key) })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300 hover:border-surface-400'}`}>
                             <p className="font-semibold text-ink text-sm">{obj.label}</p>
                             <p className="text-xs text-ink-200 mt-0.5">{obj.desc}</p>
                           </button>
@@ -781,7 +782,7 @@ function CampaignsPageInner() {
                       </div>
                       <label className="flex items-center gap-2 text-sm font-medium text-ink mb-3">
                         <input type="checkbox" checked={!!form.adSetName}
-                          onChange={e => setForm({ ...form, adSetName: e.target.checked ? 'Ad Set 1' : '', optimizationGoal: e.target.checked ? (form.optimizationGoal || 'REACH') : '' })} />
+                          onChange={e => setForm({ ...form, adSetName: e.target.checked ? 'Ad Set 1' : '', optimizationGoal: e.target.checked ? (form.optimizationGoal || 'LINK_CLICKS') : '' })} />
                         Create Ad Set with targeting
                       </label>
                       {form.adSetName && (

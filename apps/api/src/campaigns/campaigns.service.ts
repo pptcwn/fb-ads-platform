@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { resolveAdSetDelivery } from '../common/ad-set-delivery';
 import { DEFAULT_FB_BID_STRATEGY, fbAdAccountActId } from '../common/facebook-api.config';
+import { sanitizeTargetingForGraph } from '../common/targeting-graph.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -68,14 +70,17 @@ export class CampaignsService {
     let localCampaignId: string | null = null;
 
     try {
-      // 1. Create campaign on FB
+      const willCreateAdSet = !!dto.adSetName?.trim();
+      const adSetStatus = dto.status || 'PAUSED';
+
+      // 1. Create campaign on FB (budget at ad set when creating ad set — avoids dual-budget error)
       const campaign = await this.facebookService.createCampaign(
         fbAccountId,
         dto.name,
         dto.objective,
-        dto.status || 'PAUSED',
-        dto.dailyBudget,
+        adSetStatus,
         accessToken,
+        willCreateAdSet ? null : dto.dailyBudget,
       );
       fbCampaignId = campaign.id;
 
@@ -96,9 +101,11 @@ export class CampaignsService {
       let adSetId: string | null = null;
       let adId: string | null = null;
 
-      const targeting = dto.targeting
+      const validatedTargeting = dto.targeting
         ? validateTargeting(dto.targeting)
         : { geo_locations: { countries: ['TH'] } };
+      const graphTargeting = sanitizeTargetingForGraph(validatedTargeting);
+      const delivery = resolveAdSetDelivery(dto.objective, dto.optimizationGoal, dto.billingEvent);
 
       // 2. Create AdSet (optional)
       if (dto.adSetName) {
@@ -106,12 +113,12 @@ export class CampaignsService {
           fbAccountId,
           campaign.id,
           dto.adSetName,
-          dto.dailyBudget * 0.8, // 80% of campaign budget
-          dto.optimizationGoal || 'REACH',
-          dto.billingEvent || 'IMPRESSIONS',
-          null, // bidAmount — let FB use lowest cost
-          targeting,
-          'ACTIVE',
+          dto.dailyBudget,
+          delivery.optimization_goal,
+          delivery.billing_event,
+          null,
+          graphTargeting,
+          adSetStatus,
           accessToken,
           DEFAULT_FB_BID_STRATEGY,
         );
@@ -121,10 +128,10 @@ export class CampaignsService {
             adsetId: adSet.id,
             campaignId: savedCampaign.id,
             name: dto.adSetName,
-            status: 'ACTIVE',
-            targeting: targeting as any,
-            dailyBudget: dto.dailyBudget * 0.8,
-            optimizationGoal: dto.optimizationGoal || 'REACH',
+            status: adSetStatus as any,
+            targeting: validatedTargeting as any,
+            dailyBudget: dto.dailyBudget,
+            optimizationGoal: delivery.optimization_goal,
           },
         });
         adSetId = savedAdSet.id;
@@ -504,8 +511,8 @@ export class CampaignsService {
       cloneName,
       source.objective,
       'PAUSED',
-      Number(source.dailyBudget || 0),
       accessToken,
+      source.adsets.length > 0 ? null : Number(source.dailyBudget || 0),
     );
 
     // 2. Save to local DB
@@ -524,15 +531,23 @@ export class CampaignsService {
     const clonedAdSets: any[] = [];
     for (const adset of source.adsets) {
       try {
+        const cloneDelivery = resolveAdSetDelivery(
+          source.objective,
+          adset.optimizationGoal,
+          'IMPRESSIONS',
+        );
+        const cloneTargeting = sanitizeTargetingForGraph(
+          (adset.targeting as any) || { geo_locations: { countries: ['TH'] } },
+        );
         const newAdSet = await this.facebookService.createAdSet(
           fbAccountId,
           fbCampaign.id,
           `Copy of ${adset.name}`,
-          Number(adset.dailyBudget || 0),
-          adset.optimizationGoal || 'REACH',
-          'IMPRESSIONS',
+          Number(adset.dailyBudget || source.dailyBudget || 0),
+          cloneDelivery.optimization_goal,
+          cloneDelivery.billing_event,
           Number(adset.bidAmount) || null,
-          adset.targeting || { geo_locations: { countries: ['TH'] } },
+          cloneTargeting,
           'PAUSED',
           accessToken,
           adset.bidStrategy || DEFAULT_FB_BID_STRATEGY,

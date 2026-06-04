@@ -56,8 +56,8 @@ export class AbtestService {
           v.name,
           source.objective,
           'ACTIVE',
-          budget,
           accessToken,
+          budget,
         );
 
         const saved = await this.prisma.abTestVariant.create({
