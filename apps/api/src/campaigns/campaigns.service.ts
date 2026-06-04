@@ -5,6 +5,11 @@ import { FacebookService } from '../facebook/facebook.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { validateTargeting } from './dto/targeting.schema';
+import {
+  deleteCampaignGraph,
+  isFbObjectMissingError,
+  isHiddenCampaignStatus,
+} from './campaign-db-cleanup';
 
 @Injectable()
 export class CampaignsService {
@@ -191,7 +196,7 @@ export class CampaignsService {
           select: { id: true, campaignId: true },
         });
         if (camp) {
-          await this.deleteCampaignFromDb(camp.id, camp.campaignId);
+          await deleteCampaignGraph(this.prisma, camp.id, camp.campaignId);
         }
       } catch (e: any) {
         this.logger.warn(`Rollback local campaign failed: ${e.message}`);
@@ -217,39 +222,6 @@ export class CampaignsService {
     throw new BadRequestException(message);
   }
 
-  /** Delete related rows so prisma.campaign.delete succeeds */
-  private async deleteCampaignFromDb(localCampaignId: string, fbCampaignId?: string): Promise<void> {
-    await this.prisma.creativeCampaign.deleteMany({ where: { campaignId: localCampaignId } });
-    await this.prisma.campaignInsight.deleteMany({ where: { campaignId: localCampaignId } });
-    await this.prisma.abTest.deleteMany({ where: { sourceCampaignId: localCampaignId } });
-    if (fbCampaignId) {
-      await this.prisma.abTestVariant.deleteMany({ where: { campaignId: fbCampaignId } });
-    }
-    await this.prisma.campaignSchedule.deleteMany({ where: { campaignId: localCampaignId } });
-
-    const adsets = await this.prisma.adSet.findMany({
-      where: { campaignId: localCampaignId },
-      select: { id: true },
-    });
-    for (const adset of adsets) {
-      await this.prisma.ad.deleteMany({ where: { adsetId: adset.id } });
-    }
-    await this.prisma.adSet.deleteMany({ where: { campaignId: localCampaignId } });
-
-    const rules = await this.prisma.rule.findMany({
-      where: { campaignId: localCampaignId },
-      select: { id: true },
-    });
-    if (rules.length > 0) {
-      await this.prisma.ruleLog.deleteMany({
-        where: { ruleId: { in: rules.map((r) => r.id) } },
-      });
-    }
-    await this.prisma.rule.deleteMany({ where: { campaignId: localCampaignId } });
-
-    await this.prisma.campaign.delete({ where: { id: localCampaignId } });
-  }
-
   private async syncAfterCreate(userId: string, adAccount: any) {
     try {
       const fbUser = await this.prisma.fbUser.findFirst({ where: { userId } });
@@ -264,6 +236,7 @@ export class CampaignsService {
       if (!account) return;
 
       for (const camp of fbCampaigns) {
+        if (isHiddenCampaignStatus(camp.status)) continue;
         await this.prisma.campaign.upsert({
           where: { campaignId: camp.id },
           create: {
@@ -291,8 +264,15 @@ export class CampaignsService {
     const accounts = await this.prisma.adAccount.findMany({
       where: { fbUser: { userId } },
       include: {
-        _count: { select: { campaigns: true } },
+        _count: {
+          select: {
+            campaigns: {
+              where: { status: { notIn: ['DELETED', 'ARCHIVED'] } },
+            },
+          },
+        },
         campaigns: {
+          where: { status: { notIn: ['DELETED', 'ARCHIVED'] } },
           select: {
             id: true, name: true, campaignId: true, objective: true, dailyBudget: true,
             status: true, spent: true, impressions: true, clicks: true, conversions: true, ctr: true,
@@ -311,7 +291,10 @@ export class CampaignsService {
     });
     if (!account) throw new NotFoundException('Ad account not found');
     return this.prisma.campaign.findMany({
-      where: { adAccountId: account.id },
+      where: {
+        adAccountId: account.id,
+        status: { notIn: ['DELETED', 'ARCHIVED'] },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -376,15 +359,22 @@ export class CampaignsService {
     if (!fbUser) throw new NotFoundException('Facebook account not connected');
     const accessToken = await this.facebookService.getDecryptedToken(fbUser.id);
 
-    // Try to delete from Facebook, but allow local deletion even if FB fails
     try {
       await this.facebookService.deleteCampaign(campaign.campaignId, accessToken);
     } catch (err: any) {
-      this.logger.warn(`Failed to delete campaign ${campaign.campaignId} from Facebook (proceeding with local delete): ${err.message}`);
+      if (!isFbObjectMissingError(err)) {
+        this.logger.warn(`Failed to delete campaign ${campaign.campaignId} on Facebook: ${err.message}`);
+        const detail =
+          err?.response?.data?.error?.message ||
+          (typeof err?.message === 'string' ? err.message : null);
+        throw new BadRequestException(
+          detail ||
+            'ลบบน Facebook ไม่สำเร็จ — แคมเปญจะกลับมาหลัง Sync จนกว่าจะลบบน Meta ได้',
+        );
+      }
     }
 
-    // Always delete from local DB (cascade children first — FK constraints)
-    await this.deleteCampaignFromDb(campaign.id, campaign.campaignId);
+    await deleteCampaignGraph(this.prisma, campaign.id, campaign.campaignId);
 
     return { message: 'Campaign deleted successfully' };
   }
@@ -450,15 +440,16 @@ export class CampaignsService {
         try {
           await this.facebookService.deleteCampaign(campaign.campaignId, accessToken);
         } catch (fbErr: any) {
-          this.logger.warn(
-            `Bulk delete FB failed for ${campaign.name} (${campaign.campaignId}): ${fbErr.message}`,
-          );
+          if (!isFbObjectMissingError(fbErr)) {
+            throw fbErr;
+          }
         }
-        await this.deleteCampaignFromDb(campaign.id, campaign.campaignId);
+        await deleteCampaignGraph(this.prisma, campaign.id, campaign.campaignId);
         results.push({ id: campaign.id, name: campaign.name, success: true });
       } catch (err: any) {
         this.logger.warn(`Bulk delete failed for campaign ${campaign.name} (${campaign.campaignId}): ${err.message}`);
-        results.push({ id: campaign.id, name: campaign.name, success: false, error: err.message });
+        const msg = err?.response?.data?.error?.message || err?.message;
+        results.push({ id: campaign.id, name: campaign.name, success: false, error: msg });
       }
     }
 

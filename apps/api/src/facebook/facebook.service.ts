@@ -21,6 +21,7 @@ import {
   fbOAuthDialogBaseUrl,
   normalizeBidStrategy,
 } from '../common/facebook-api.config';
+import { fbCampaignListFilteringParam, isFbObjectMissingError } from '../campaigns/campaign-db-cleanup';
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AxiosResponse } from 'axios';
 
@@ -640,6 +641,7 @@ export class FacebookService implements OnModuleInit {
         this.http.get(`${this.baseUrl}/${actPath(adAccountId)}/campaigns`, {
           params: {
             fields: 'id,name,objective,status,daily_budget,lifetime_budget,created_time',
+            filtering: fbCampaignListFilteringParam(),
             access_token: accessToken,
           },
         }),
@@ -659,8 +661,13 @@ export class FacebookService implements OnModuleInit {
         }),
       );
     } catch (err: any) {
+      if (isFbObjectMissingError(err)) {
+        this.logger.debug(`Campaign ${campaignId} already removed on Facebook`);
+        return;
+      }
       this.logger.error(`Failed to delete campaign ${campaignId}`, err?.response?.data || err.message);
-      throw new InternalServerErrorException('Failed to delete campaign on Facebook');
+      const detail = err?.response?.data?.error?.message || err.message;
+      throw new InternalServerErrorException(`Failed to delete campaign on Facebook: ${detail}`);
     }
   }
 

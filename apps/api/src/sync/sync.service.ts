@@ -14,6 +14,11 @@ import { FB_GRAPH_BASE_URL } from '../common/facebook-api.config';
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AccountStatus, CampaignObjective, CampaignStatus } from '@prisma/client';
 import { InsightsAsyncService } from '../insights/insights-async.service';
+import {
+  deleteCampaignGraph,
+  fbCampaignListFilteringParam,
+  isHiddenCampaignStatus,
+} from '../campaigns/campaign-db-cleanup';
 
 interface FBAdAccount {
   id: string;
@@ -167,9 +172,13 @@ export class SyncService implements OnModuleInit {
       if (!dbAccount) continue;
 
       const campaigns = await this.fetchCampaigns(acct.account_id, accessToken);
-      totalCampaigns += campaigns.length;
+      const visibleCampaigns = campaigns.filter((c) => !isHiddenCampaignStatus(c.status));
+      totalCampaigns += visibleCampaigns.length;
 
-      for (const camp of campaigns) {
+      const visibleFbIds = new Set<string>();
+
+      for (const camp of visibleCampaigns) {
+        visibleFbIds.add(camp.id);
         await this.prisma.campaign.upsert({
           where: { campaignId: camp.id },
           create: {
@@ -191,7 +200,20 @@ export class SyncService implements OnModuleInit {
         });
       }
 
-      this.logger.log(`Synced ${campaigns.length} campaigns for account ${acct.name}`);
+      // Drop local rows removed or soft-deleted on Meta (prevents "delete then sync" resurrection)
+      const localCampaigns = await this.prisma.campaign.findMany({
+        where: { adAccountId: dbAccount.id },
+        select: { id: true, campaignId: true, status: true },
+      });
+      for (const local of localCampaigns) {
+        if (!visibleFbIds.has(local.campaignId) || isHiddenCampaignStatus(local.status)) {
+          await deleteCampaignGraph(this.prisma, local.id, local.campaignId);
+        }
+      }
+
+      this.logger.log(
+        `Synced ${visibleCampaigns.length} visible campaigns for account ${acct.name} (fetched ${campaigns.length} from Meta)`,
+      );
     }
 
     // Log activity
@@ -264,7 +286,10 @@ export class SyncService implements OnModuleInit {
 
   private async fetchCampaigns(accountId: string, accessToken: string): Promise<FBCampaign[]> {
     const allCampaigns: FBCampaign[] = [];
-    let url = `${this.baseUrl}/act_${accountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget&limit=100&access_token=${accessToken}`;
+    const filtering = encodeURIComponent(fbCampaignListFilteringParam());
+    let url =
+      `${this.baseUrl}/act_${accountId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget` +
+      `&filtering=${filtering}&limit=100&access_token=${accessToken}`;
 
     while (url) {
       try {
