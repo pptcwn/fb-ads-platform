@@ -366,7 +366,9 @@ export class FacebookService implements OnModuleInit {
         objective,
         status,
         access_token: accessToken,
-        special_ad_categories: 'NONE',
+        buying_type: 'AUCTION',
+        /** Required — empty JSON array when not using a special category (not "NONE"). */
+        special_ad_categories: '[]',
       });
       if (dailyBudget != null && dailyBudget > 0) {
         params.set('daily_budget', String(Math.round(dailyBudget * 100)));
@@ -378,9 +380,11 @@ export class FacebookService implements OnModuleInit {
       );
       return data;
     } catch (err: any) {
-      this.logger.error('Failed to create campaign', err?.response?.data || err.message);
-      const detail = err?.response?.data?.error?.message || err.message;
-      throw new InternalServerErrorException(`Failed to create campaign on Facebook: ${detail}`);
+      const fbErr = err?.response?.data?.error;
+      this.logger.error('Failed to create campaign', fbErr || err.message);
+      const detail = fbErr?.error_user_msg || fbErr?.message || err.message;
+      const sub = fbErr?.error_subcode ? ` (subcode ${fbErr.error_subcode})` : '';
+      throw new InternalServerErrorException(`Failed to create campaign on Facebook: ${detail}${sub}`);
     }
   }
 
@@ -388,7 +392,7 @@ export class FacebookService implements OnModuleInit {
     adAccountId: string,
     campaignId: string,
     name: string,
-    dailyBudget: number,
+    dailyBudget: number | null,
     optimizationGoal: string,
     billingEvent: string,
     bidAmount: number | null,
@@ -401,7 +405,6 @@ export class FacebookService implements OnModuleInit {
       const params = new URLSearchParams({
         name,
         campaign_id: campaignId,
-        daily_budget: String(Math.round(dailyBudget * 100)),
         optimization_goal: optimizationGoal,
         billing_event: billingEvent,
         targeting: JSON.stringify(targeting),
@@ -409,6 +412,10 @@ export class FacebookService implements OnModuleInit {
         access_token: accessToken,
         bid_strategy: normalizeBidStrategy(bidStrategy),
       });
+      /** Omit when campaign uses CBO (daily_budget on campaign). */
+      if (dailyBudget != null && dailyBudget > 0) {
+        params.set('daily_budget', String(Math.round(dailyBudget * 100)));
+      }
       if (bidAmount) params.set('bid_amount', String(Math.round(bidAmount * 100)));
       const { data } = await firstValueFrom(
         this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/adsets`, params.toString(), {

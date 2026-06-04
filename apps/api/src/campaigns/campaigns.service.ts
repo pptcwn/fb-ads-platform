@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { normalizeCampaignObjective } from '../common/campaign-objective';
 import { resolveAdSetDelivery } from '../common/ad-set-delivery';
 import { DEFAULT_FB_BID_STRATEGY, fbAdAccountActId } from '../common/facebook-api.config';
 import { sanitizeTargetingForGraph } from '../common/targeting-graph.util';
@@ -72,20 +73,21 @@ export class CampaignsService {
     try {
       const willCreateAdSet = !!dto.adSetName?.trim();
       const adSetStatus = dto.status || 'PAUSED';
+      const fbObjective = normalizeCampaignObjective(dto.objective);
 
-      // 1. Create campaign on FB (budget at ad set when creating ad set — avoids dual-budget error)
+      // 1. Campaign budget (CBO): budget on campaign; ad set omits daily_budget when willCreateAdSet
       const campaign = await this.facebookService.createCampaign(
         fbAccountId,
         dto.name,
-        dto.objective,
+        fbObjective,
         adSetStatus,
         accessToken,
-        willCreateAdSet ? null : dto.dailyBudget,
+        dto.dailyBudget,
       );
       fbCampaignId = campaign.id;
 
       // Save to local DB
-      const objectiveEnum = dto.objective.replace(/-/g, '_').toUpperCase();
+      const objectiveEnum = fbObjective;
       const savedCampaign = await this.prisma.campaign.create({
         data: {
           campaignId: campaign.id,
@@ -113,7 +115,7 @@ export class CampaignsService {
           fbAccountId,
           campaign.id,
           dto.adSetName,
-          dto.dailyBudget,
+          willCreateAdSet ? null : dto.dailyBudget,
           delivery.optimization_goal,
           delivery.billing_event,
           null,
@@ -509,10 +511,10 @@ export class CampaignsService {
     const fbCampaign = await this.facebookService.createCampaign(
       fbAccountId,
       cloneName,
-      source.objective,
+      normalizeCampaignObjective(String(source.objective)),
       'PAUSED',
       accessToken,
-      source.adsets.length > 0 ? null : Number(source.dailyBudget || 0),
+      Number(source.dailyBudget || 0),
     );
 
     // 2. Save to local DB
@@ -543,7 +545,7 @@ export class CampaignsService {
           fbAccountId,
           fbCampaign.id,
           `Copy of ${adset.name}`,
-          Number(adset.dailyBudget || source.dailyBudget || 0),
+          null,
           cloneDelivery.optimization_goal,
           cloneDelivery.billing_event,
           Number(adset.bidAmount) || null,
