@@ -10,6 +10,8 @@ import {
   isFbObjectMissingError,
   isHiddenCampaignStatus,
 } from './campaign-db-cleanup';
+import { assertCanCreateAds } from '../adaccount/adaccount.service';
+import { enrichAdAccountCapabilities } from '../adaccount/ad-account-capabilities';
 
 @Injectable()
 export class CampaignsService {
@@ -32,6 +34,7 @@ export class CampaignsService {
       where: { id: adAccountId, fbUser: { userId } },
     });
     if (!adAccount) throw new NotFoundException('Ad account not found');
+    assertCanCreateAds(adAccount);
 
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (file.mimetype && !allowed.includes(file.mimetype)) {
@@ -58,6 +61,7 @@ export class CampaignsService {
       where: { id: dto.adAccountId, fbUser: { userId } },
     });
     if (!adAccount) throw new NotFoundException('Ad account not found');
+    assertCanCreateAds(adAccount);
     const fbAccountId = adAccount.accountId.replace('act_', '');
 
     let fbCampaignId: string | null = null;
@@ -282,7 +286,19 @@ export class CampaignsService {
         },
       },
     });
-    return accounts;
+    return accounts.map((acct) => {
+      const cap = enrichAdAccountCapabilities({
+        status: acct.status,
+        disableReason: acct.disableReason,
+      });
+      return {
+        ...acct,
+        canCreateAds: cap.canCreateAds,
+        canSpendActions: cap.canSpendActions,
+        restrictionMessage: cap.restrictionMessage,
+        statusLabelTh: acct.statusLabelTh || cap.statusLabelTh,
+      };
+    });
   }
 
   async getCampaigns(adAccountId: string, userId: string) {
@@ -467,12 +483,13 @@ export class CampaignsService {
     const source = await this.prisma.campaign.findFirst({
       where: { id, adAccount: { fbUser: { userId } } },
       include: {
-        adAccount: { select: { id: true, accountId: true, currency: true } },
+        adAccount: { select: { id: true, accountId: true, currency: true, status: true, disableReason: true, name: true } },
         adsets: true,
         creativeCampaigns: { include: { creative: true } },
       },
     });
     if (!source) throw new NotFoundException('Campaign not found');
+    assertCanCreateAds(source.adAccount);
 
     const fbUser = await this.prisma.fbUser.findFirst({ where: { userId } });
     if (!fbUser) throw new NotFoundException('Facebook account not connected');

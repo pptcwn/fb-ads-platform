@@ -7,6 +7,7 @@ import { PageTransition } from '@/components/motion-wrapper';
 import { AccountProvider } from '@/contexts/account-context';
 import SidebarNav from './SidebarNav';
 import TopBar from './TopBar';
+import AccountSelectionSync from './AccountSelectionSync';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ export default function AppShell({ children, onSync, syncing }: AppShellProps) {
 
   return (
     <AccountProvider>
+      <AccountSelectionSync />
       <div className="flex min-h-screen bg-bg">
         <SidebarNav />
         <div className="flex-1 flex flex-col min-w-0 lg:pl-0">

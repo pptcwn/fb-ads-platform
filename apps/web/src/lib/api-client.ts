@@ -12,7 +12,11 @@ export interface AccountCampaign {
 }
 
 export interface AdAccountWithCampaigns {
-  id: string; name: string; currency: string; campaigns: AccountCampaign[];
+  id: string; name: string; currency: string; status?: string;
+  canCreateAds?: boolean;
+  restrictionMessage?: string | null;
+  statusLabelTh?: string | null;
+  campaigns: AccountCampaign[];
 }
 
 export const campaignsApi = {
@@ -55,10 +59,19 @@ export interface AdAccount {
   id: string; accountId: string; name: string; currency: string; timezone?: string;
   status: string; balance?: number; spentToday?: number; isWarmingUp?: boolean;
   warmupDay?: number; createdAt: string; _count?: { campaigns: number };
+  canCreateAds?: boolean;
+  canSpendActions?: boolean;
+  restrictionMessage?: string | null;
+  statusLabelTh?: string | null;
+  disableReason?: number | null;
+  accountStatusCode?: number | null;
 }
 
 export const accountsApi = {
-  list: () => api.get<AdAccount[]>('/api/adaccounts'),
+  list: (params?: { usableOnly?: boolean }) =>
+    api.get<AdAccount[]>('/api/adaccounts', {
+      params: params?.usableOnly ? { usableOnly: 'true' } : undefined,
+    }),
   campaigns: (accountId: string) =>
     api.get<Array<{ id: string; campaignId: string; name: string; status: string }>>(
       `/api/adaccounts/${accountId}/campaigns`,

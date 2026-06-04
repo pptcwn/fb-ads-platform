@@ -13,6 +13,10 @@ import { FacebookService } from '../facebook/facebook.service';
 import { FB_GRAPH_BASE_URL } from '../common/facebook-api.config';
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AccountStatus, CampaignObjective, CampaignStatus } from '@prisma/client';
+import {
+  buildStatusLabelTh,
+  mapMetaAccountStatus,
+} from '../adaccount/ad-account-capabilities';
 import { InsightsAsyncService } from '../insights/insights-async.service';
 import {
   deleteCampaignGraph,
@@ -68,18 +72,6 @@ export class SyncService implements OnModuleInit {
 
   onModuleInit() {
     setupFacebookRateLimitInterceptors(this.http.axiosRef);
-  }
-
-  private mapAccountStatus(code: number): AccountStatus {
-    switch (code) {
-      case 1: return 'ACTIVE';
-      case 2: return 'DISABLED';
-      case 3: return 'BANNED';
-      case 7: return 'DISABLED'; // pending review → disabled
-      case 9: return 'LIMITED';  // temporarily limited
-      case 100: return 'BANNED'; // permanently banned
-      default: return 'DISABLED';
-    }
   }
 
   private mapCampaignObjective(obj: string | null | undefined): CampaignObjective {
@@ -140,6 +132,10 @@ export class SyncService implements OnModuleInit {
     this.logger.log(`Fetched ${accounts.length} ad accounts for user ${userId}`);
 
     for (const acct of accounts) {
+      const status = mapMetaAccountStatus(acct.account_status);
+      const disableReason = acct.disable_reason ?? null;
+      const statusLabelTh = buildStatusLabelTh(status, disableReason);
+
       await this.prisma.adAccount.upsert({
         where: { accountId: acct.account_id },
         create: {
@@ -148,13 +144,19 @@ export class SyncService implements OnModuleInit {
           name: acct.name,
           currency: acct.currency || 'THB',
           timezone: acct.timezone_name || 'Asia/Bangkok',
-          status: this.mapAccountStatus(acct.account_status || 1),
+          status,
+          accountStatusCode: acct.account_status ?? null,
+          disableReason,
+          statusLabelTh,
           balance: acct.balance ? Number(acct.balance) / 100 : 0,
           spentToday: acct.amount_spent ? Number(acct.amount_spent) / 100 : 0,
         },
         update: {
           name: acct.name,
-          status: this.mapAccountStatus(acct.account_status || 1),
+          status,
+          accountStatusCode: acct.account_status ?? null,
+          disableReason,
+          statusLabelTh,
           currency: acct.currency || 'THB',
           timezone: acct.timezone_name || 'Asia/Bangkok',
           balance: acct.balance ? Number(acct.balance) / 100 : 0,
@@ -269,7 +271,9 @@ export class SyncService implements OnModuleInit {
 
   private async fetchAdAccounts(accessToken: string): Promise<FBAdAccount[]> {
     const allAccounts: FBAdAccount[] = [];
-    let url = `${this.baseUrl}/me/adaccounts?fields=id,account_id,name,account_status,currency,timezone_name,balance,amount_spent&limit=100&access_token=${accessToken}`;
+    let url =
+      `${this.baseUrl}/me/adaccounts?fields=id,account_id,name,account_status,disable_reason,currency,timezone_name,balance,amount_spent` +
+      `&limit=100&access_token=${accessToken}`;
 
     while (url) {
       try {

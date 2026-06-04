@@ -24,6 +24,8 @@ import { useCampaigns, useCreateCampaign, useDeleteCampaign, useCloneCampaign, u
 import { campaignsApi, templatesApi } from '@/lib/api-client';
 import { useAdSets, useToggleAdSet, useUpdateAdSetBudget } from '@/hooks/use-adsets';
 import { useAdAccounts } from '@/hooks/use-accounts';
+import { useUsableAdAccounts } from '@/hooks/use-usable-ad-accounts';
+import { canCreateAdsForAccount } from '@/lib/ad-account-utils';
 import type { AdSetItem } from '@/lib/api-client';
 
 // ─── Types ───
@@ -80,7 +82,8 @@ function CampaignsPageInner() {
 
   // ─── React Query hooks ───
   const { data: accounts = [], isLoading, error: queryError, refetch } = useCampaigns();
-  const { data: adAccounts = [] } = useAdAccounts();
+  const { data: allAdAccounts = [] } = useAdAccounts();
+  const { usable: usableAdAccounts = [] } = useUsableAdAccounts();
   const createCampaignMutation = useCreateCampaign();
   const deleteCampaignMutation = useDeleteCampaign();
   const cloneCampaignMutation = useCloneCampaign();
@@ -139,10 +142,20 @@ function CampaignsPageInner() {
   const adImageRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (adAccounts.length > 0 && !form.adAccountId) {
-      setForm(f => ({ ...f, adAccountId: adAccounts[0].id }));
+    if (usableAdAccounts.length > 0 && !form.adAccountId) {
+      setForm((f) => ({ ...f, adAccountId: usableAdAccounts[0].id }));
     }
-  }, [adAccounts, form.adAccountId]);
+  }, [usableAdAccounts, form.adAccountId]);
+
+  const selectedRestrictedAccount = useMemo(() => {
+    if (selectedAccountId === 'all') return null;
+    const acc = allAdAccounts.find((a) => a.id === selectedAccountId);
+    if (!acc || canCreateAdsForAccount(acc)) return null;
+    return acc;
+  }, [allAdAccounts, selectedAccountId]);
+
+  const canCreateInContext =
+    usableAdAccounts.length > 0 && !selectedRestrictedAccount;
 
   useEffect(() => {
     if (searchParams.get('new') === '1') router.replace('/dashboard/campaigns/create');
@@ -421,7 +434,9 @@ function CampaignsPageInner() {
       <select value={form.adAccountId} onChange={e => setForm({ ...form, adAccountId: e.target.value })}
         className={`w-full px-3 py-2 text-sm rounded-lg border bg-surface-100 text-ink transition-colors ${formErrors.adAccountId && touched.adAccountId ? 'border-danger' : 'border-surface-300'}`}>
         <option value="">Select an account...</option>
-        {adAccounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} ({a.accountId})</option>)}
+        {usableAdAccounts.map((a) => (
+          <option key={a.id} value={a.id}>{a.name} ({a.accountId})</option>
+        ))}
       </select>
       {formErrors.adAccountId && touched.adAccountId && <p className="text-danger text-xs mt-1">{formErrors.adAccountId}</p>}
     </div>
@@ -465,7 +480,16 @@ function CampaignsPageInner() {
           actions={
             <div className="flex gap-2">
               <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm disabled:opacity-50 inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> รีเฟรช</button>
-              <Link href="/dashboard/campaigns/create" className="btn-primary btn-sm inline-flex items-center gap-1"><Sparkles className="w-4 h-4" /> สร้างแคมเปญ</Link>
+              {canCreateInContext ? (
+                <Link href="/dashboard/campaigns/create" className="btn-primary btn-sm inline-flex items-center gap-1"><Sparkles className="w-4 h-4" /> สร้างแคมเปญ</Link>
+              ) : (
+                <span
+                  className="btn-primary btn-sm inline-flex items-center gap-1 opacity-50 cursor-not-allowed"
+                  title={selectedRestrictedAccount?.restrictionMessage ?? 'ไม่มีบัญชีที่ใช้งานได้'}
+                >
+                  <Sparkles className="w-4 h-4" /> สร้างแคมเปญ
+                </span>
+              )}
             </div>
           }
         >
@@ -496,6 +520,13 @@ function CampaignsPageInner() {
         ) : (
         <>
 
+        {selectedRestrictedAccount && (
+          <div className="msg-error mb-4" role="status">
+            {selectedRestrictedAccount.restrictionMessage ||
+              `บัญชี "${selectedRestrictedAccount.name}" ถูกจำกัด — ไม่สามารถสร้างแคมเปญได้ (ดูข้อมูลได้อย่างเดียว)`}
+          </div>
+        )}
+
         {msg && <div className="msg-success mb-4">{msg}<button type="button" className="float-right font-bold" onClick={() => setMsg('')} aria-label="ปิดข้อความ"><X className="w-4 h-4" aria-hidden /></button></div>}
         {displayError && <div className="msg-error mb-4">{displayError}<button type="button" className="float-right font-bold" onClick={() => { setError(''); }} aria-label="ปิดข้อความ"><X className="w-4 h-4" aria-hidden /></button></div>}
 
@@ -516,7 +547,11 @@ function CampaignsPageInner() {
             <ClipboardList className="w-8 h-8 mx-auto mb-3 text-ink-200" />
             <p className="text-lg font-medium mb-1 text-ink">No campaigns found</p>
             <p className="text-sm text-ink-300">Sync your ad accounts from the Dashboard or create a new campaign.</p>
-            <Link href="/dashboard/campaigns/create" className="btn-primary mt-4 inline-flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> สร้างแคมเปญ</Link>
+            {canCreateInContext ? (
+              <Link href="/dashboard/campaigns/create" className="btn-primary mt-4 inline-flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" /> สร้างแคมเปญ</Link>
+            ) : (
+              <p className="text-sm text-ink-200 mt-4">ไม่มีบัญชีที่พร้อมสร้างแคมเปญ — ตรวจสอบสถานะบัญชีในเมนูด้านบน</p>
+            )}
           </div>
         ) : (
           <div className="card overflow-hidden">

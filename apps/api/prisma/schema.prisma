@@ -147,6 +147,9 @@ model AdAccount {
   timezone        String         @default("Asia/Bangkok")
 
   status          AccountStatus  @default(ACTIVE)
+  accountStatusCode Int?         @map("account_status_code")
+  disableReason   Int?           @map("disable_reason")
+  statusLabelTh   String?        @map("status_label_th")
   spendCap        Decimal?       @map("spend_cap")
   dailyBudget     Decimal?       @map("daily_budget")
 

@@ -8,7 +8,7 @@ import Shell from '@/components/Shell';
 import PageLayout from '@/components/layout/PageLayout';
 import Stepper from '@/components/ui/Stepper';
 import TargetingPanel from '@/components/TargetingPanel';
-import { useAdAccounts } from '@/hooks/use-accounts';
+import { useUsableAdAccounts } from '@/hooks/use-usable-ad-accounts';
 import { useAccountContext } from '@/contexts/account-context';
 import { useCreateCampaign } from '@/hooks/use-campaigns';
 import { campaignsApi, templatesApi } from '@/lib/api-client';
@@ -34,7 +34,7 @@ function Spinner() {
 export default function CreateCampaignPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: adAccounts = [] } = useAdAccounts();
+  const { data: adAccounts = [], usable: usableAdAccounts = [] } = useUsableAdAccounts();
   const { selectedAccountId } = useAccountContext();
   const createMutation = useCreateCampaign();
 
@@ -50,12 +50,14 @@ export default function CreateCampaignPage() {
   const submitLockRef = useRef(false);
 
   useEffect(() => {
-    const id =
-      selectedAccountId !== 'all' && selectedAccountId
+    const preferred =
+      selectedAccountId !== 'all' && usableAdAccounts.some((a) => a.id === selectedAccountId)
         ? selectedAccountId
-        : adAccounts[0]?.id;
-    if (id && !form.adAccountId) setForm((f) => ({ ...f, adAccountId: id }));
-  }, [adAccounts, selectedAccountId, form.adAccountId]);
+        : usableAdAccounts[0]?.id;
+    if (preferred && form.adAccountId !== preferred) {
+      setForm((f) => ({ ...f, adAccountId: preferred }));
+    }
+  }, [usableAdAccounts, selectedAccountId, form.adAccountId]);
 
   useEffect(() => {
     api.get<{ pageId: string; name: string }[]>('/api/creatives/pages').then(({ data }) => setFbPages(data)).catch(() => setFbPages([]));
@@ -189,6 +191,12 @@ export default function CreateCampaignPage() {
         {errMsg && <div className="msg-error mb-4">{errMsg}</div>}
         {msg && <div className="msg-success mb-4">{msg}</div>}
 
+        {usableAdAccounts.length === 0 && (
+          <div className="msg-error mb-4">
+            ไม่มีบัญชีโฆษณาที่ใช้งานได้ — บัญชีที่ถูกจำกัดไม่สามารถสร้างแคมเปญได้ กรุณาแก้ไขสถานะใน Meta Business Manager แล้ว Sync ใหม่
+          </div>
+        )}
+
         <div className="card p-5 sm:p-6 mb-24 sm:mb-8 max-w-3xl">
           {step === 1 && (
             <div className="space-y-5">
@@ -202,7 +210,9 @@ export default function CreateCampaignPage() {
                 >
                   <option value="">เลือกบัญชี…</option>
                   {adAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.currency})
+                    </option>
                   ))}
                 </select>
                 {errors.adAccountId && <p className="text-danger text-xs mt-1">{errors.adAccountId}</p>}
@@ -352,7 +362,13 @@ export default function CreateCampaignPage() {
               ถัดไป <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
-            <button type="button" className="btn-primary" onClick={submit} disabled={createMutation.isPending}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={submit}
+              disabled={createMutation.isPending || usableAdAccounts.length === 0}
+              title={usableAdAccounts.length === 0 ? 'ไม่มีบัญชีที่ใช้งานได้' : undefined}
+            >
               {createMutation.isPending ? <><Spinner /> กำลังสร้าง…</> : <><Rocket className="w-4 h-4" /> เผยแพร่</>}
             </button>
           )}

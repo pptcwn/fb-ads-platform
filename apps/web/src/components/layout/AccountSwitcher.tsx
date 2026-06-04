@@ -7,14 +7,23 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  canCreateAdsForAccount,
+  partitionAccounts,
+  statusBadgeClass,
+  type AdAccountCapabilities,
+} from '@/lib/ad-account-utils';
 
 export default function AccountSwitcher() {
   const { data: accounts = [], isLoading } = useAdAccounts();
   const { selectedAccountId, setSelectedAccountId } = useAccountContext();
 
   const label = useMemoLabel(selectedAccountId, accounts, isLoading);
+  const { usable, restricted } = partitionAccounts(accounts);
 
   return (
     <DropdownMenu>
@@ -26,25 +35,45 @@ export default function AccountSwitcher() {
         <span className="truncate font-medium">{label}</span>
         <ChevronDown className="w-4 h-4 shrink-0 text-ink-200" aria-hidden />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[240px]">
+      <DropdownMenuContent align="start" className="min-w-[260px] max-h-[min(70vh,420px)] overflow-y-auto">
         <DropdownMenuItem
           onSelect={() => setSelectedAccountId('all')}
           className={selectedAccountId === 'all' ? 'bg-surface-200' : ''}
         >
           <span className="font-medium">ทุกบัญชี</span>
         </DropdownMenuItem>
-        {accounts.map((acc) => (
-          <DropdownMenuItem
-            key={acc.id}
-            onSelect={() => setSelectedAccountId(acc.id)}
-            className={selectedAccountId === acc.id ? 'bg-surface-200' : ''}
-          >
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="truncate font-medium">{acc.name}</span>
-              <span className="text-xs text-ink-200">{acc.currency}</span>
-            </div>
-          </DropdownMenuItem>
-        ))}
+
+        {usable.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-ink-200">ใช้งานได้</DropdownMenuLabel>
+            {usable.map((acc) => (
+              <AccountMenuItem
+                key={acc.id}
+                acc={acc}
+                selected={selectedAccountId === acc.id}
+                onSelect={() => setSelectedAccountId(acc.id)}
+              />
+            ))}
+          </>
+        )}
+
+        {restricted.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-ink-200">จำกัด / ปิดใช้งาน</DropdownMenuLabel>
+            {restricted.map((acc) => (
+              <AccountMenuItem
+                key={acc.id}
+                acc={acc}
+                selected={selectedAccountId === acc.id}
+                onSelect={() => setSelectedAccountId(acc.id)}
+                restricted
+              />
+            ))}
+          </>
+        )}
+
         {!isLoading && accounts.length === 0 && (
           <div className="px-2 py-2 text-xs text-ink-200">ยังไม่มีบัญชีโฆษณา</div>
         )}
@@ -53,13 +82,44 @@ export default function AccountSwitcher() {
   );
 }
 
+function AccountMenuItem({
+  acc,
+  selected,
+  onSelect,
+  restricted,
+}: {
+  acc: AdAccountCapabilities & { currency?: string };
+  selected: boolean;
+  onSelect: () => void;
+  restricted?: boolean;
+}) {
+  return (
+    <DropdownMenuItem onSelect={onSelect} className={selected ? 'bg-surface-200' : ''}>
+      <div className="flex flex-col gap-1 min-w-0 w-full">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="truncate font-medium flex-1">{acc.name}</span>
+          <span className={`badge text-[10px] shrink-0 ${statusBadgeClass(acc.status)}`}>
+            {acc.statusLabelTh || acc.status}
+          </span>
+        </div>
+        <span className="text-xs text-ink-200">{acc.currency}</span>
+        {restricted && acc.restrictionMessage && (
+          <span className="text-[11px] text-warning leading-snug">{acc.restrictionMessage}</span>
+        )}
+      </div>
+    </DropdownMenuItem>
+  );
+}
+
 function useMemoLabel(
   selected: AccountSelection,
-  accounts: { id: string; name: string; currency: string }[],
+  accounts: AdAccountCapabilities[],
   isLoading: boolean,
 ) {
   if (isLoading) return 'กำลังโหลด…';
   if (selected === 'all') return 'ทุกบัญชี';
   const acc = accounts.find((a) => a.id === selected);
-  return acc ? acc.name : 'เลือกบัญชี';
+  if (!acc) return 'เลือกบัญชี';
+  if (!canCreateAdsForAccount(acc)) return `${acc.name} (จำกัด)`;
+  return acc.name;
 }
