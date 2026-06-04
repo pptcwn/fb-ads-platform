@@ -358,11 +358,15 @@ function CampaignsPageInner() {
     return Object.keys(stepErrs).length === 0;
   };
 
+  const createLockRef = useRef(false);
+
   const createCampaign = async () => {
+    if (createLockRef.current || createCampaignMutation.isPending) return;
     const allErrs = validate();
     setFormErrors(allErrs);
     setTouched({ name: true, dailyBudget: true, adAccountId: true, adName: true });
     if (Object.keys(allErrs).length > 0) return;
+    createLockRef.current = true;
     setDrawerError(''); setDrawerMsg('');
     try {
       const dto: any = { adAccountId: form.adAccountId, name: form.name, objective: form.objective, dailyBudget: form.dailyBudget, status: form.status };
@@ -391,7 +395,10 @@ function CampaignsPageInner() {
       setDrawerMsg('Campaign created!');
       setTimeout(() => { setDrawerOpen(false); }, 1200);
     } catch (err: any) {
-      setDrawerError(err?.response?.data?.message || err.message);
+      const raw = err?.response?.data?.message;
+      setDrawerError(Array.isArray(raw) ? raw.join(', ') : raw || err.message || 'สร้างแคมเปญไม่สำเร็จ');
+    } finally {
+      createLockRef.current = false;
     }
   };
 

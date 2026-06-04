@@ -55,117 +55,199 @@ export class CampaignsService {
     if (!adAccount) throw new NotFoundException('Ad account not found');
     const fbAccountId = adAccount.accountId.replace('act_', '');
 
-    // 1. Create campaign on FB
-    const campaign = await this.facebookService.createCampaign(
-      fbAccountId,
-      dto.name,
-      dto.objective,
-      dto.status || 'PAUSED',
-      dto.dailyBudget,
-      accessToken,
-    );
+    let fbCampaignId: string | null = null;
+    let localCampaignId: string | null = null;
 
-    // Save to local DB
-    const objectiveEnum = dto.objective.replace(/-/g, '_').toUpperCase();
-    const savedCampaign = await this.prisma.campaign.create({
-      data: {
-        campaignId: campaign.id,
-        name: dto.name,
-        objective: objectiveEnum as any,
-        status: (dto.status || 'PAUSED') as any,
-        dailyBudget: dto.dailyBudget,
-        adAccountId: adAccount.id,
-      },
-    });
-
-    let adSetId: string | null = null;
-    let adId: string | null = null;
-
-    const targeting = dto.targeting
-      ? validateTargeting(dto.targeting)
-      : { geo_locations: { countries: ['TH'] } };
-
-    // 2. Create AdSet (optional)
-    if (dto.adSetName) {
-      const adSet = await this.facebookService.createAdSet(
+    try {
+      // 1. Create campaign on FB
+      const campaign = await this.facebookService.createCampaign(
         fbAccountId,
-        campaign.id,
-        dto.adSetName,
-        dto.dailyBudget * 0.8, // 80% of campaign budget
-        dto.optimizationGoal || 'REACH',
-        dto.billingEvent || 'IMPRESSIONS',
-        null, // bidAmount — let FB use lowest cost
-        targeting,
-        'ACTIVE',
+        dto.name,
+        dto.objective,
+        dto.status || 'PAUSED',
+        dto.dailyBudget,
         accessToken,
-        'LOWEST_COST_NO_BID', // explicitly set bid strategy without bid cap
       );
+      fbCampaignId = campaign.id;
 
-      const savedAdSet = await this.prisma.adSet.create({
+      // Save to local DB
+      const objectiveEnum = dto.objective.replace(/-/g, '_').toUpperCase();
+      const savedCampaign = await this.prisma.campaign.create({
         data: {
-          adsetId: adSet.id,
-          campaignId: savedCampaign.id,
-          name: dto.adSetName,
-          status: 'ACTIVE',
-          targeting: targeting as any,
-          dailyBudget: dto.dailyBudget * 0.8,
-          optimizationGoal: dto.optimizationGoal || 'REACH',
+          campaignId: campaign.id,
+          name: dto.name,
+          objective: objectiveEnum as any,
+          status: (dto.status || 'PAUSED') as any,
+          dailyBudget: dto.dailyBudget,
+          adAccountId: adAccount.id,
         },
       });
-      adSetId = savedAdSet.id;
-    }
+      localCampaignId = savedCampaign.id;
 
-    // 3. Create Ad + Creative (optional)
-    if (dto.adName && adSetId) {
-      const savedAdSet = await this.prisma.adSet.findUnique({ where: { id: adSetId } });
-      if (savedAdSet) {
-        let pageId = dto.pageId || null;
-        if (!pageId) {
-          const pages = await this.facebookService.getStoredPages(fbUser.id);
-          if (pages.length > 0) pageId = pages[0].pageId;
-        }
+      let adSetId: string | null = null;
+      let adId: string | null = null;
 
-        const creative = await this.facebookService.createCreative(
+      const targeting = dto.targeting
+        ? validateTargeting(dto.targeting)
+        : { geo_locations: { countries: ['TH'] } };
+
+      // 2. Create AdSet (optional)
+      if (dto.adSetName) {
+        const adSet = await this.facebookService.createAdSet(
           fbAccountId,
-          pageId,
-          dto.creativeImageHash || null,
-          dto.creativeLink || 'https://example.com',
-          dto.creativeMessage || '',
-          `${dto.adName} Creative`,
-          accessToken,
-        );
-
-        const ad = await this.facebookService.createAd(
-          fbAccountId,
-          savedAdSet.adsetId,
-          creative.id,
-          dto.adName,
+          campaign.id,
+          dto.adSetName,
+          dto.dailyBudget * 0.8, // 80% of campaign budget
+          dto.optimizationGoal || 'REACH',
+          dto.billingEvent || 'IMPRESSIONS',
+          null, // bidAmount — let FB use lowest cost
+          targeting,
           'ACTIVE',
           accessToken,
+          'LOWEST_COST_NO_BID', // explicitly set bid strategy without bid cap
         );
 
-        await this.prisma.ad.create({
+        const savedAdSet = await this.prisma.adSet.create({
           data: {
-            adId: ad.id,
-            adsetId: savedAdSet.id,
-            name: dto.adName,
+            adsetId: adSet.id,
+            campaignId: savedCampaign.id,
+            name: dto.adSetName,
             status: 'ACTIVE',
-            creativeId: creative.id,
+            targeting: targeting as any,
+            dailyBudget: dto.dailyBudget * 0.8,
+            optimizationGoal: dto.optimizationGoal || 'REACH',
           },
         });
-        adId = ad.id;
+        adSetId = savedAdSet.id;
+      }
+
+      // 3. Create Ad + Creative (optional)
+      if (dto.adName && adSetId) {
+        const savedAdSet = await this.prisma.adSet.findUnique({ where: { id: adSetId } });
+        if (savedAdSet) {
+          let pageId = dto.pageId || null;
+          if (!pageId) {
+            const pages = await this.facebookService.getStoredPages(fbUser.id);
+            if (pages.length > 0) pageId = pages[0].pageId;
+          }
+
+          const creative = await this.facebookService.createCreative(
+            fbAccountId,
+            pageId,
+            dto.creativeImageHash || null,
+            dto.creativeLink || 'https://example.com',
+            dto.creativeMessage || '',
+            `${dto.adName} Creative`,
+            accessToken,
+          );
+
+          const ad = await this.facebookService.createAd(
+            fbAccountId,
+            savedAdSet.adsetId,
+            creative.id,
+            dto.adName,
+            'ACTIVE',
+            accessToken,
+          );
+
+          await this.prisma.ad.create({
+            data: {
+              adId: ad.id,
+              adsetId: savedAdSet.id,
+              name: dto.adName,
+              status: 'ACTIVE',
+              creativeId: creative.id,
+            },
+          });
+          adId = ad.id;
+        }
+      }
+
+      // Sync to get latest data (non-blocking for success response)
+      await this.syncAfterCreate(userId, adAccount);
+
+      return {
+        campaignId: campaign.id,
+        adSetId,
+        adId,
+        status: dto.status || 'PAUSED',
+      };
+    } catch (err: any) {
+      await this.rollbackFailedCreate(accessToken, fbCampaignId, localCampaignId);
+      throw this.toUserFacingCreateError(err);
+    }
+  }
+
+  /** Remove partial local + FB resources when create fails mid-flight */
+  private async rollbackFailedCreate(
+    accessToken: string,
+    fbCampaignId: string | null,
+    localCampaignId: string | null,
+  ): Promise<void> {
+    if (localCampaignId) {
+      try {
+        const camp = await this.prisma.campaign.findUnique({
+          where: { id: localCampaignId },
+          select: { id: true, campaignId: true },
+        });
+        if (camp) {
+          await this.deleteCampaignFromDb(camp.id, camp.campaignId);
+        }
+      } catch (e: any) {
+        this.logger.warn(`Rollback local campaign failed: ${e.message}`);
+      }
+    } else if (fbCampaignId) {
+      try {
+        await this.facebookService.deleteCampaign(fbCampaignId, accessToken);
+      } catch (e: any) {
+        this.logger.warn(`Rollback FB campaign ${fbCampaignId} failed: ${e.message}`);
       }
     }
+  }
 
-    // Sync to get latest data
-    await this.syncAfterCreate(userId, adAccount);
+  private toUserFacingCreateError(err: any): never {
+    if (err instanceof NotFoundException || err instanceof BadRequestException) {
+      throw err;
+    }
+    const fbMsg = err?.response?.data?.error?.message;
+    const message =
+      fbMsg ||
+      (typeof err?.message === 'string' ? err.message : null) ||
+      'สร้างแคมเปญไม่สำเร็จ — ลองอีกครั้งหรือตรวจการตั้งค่า targeting/โฆษณา';
+    throw new BadRequestException(message);
+  }
 
-    return {
-      campaignId: campaign.id,
-      adSetId,
-      adId,
-      status: dto.status || 'PAUSED',
-    };
+  /** Delete related rows so prisma.campaign.delete succeeds */
+  private async deleteCampaignFromDb(localCampaignId: string, fbCampaignId?: string): Promise<void> {
+    await this.prisma.creativeCampaign.deleteMany({ where: { campaignId: localCampaignId } });
+    await this.prisma.campaignInsight.deleteMany({ where: { campaignId: localCampaignId } });
+    await this.prisma.abTest.deleteMany({ where: { sourceCampaignId: localCampaignId } });
+    if (fbCampaignId) {
+      await this.prisma.abTestVariant.deleteMany({ where: { campaignId: fbCampaignId } });
+    }
+    await this.prisma.campaignSchedule.deleteMany({ where: { campaignId: localCampaignId } });
+
+    const adsets = await this.prisma.adSet.findMany({
+      where: { campaignId: localCampaignId },
+      select: { id: true },
+    });
+    for (const adset of adsets) {
+      await this.prisma.ad.deleteMany({ where: { adsetId: adset.id } });
+    }
+    await this.prisma.adSet.deleteMany({ where: { campaignId: localCampaignId } });
+
+    const rules = await this.prisma.rule.findMany({
+      where: { campaignId: localCampaignId },
+      select: { id: true },
+    });
+    if (rules.length > 0) {
+      await this.prisma.ruleLog.deleteMany({
+        where: { ruleId: { in: rules.map((r) => r.id) } },
+      });
+    }
+    await this.prisma.rule.deleteMany({ where: { campaignId: localCampaignId } });
+
+    await this.prisma.campaign.delete({ where: { id: localCampaignId } });
   }
 
   private async syncAfterCreate(userId: string, adAccount: any) {
@@ -301,8 +383,8 @@ export class CampaignsService {
       this.logger.warn(`Failed to delete campaign ${campaign.campaignId} from Facebook (proceeding with local delete): ${err.message}`);
     }
 
-    // Always delete from local DB
-    await this.prisma.campaign.delete({ where: { id } });
+    // Always delete from local DB (cascade children first — FK constraints)
+    await this.deleteCampaignFromDb(campaign.id, campaign.campaignId);
 
     return { message: 'Campaign deleted successfully' };
   }
@@ -365,18 +447,18 @@ export class CampaignsService {
 
     for (const campaign of campaigns) {
       try {
-        await this.facebookService.deleteCampaign(campaign.campaignId, accessToken);
-        await this.prisma.campaign.delete({ where: { id: campaign.id } });
+        try {
+          await this.facebookService.deleteCampaign(campaign.campaignId, accessToken);
+        } catch (fbErr: any) {
+          this.logger.warn(
+            `Bulk delete FB failed for ${campaign.name} (${campaign.campaignId}): ${fbErr.message}`,
+          );
+        }
+        await this.deleteCampaignFromDb(campaign.id, campaign.campaignId);
         results.push({ id: campaign.id, name: campaign.name, success: true });
       } catch (err: any) {
         this.logger.warn(`Bulk delete failed for campaign ${campaign.name} (${campaign.campaignId}): ${err.message}`);
-        // Still delete locally even if FB fails
-        try {
-          await this.prisma.campaign.delete({ where: { id: campaign.id } });
-          results.push({ id: campaign.id, name: campaign.name, success: true, error: `Local only (FB: ${err.message})` });
-        } catch (e: any) {
-          results.push({ id: campaign.id, name: campaign.name, success: false, error: err.message });
-        }
+        results.push({ id: campaign.id, name: campaign.name, success: false, error: err.message });
       }
     }
 

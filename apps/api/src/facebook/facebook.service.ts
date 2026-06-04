@@ -370,7 +370,8 @@ export class FacebookService implements OnModuleInit {
       return data;
     } catch (err: any) {
       this.logger.error('Failed to create campaign', err?.response?.data || err.message);
-      throw new InternalServerErrorException('Failed to create campaign on Facebook');
+      const detail = err?.response?.data?.error?.message || err.message;
+      throw new InternalServerErrorException(`Failed to create campaign on Facebook: ${detail}`);
     }
   }
 
@@ -408,7 +409,8 @@ export class FacebookService implements OnModuleInit {
       return data;
     } catch (err: any) {
       this.logger.error('Failed to create ad set', err?.response?.data || err.message);
-      throw new InternalServerErrorException('Failed to create ad set on Facebook');
+      const detail = err?.response?.data?.error?.message || err.message;
+      throw new InternalServerErrorException(`Failed to create ad set on Facebook: ${detail}`);
     }
   }
 

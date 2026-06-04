@@ -47,6 +47,7 @@ export default function CreateCampaignPage() {
   const [imageUploading, setImageUploading] = useState(false);
   const [fbPages, setFbPages] = useState<{ pageId: string; name: string }[]>([]);
   const adImageRef = useRef<HTMLInputElement>(null);
+  const submitLockRef = useRef(false);
 
   useEffect(() => {
     const id =
@@ -120,12 +121,14 @@ export default function CreateCampaignPage() {
   };
 
   const submit = async () => {
+    if (submitLockRef.current || createMutation.isPending) return;
     for (let s = 1; s <= 4; s++) {
       if (!validateStep(s)) {
         setStep(s);
         return;
       }
     }
+    submitLockRef.current = true;
     setErrMsg('');
     setMsg('');
     try {
@@ -154,8 +157,12 @@ export default function CreateCampaignPage() {
       setMsg('สร้างแคมเปญสำเร็จ');
       setTimeout(() => router.push('/dashboard/campaigns'), 1200);
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } }; message?: string };
-      setErrMsg(ax?.response?.data?.message || ax?.message || 'สร้างแคมเปญไม่สำเร็จ');
+      const ax = err as { response?: { data?: { message?: string | string[] } }; message?: string };
+      const raw = ax?.response?.data?.message;
+      const detail = Array.isArray(raw) ? raw.join(', ') : raw;
+      setErrMsg(detail || ax?.message || 'สร้างแคมเปญไม่สำเร็จ');
+    } finally {
+      submitLockRef.current = false;
     }
   };
 
