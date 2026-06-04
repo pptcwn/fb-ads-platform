@@ -1,15 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Bell, RefreshCw } from 'lucide-react';
 import AccountSwitcher from './AccountSwitcher';
+import { useFbStatus, useTriggerSync } from '@/hooks/use-dashboard';
 
-interface TopBarProps {
-  onSync?: () => void;
-  syncing?: boolean;
-}
+export default function TopBar() {
+  const pathname = usePathname();
+  const { data: fbStatus } = useFbStatus();
+  const triggerSync = useTriggerSync();
+  const showOverviewSync = pathname === '/dashboard' && !!fbStatus?.connected;
 
-export default function TopBar({ onSync, syncing }: TopBarProps) {
   return (
     <header
       className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-surface-300 bg-surface-50/95 backdrop-blur-sm"
@@ -17,15 +19,15 @@ export default function TopBar({ onSync, syncing }: TopBarProps) {
     >
       <AccountSwitcher />
       <div className="flex items-center gap-2">
-        {onSync && (
+        {showOverviewSync && (
           <button
             type="button"
-            onClick={onSync}
-            disabled={syncing}
+            onClick={() => triggerSync.mutate()}
+            disabled={triggerSync.isPending}
             className="btn-secondary btn-sm"
             aria-label="ซิงค์ข้อมูลจาก Meta"
           >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden />
+            <RefreshCw className={`w-4 h-4 ${triggerSync.isPending ? 'animate-spin' : ''}`} aria-hidden />
             <span className="hidden sm:inline">ซิงค์</span>
           </button>
         )}

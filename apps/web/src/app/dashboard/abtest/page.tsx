@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { abtestApi, campaignsApi } from '@/lib/api-client';
-import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import { ConfirmModal } from '@/components/Modal';
@@ -185,16 +184,14 @@ export default function AbTestPage() {
   };
 
   if (loading) return (
-    <Shell>
-      <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">กำลังโหลดทดสอบ A/B…</p>
       </div>
-    </Shell>
-  );
+    );
 
   return (
-    <Shell>
-      <div className="p-6 space-y-6">
+    <>
+    <div className="space-y-6">
         <PageHeader
           title={<><GitBranch className="w-4 h-4" aria-hidden /> ทดสอบ A/B</>}
           subtitle={tests.length > 0 ? `${tests.length} รายการทดสอบ` : undefined}
@@ -395,6 +392,6 @@ export default function AbTestPage() {
         icon={<Trash2 className="w-4 h-4" />}
         danger
       />
-    </Shell>
-  );
+    </>
+    );
 }

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ShieldCheck, Check, X } from 'lucide-react';
-import Shell from '@/components/Shell';
 import PageHeader from '@/components/PageHeader';
 import api from '@/lib/api';
 
@@ -60,8 +59,7 @@ export default function ApprovalsPage() {
   };
 
   return (
-    <Shell>
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
         <PageHeader
           title={<><ShieldCheck className="w-4 h-4 inline mr-1" aria-hidden />อนุมัติอัตโนมัติ</>}
           subtitle="การเปลี่ยนงบที่เกิน guardrail รออนุมัติก่อนส่งไป Meta"
@@ -100,6 +98,5 @@ export default function ApprovalsPage() {
           </div>
         )}
       </div>
-    </Shell>
-  );
+    );
 }

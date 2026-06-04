@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart3, ChevronLeft, ChevronRight, ImagePlus, Rocket, X } from 'lucide-react';
-import Shell from '@/components/Shell';
 import PageLayout from '@/components/layout/PageLayout';
 import Stepper from '@/components/ui/Stepper';
 import TargetingPanel from '@/components/TargetingPanel';
 import { useUsableAdAccounts } from '@/hooks/use-usable-ad-accounts';
-import { useAccountContext } from '@/contexts/account-context';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import { useCreateCampaign } from '@/hooks/use-campaigns';
 import { campaignsApi, templatesApi } from '@/lib/api-client';
 import api from '@/lib/api';
@@ -35,7 +35,7 @@ export default function CreateCampaignPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: adAccounts = [], usable: usableAdAccounts = [] } = useUsableAdAccounts();
-  const { selectedAccountId } = useAccountContext();
+  const { selectedAccountId, selectedAccount, isRestricted, canCreate } = useSelectedAdAccount();
   const createMutation = useCreateCampaign();
 
   const [step, setStep] = useState(1);
@@ -50,14 +50,11 @@ export default function CreateCampaignPage() {
   const submitLockRef = useRef(false);
 
   useEffect(() => {
-    const preferred =
-      selectedAccountId !== 'all' && usableAdAccounts.some((a) => a.id === selectedAccountId)
-        ? selectedAccountId
-        : usableAdAccounts[0]?.id;
-    if (preferred && form.adAccountId !== preferred) {
-      setForm((f) => ({ ...f, adAccountId: preferred }));
+    if (!selectedAccountId) return;
+    if (form.adAccountId !== selectedAccountId) {
+      setForm((f) => ({ ...f, adAccountId: selectedAccountId }));
     }
-  }, [usableAdAccounts, selectedAccountId, form.adAccountId]);
+  }, [selectedAccountId, form.adAccountId]);
 
   useEffect(() => {
     api.get<{ pageId: string; name: string }[]>('/api/creatives/pages').then(({ data }) => setFbPages(data)).catch(() => setFbPages([]));
@@ -171,8 +168,7 @@ export default function CreateCampaignPage() {
   const accountName = adAccounts.find((a) => a.id === form.adAccountId)?.name;
 
   return (
-    <Shell>
-      <PageLayout
+    <PageLayout
         title="สร้างแคมเปญ"
         subtitle={accountName ? `บัญชี: ${accountName}` : undefined}
         breadcrumbs={[
@@ -191,9 +187,13 @@ export default function CreateCampaignPage() {
         {errMsg && <div className="msg-error mb-4">{errMsg}</div>}
         {msg && <div className="msg-success mb-4">{msg}</div>}
 
-        {usableAdAccounts.length === 0 && (
+        {isRestricted && selectedAccount && (
+          <AccountRestrictionBanner account={selectedAccount} />
+        )}
+
+        {!canCreate && !isRestricted && usableAdAccounts.length === 0 && (
           <div className="msg-error mb-4">
-            ไม่มีบัญชีโฆษณาที่ใช้งานได้ — บัญชีที่ถูกจำกัดไม่สามารถสร้างแคมเปญได้ กรุณาแก้ไขสถานะใน Meta Business Manager แล้ว Sync ใหม่
+            ไม่มีบัญชีโฆษณาที่ใช้งานได้ — กรุณาเชื่อมต่อ Meta และ Sync บัญชีก่อน
           </div>
         )}
 
@@ -202,19 +202,13 @@ export default function CreateCampaignPage() {
             <div className="space-y-5">
               <h2 className="text-lg font-semibold text-ink">① ตั้งค่าแคมเปญ</h2>
               <div>
-                <label className="block text-sm font-medium text-ink mb-1">บัญชีโฆษณา (Ad Account)</label>
-                <select
-                  value={form.adAccountId}
-                  onChange={(e) => setForm({ ...form, adAccountId: e.target.value })}
-                  className="w-full"
-                >
-                  <option value="">เลือกบัญชี…</option>
-                  {adAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.currency})
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium text-ink mb-1">บัญชีโฆษณา</label>
+                <p className="w-full px-3 py-2 text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink">
+                  {selectedAccount
+                    ? `${selectedAccount.name} (${selectedAccount.currency})`
+                    : '— เลือกบัญชีจากแถบด้านบน —'}
+                </p>
+                <p className="text-xs text-ink-300 mt-1">เปลี่ยนบัญชีได้จากตัวเลือกด้านบนของหน้าจอ</p>
                 {errors.adAccountId && <p className="text-danger text-xs mt-1">{errors.adAccountId}</p>}
               </div>
               <div>
@@ -366,14 +360,13 @@ export default function CreateCampaignPage() {
               type="button"
               className="btn-primary"
               onClick={submit}
-              disabled={createMutation.isPending || usableAdAccounts.length === 0}
-              title={usableAdAccounts.length === 0 ? 'ไม่มีบัญชีที่ใช้งานได้' : undefined}
+              disabled={createMutation.isPending || !canCreate}
+              title={!canCreate ? (selectedAccount?.restrictionMessage ?? 'บัญชีนี้ไม่สามารถสร้างแคมเปญได้') : undefined}
             >
               {createMutation.isPending ? <><Spinner /> กำลังสร้าง…</> : <><Rocket className="w-4 h-4" /> เผยแพร่</>}
             </button>
           )}
         </div>
       </PageLayout>
-    </Shell>
-  );
+    );
 }

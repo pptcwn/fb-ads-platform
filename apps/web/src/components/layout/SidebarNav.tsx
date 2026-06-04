@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Megaphone,
@@ -19,7 +19,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface NavItem {
   label: string;
@@ -65,9 +65,21 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
+
+  const handleNavClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, href: string, exact: boolean, active: boolean) => {
+      onNavigate?.();
+      if (!active) return;
+      e.preventDefault();
+      router.refresh();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [onNavigate, router],
+  );
 
   return (
     <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5" aria-label="เมนูหลัก">
@@ -83,7 +95,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={onNavigate}
+                onClick={(e) => handleNavClick(e, item.href, item.exact, active)}
                 aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent ${
                   active
@@ -104,6 +116,20 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function SidebarNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   return (
     <>
@@ -126,7 +152,7 @@ export default function SidebarNav() {
 
       <aside
         className={`fixed lg:sticky top-0 z-40 lg:z-auto w-56 shrink-0 h-screen flex flex-col bg-surface-50 border-r border-surface-300 transition-transform duration-200 ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          mobileOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full lg:translate-x-0 pointer-events-none lg:pointer-events-auto'
         }`}
         role="navigation"
         aria-label="เมนูด้านข้าง"

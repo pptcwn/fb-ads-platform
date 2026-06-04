@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import { campaignsApi, schedulesApi } from '@/lib/api-client';
 import { Calendar, Plus, Pencil, Trash2, Clock, RefreshCw, AlertTriangle, StopCircle, Play, Timer, Save, X } from 'lucide-react';
-import Shell from '@/components/Shell';
 import AutomationLayout from '@/components/layout/AutomationLayout';
 import { ConfirmModal } from '@/components/Modal';
 
-interface Campaign { id: string; campaignId: string; name: string; status: string; objective: string; }
+interface CampaignOption { id: string; campaignId: string; name: string; status: string; objective: string; accountId: string; }
 interface Schedule {
   id: string;
   campaignId: string;
@@ -42,7 +43,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -57,9 +58,35 @@ export default function SchedulesPage() {
   const [formBusy, setFormBusy] = useState(false);
 
   const [deleteConfirm, setDeleteConfirm] = useState<Schedule | null>(null);
+  const { selectedAccountId, selectedAccount, canCreate, isRestricted } = useSelectedAdAccount();
+
+  const scopedCampaigns = useMemo(
+    () => (selectedAccountId ? campaigns.filter((c) => c.accountId === selectedAccountId) : []),
+    [campaigns, selectedAccountId],
+  );
+
+  const scopedCampaignIds = useMemo(
+    () => new Set(scopedCampaigns.map((c) => c.id)),
+    [scopedCampaigns],
+  );
+
+  const scopedSchedules = useMemo(() => {
+    if (!selectedAccountId) return [];
+    return schedules.filter((s) => scopedCampaignIds.has(s.campaignId));
+  }, [schedules, selectedAccountId, scopedCampaignIds]);
+
+  useEffect(() => {
+    if (
+      selectedScheduleId &&
+      selectedScheduleId !== 'new' &&
+      !scopedSchedules.some((s) => s.id === selectedScheduleId)
+    ) {
+      setSelectedScheduleId(null);
+    }
+  }, [scopedSchedules, selectedScheduleId]);
 
   const selectedSchedule = selectedScheduleId && selectedScheduleId !== 'new'
-    ? schedules.find((s) => s.id === selectedScheduleId)
+    ? scopedSchedules.find((s) => s.id === selectedScheduleId)
     : null;
 
   useEffect(() => {
@@ -74,8 +101,15 @@ export default function SchedulesPage() {
         campaignsApi.list().catch(() => ({ data: [] })),
       ]);
       setSchedules(schRes.data);
-      const flat: Campaign[] = (acctRes.data || []).flatMap((acct: { campaigns?: Campaign[] }) =>
-        (acct.campaigns || []).map((c) => ({ ...c })),
+      const flat: CampaignOption[] = (acctRes.data || []).flatMap((acct) =>
+        (acct.campaigns || []).map((c) => ({
+          id: c.id,
+          campaignId: c.campaignId ?? c.id,
+          name: c.name,
+          status: c.status,
+          objective: c.objective,
+          accountId: acct.id,
+        })),
       );
       setCampaigns(flat);
     } catch { setError('Failed to load data'); }
@@ -186,7 +220,7 @@ export default function SchedulesPage() {
           <select value={form.campaignId} onChange={e => setForm({...form, campaignId: e.target.value})}
             className="w-full bg-surface-50 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink">
             <option value="">เลือกแคมเปญ...</option>
-            {campaigns.map(c => (
+            {scopedCampaigns.map(c => (
               <option key={c.id} value={c.id}>{c.name} ({c.status})</option>
             ))}
           </select>
@@ -273,33 +307,43 @@ export default function SchedulesPage() {
   );
 
   if (loading) return (
-    <Shell>
-      <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">Loading schedules...</p>
       </div>
-    </Shell>
-  );
+    );
 
   return (
-    <Shell>
-      {msg && <div className="msg-success mb-4">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
+    <>
+    {msg && <div className="msg-success mb-4">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
       {error && <div className="msg-error mb-4">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
+
+      {isRestricted && selectedAccount && (
+        <AccountRestrictionBanner account={selectedAccount} className="mx-6 mb-4" />
+      )}
 
       <AutomationLayout
         title="ตารางเวลา"
-        subtitle={`${schedules.length} รายการ`}
+        subtitle={
+          selectedAccount
+            ? `${scopedSchedules.length} รายการ · ${selectedAccount.name}`
+            : `${scopedSchedules.length} รายการ`
+        }
         selectedId={selectedScheduleId}
         actions={
-          <button onClick={openCreate} className="btn-primary btn-sm inline-flex items-center gap-1">
+          <button
+            onClick={openCreate}
+            disabled={!canCreate || scopedCampaigns.length === 0}
+            className="btn-primary btn-sm inline-flex items-center gap-1 disabled:opacity-50"
+          >
             <Plus className="w-4 h-4" /> สร้างใหม่
           </button>
         }
         list={
-          schedules.length === 0 ? (
-            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีตารางเวลา</p>
+          scopedSchedules.length === 0 ? (
+            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีตารางเวลาในบัญชีนี้</p>
           ) : (
             <div className="space-y-1">
-              {schedules.map(s => (
+              {scopedSchedules.map(s => (
                 <div
                   key={s.id}
                   className={`flex items-stretch gap-1 rounded-lg transition-colors ${
@@ -372,6 +416,6 @@ export default function SchedulesPage() {
         confirmLabel="ลบ"
         danger
       />
-    </Shell>
-  );
+    </>
+    );
 }

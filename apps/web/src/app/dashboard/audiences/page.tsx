@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, type ReactNode } from 'react';
+import { useState, useRef, useMemo, useEffect, type ReactNode } from 'react';
 import { Target, Users, Save, Plus, RefreshCw, Trash2, Folder, BarChart3, Upload, X, FileText, Check, AlertTriangle, Ban } from 'lucide-react';
-import Shell from '@/components/Shell';
 import PageLayout from '@/components/layout/PageLayout';
 import Modal, { ConfirmModal } from '@/components/Modal';
 import { useAudiences, useCreateCustomAudience, useCreateLookalikeAudience, useDeleteAudience, useSyncAudiences, useUploadAudienceCsv } from '@/hooks/use-audiences';
-import { useAdAccounts } from '@/hooks/use-accounts';
+import { useSelectedAdAccount, filterBySelectedAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import type { Audience } from '@/lib/api-client';
 
 const fmtNum = (n: number | null) => n ? (n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toLocaleString()) : '-';
@@ -26,7 +26,7 @@ const RATIO_OPTIONS = [1, 2, 3, 5, 10];
 export default function AudiencesPage() {
   // ─── React Query ───
   const { data: audiences = [], isLoading, refetch } = useAudiences();
-  const { data: accounts = [] } = useAdAccounts();
+  const { selectedAccountId, selectedAccount, canCreate, isRestricted } = useSelectedAdAccount();
   const createCustom = useCreateCustomAudience();
   const createLookalike = useCreateLookalikeAudience();
   const deleteAudienceMutation = useDeleteAudience();
@@ -54,7 +54,24 @@ export default function AudiencesPage() {
   const [pdpaConsent, setPdpaConsent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedAudience = selectedId ? audiences.find((a) => a.id === selectedId) : null;
+  const scopedAudiences = useMemo(
+    () => filterBySelectedAccount(audiences, selectedAccountId),
+    [audiences, selectedAccountId],
+  );
+
+  useEffect(() => {
+    if (!selectedAccountId) return;
+    setCustomForm((f) => (f.adAccountId === selectedAccountId ? f : { ...f, adAccountId: selectedAccountId }));
+    setLookalikeForm((f) => (f.adAccountId === selectedAccountId ? f : { ...f, adAccountId: selectedAccountId }));
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    if (selectedId && !scopedAudiences.some((a) => a.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [scopedAudiences, selectedId]);
+
+  const selectedAudience = selectedId ? scopedAudiences.find((a) => a.id === selectedId) : null;
   const showDetailMobile = selectedId != null;
 
   // ─── Mutations ───
@@ -177,35 +194,53 @@ export default function AudiencesPage() {
   };
 
   // ─── Derived ───
-  const sourceAudiences = audiences.filter(a =>
-    a.type === 'CUSTOM' && a.status === 'READY' &&
-    (lookalikeForm.adAccountId ? a.adAccountId === lookalikeForm.adAccountId : true)
+  const sourceAudiences = scopedAudiences.filter(
+    (a) => a.type === 'CUSTOM' && a.status === 'READY',
   );
 
   if (isLoading) return (
-    <Shell>
-      <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">กำลังโหลดกลุ่มเป้าหมาย...</p>
       </div>
-    </Shell>
-  );
+    );
 
   return (
-    <Shell>
-      <div className="p-6">
+    <>
         <PageLayout
           title="กลุ่มเป้าหมาย"
-          subtitle={`${audiences.length} กลุ่ม`}
+          subtitle={
+            selectedAccount
+              ? `${scopedAudiences.length} กลุ่ม · ${selectedAccount.name}`
+              : `${scopedAudiences.length} กลุ่ม`
+          }
           actions={
             <>
-              <button onClick={() => setShowCustomModal(true)} className="btn-primary btn-sm inline-flex items-center gap-1"><Plus className="w-4 h-4" /> Custom</button>
-              <button onClick={() => setShowLookalikeModal(true)} className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg inline-flex items-center gap-1"><Users className="w-4 h-4" /> Lookalike</button>
+              <button
+                onClick={() => setShowCustomModal(true)}
+                disabled={!canCreate}
+                title={!canCreate ? selectedAccount?.restrictionMessage ?? undefined : undefined}
+                className="btn-primary btn-sm inline-flex items-center gap-1 disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4" /> Custom
+              </button>
+              <button
+                onClick={() => setShowLookalikeModal(true)}
+                disabled={!canCreate}
+                title={!canCreate ? selectedAccount?.restrictionMessage ?? undefined : undefined}
+                className="btn bg-purple-600 text-white hover:bg-purple-700 btn-sm rounded-lg inline-flex items-center gap-1 disabled:opacity-50"
+              >
+                <Users className="w-4 h-4" /> Lookalike
+              </button>
               <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> รีเฟรช</button>
             </>
           }
         >
           {msg && <div className="msg-success">{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
           {error && <div className="msg-error">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
+
+          {isRestricted && selectedAccount && (
+            <AccountRestrictionBanner account={selectedAccount} />
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 min-h-[480px]">
             {/* Left: list */}
@@ -214,7 +249,7 @@ export default function AudiencesPage() {
                 showDetailMobile ? 'hidden lg:block' : 'block'
               }`}
             >
-              {audiences.length === 0 ? (
+              {scopedAudiences.length === 0 ? (
                 <div className="text-center py-8">
                   <Target className="w-10 h-10 mx-auto mb-2 text-ink-200" />
                   <p className="text-sm font-medium text-ink">ยังไม่มีกลุ่มเป้าหมาย</p>
@@ -222,7 +257,7 @@ export default function AudiencesPage() {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {audiences.map((a) => (
+                  {scopedAudiences.map((a) => (
                     <button
                       key={a.id}
                       type="button"
@@ -327,23 +362,7 @@ export default function AudiencesPage() {
                     </button>
                   </div>
 
-                  {accounts.length > 1 && (
-                    <div className="mt-6 pt-4 border-t border-surface-300">
-                      <p className="text-xs text-ink-300 mb-2">ซิงค์บัญชีอื่น</p>
-                      <div className="flex flex-wrap gap-2">
-                        {accounts.filter((acc) => acc.id !== selectedAudience.adAccountId).map((acc) => (
-                          <button
-                            key={acc.id}
-                            onClick={() => handleSync(acc.id)}
-                            disabled={syncAudiencesMutation.isPending}
-                            className="btn-secondary btn-xs"
-                          >
-                            {syncAudiencesMutation.isPending ? '⟳...' : `⟳ ${acc.name}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center min-h-[320px] text-center text-ink-300">
@@ -355,18 +374,15 @@ export default function AudiencesPage() {
             </div>
           </div>
         </PageLayout>
-      </div>
 
       {/* ─── Create Custom ─── */}
       <Modal open={showCustomModal} onClose={() => setShowCustomModal(false)} title="Create Custom Audience" icon={<Target className="w-4 h-4" />}>
         <div className="space-y-3">
           <div>
             <label className="block text-xs text-ink-300 mb-1">Ad Account</label>
-            <select value={customForm.adAccountId} onChange={e => setCustomForm({...customForm, adAccountId: e.target.value})}
-              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink">
-              <option value="">Select account...</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <p className="w-full bg-surface-100 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink">
+              {selectedAccount?.name ?? '—'}
+            </p>
           </div>
           <div>
             <label className="block text-xs text-ink-300 mb-1">Audience Name</label>
@@ -394,11 +410,9 @@ export default function AudiencesPage() {
         <div className="space-y-3">
           <div>
             <label className="block text-xs text-ink-300 mb-1">Ad Account</label>
-            <select value={lookalikeForm.adAccountId} onChange={e => setLookalikeForm({...lookalikeForm, adAccountId: e.target.value})}
-              className="w-full bg-surface-50 px-3 py-2 text-sm text-ink">
-              <option value="">Select account...</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <p className="w-full bg-surface-100 border border-surface-200 rounded-lg px-3 py-2 text-sm text-ink">
+              {selectedAccount?.name ?? '—'}
+            </p>
           </div>
           <div>
             <label className="block text-xs text-ink-300 mb-1">Source Audience</label>
@@ -569,6 +583,6 @@ export default function AudiencesPage() {
           )}
         </div>
       </Modal>
-    </Shell>
-  );
+    </>
+    );
 }

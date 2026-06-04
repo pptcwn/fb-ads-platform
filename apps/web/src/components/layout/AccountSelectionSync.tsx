@@ -4,23 +4,25 @@ import { useEffect } from 'react';
 import { useAdAccounts } from '@/hooks/use-accounts';
 import { useAccountContext } from '@/contexts/account-context';
 import { canCreateAdsForAccount } from '@/lib/ad-account-utils';
+import { isLegacyAllSelection } from '@/hooks/use-selected-ad-account';
 
-/** Reset stored selection if it points at a restricted account (read-only is ok for "all"). */
+/** Ensure a concrete ad account is always selected (including restricted — read-only). */
 export default function AccountSelectionSync() {
   const { data: accounts = [] } = useAdAccounts();
   const { selectedAccountId, setSelectedAccountId } = useAccountContext();
 
   useEffect(() => {
-    if (selectedAccountId === 'all') return;
-    const selected = accounts.find((a) => a.id === selectedAccountId);
-    if (!selected) {
-      const firstUsable = accounts.find((a) => canCreateAdsForAccount(a));
-      setSelectedAccountId(firstUsable?.id ?? 'all');
-      return;
-    }
-    if (!canCreateAdsForAccount(selected)) {
-      setSelectedAccountId('all');
-    }
+    if (accounts.length === 0) return;
+
+    const valid =
+      !isLegacyAllSelection(selectedAccountId) &&
+      accounts.some((a) => a.id === selectedAccountId);
+
+    if (valid) return;
+
+    const preferred =
+      accounts.find((a) => canCreateAdsForAccount(a)) ?? accounts[0];
+    if (preferred) setSelectedAccountId(preferred.id);
   }, [accounts, selectedAccountId, setSelectedAccountId]);
 
   return null;

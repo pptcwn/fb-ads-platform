@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import { accountsApi, rulesApi } from '@/lib/api-client';
 import { Zap, TrendingUp, TrendingDown, Bell, Pencil, Timer, Hourglass, ClipboardList, Target, RefreshCw, Trash2, Save, X } from 'lucide-react';
-import Shell from '@/components/Shell';
 import AutomationLayout from '@/components/layout/AutomationLayout';
 import { ConfirmModal } from '@/components/Modal';
 
@@ -71,8 +72,8 @@ export default function RulesPage() {
   const [editId, setEditId] = useState<string | null>(null);
 
   // Campaigns / accounts for dropdowns
-  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
-  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string; accountId: string }[]>([]);
+  const { selectedAccountId, selectedAccount, canCreate, isRestricted } = useSelectedAdAccount();
   const [showLogs, setShowLogs] = useState<string | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -92,7 +93,6 @@ export default function RulesPage() {
         accountsApi.list().catch(() => ({ data: [] })),
       ]);
       setRules(rulesRes.data);
-      setAccounts(acctsRes.data);
 
       const allCamps: { id: string; name: string; accountId: string }[] = [];
       for (const acct of acctsRes.data) {
@@ -181,10 +181,6 @@ export default function RulesPage() {
     setSelectedRuleId('new');
   };
 
-  const selectedRule = selectedRuleId && selectedRuleId !== 'new'
-    ? rules.find((r) => r.id === selectedRuleId)
-    : null;
-
   const viewLogs = async (ruleId: string) => {
     setShowLogs(ruleId);
     setLoadingLogs(true);
@@ -219,6 +215,40 @@ export default function RulesPage() {
     setForm({ ...form, conditions: form.conditions.filter((_, idx) => idx !== i) });
   };
 
+  const scopedCampaigns = useMemo(
+    () => (selectedAccountId ? campaigns.filter((c) => c.accountId === selectedAccountId) : []),
+    [campaigns, selectedAccountId],
+  );
+
+  const scopedCampaignIds = useMemo(
+    () => new Set(scopedCampaigns.map((c) => c.id)),
+    [scopedCampaigns],
+  );
+
+  const scopedRules = useMemo(() => {
+    if (!selectedAccountId) return [];
+    return rules.filter((r) => {
+      if (r.adAccount?.id) return r.adAccount.id === selectedAccountId;
+      if (r.campaign?.id) return scopedCampaignIds.has(r.campaign.id);
+      return false;
+    });
+  }, [rules, selectedAccountId, scopedCampaignIds]);
+
+  useEffect(() => {
+    if (!selectedAccountId) return;
+    setForm((f) => (f.adAccountId === selectedAccountId ? f : { ...f, adAccountId: selectedAccountId }));
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    if (selectedRuleId && !scopedRules.some((r) => r.id === selectedRuleId)) {
+      setSelectedRuleId(null);
+    }
+  }, [scopedRules, selectedRuleId]);
+
+  const selectedRule = selectedRuleId && selectedRuleId !== 'new'
+    ? scopedRules.find((r) => r.id === selectedRuleId)
+    : null;
+
   const metricLabel = (key: string) => METRICS.find(m => m.key === key)?.label || key;
   const actionLabel = (key: string) => ACTIONS.find(a => a.key === key)?.label || key;
   const actionColor = (key: string) => ACTIONS.find(a => a.key === key)?.color || 'badge-ink';
@@ -226,12 +256,10 @@ export default function RulesPage() {
   const fmtDate = (d: string) => new Date(d).toLocaleString('th');
 
   if (loading) return (
-    <Shell>
-      <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">Loading rules...</p>
       </div>
-    </Shell>
-  );
+    );
 
   const ruleForm = (
     <>
@@ -258,18 +286,16 @@ export default function RulesPage() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-ink mb-1">Ad Account (optional)</label>
-                <select value={form.adAccountId} onChange={e => setForm({...form, adAccountId: e.target.value})}
-                  className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink">
-                  <option value="">All accounts</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
+                <p className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-100 text-ink">
+                  {selectedAccount?.name ?? '—'}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-ink mb-1">Campaign (optional)</label>
                 <select value={form.campaignId} onChange={e => setForm({...form, campaignId: e.target.value})}
                   className="w-full border border-surface-200 rounded-lg px-3 py-2 text-sm bg-surface-50 text-ink">
-                  <option value="">All campaigns</option>
-                  {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="">ทุกแคมเปญในบัญชีนี้</option>
+                  {scopedCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
@@ -361,25 +387,37 @@ export default function RulesPage() {
   );
 
   return (
-    <Shell>
-      {msg && <div className={`mb-4 ${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
+    <>
+    {msg && <div className={`mb-4 ${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>{msg}<button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button></div>}
       {error && <div className="msg-error mb-4">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
+
+      {isRestricted && selectedAccount && (
+        <AccountRestrictionBanner account={selectedAccount} className="mx-6 mb-4" />
+      )}
 
       <AutomationLayout
         title="กฎอัตโนมัติ"
-        subtitle={rules.length > 0 ? `${rules.length} กฎ` : undefined}
+        subtitle={
+          selectedAccount
+            ? `${scopedRules.length} กฎ · ${selectedAccount.name}`
+            : scopedRules.length > 0 ? `${scopedRules.length} กฎ` : undefined
+        }
         selectedId={selectedRuleId}
         actions={
-          <button onClick={openNewRule} className="btn-primary btn-sm inline-flex items-center gap-1">
+          <button
+            onClick={openNewRule}
+            disabled={!canCreate}
+            className="btn-primary btn-sm inline-flex items-center gap-1 disabled:opacity-50"
+          >
             + สร้างใหม่
           </button>
         }
         list={
-          rules.length === 0 ? (
-            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีกฎ</p>
+          scopedRules.length === 0 ? (
+            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีกฎในบัญชีนี้</p>
           ) : (
             <div className="space-y-1">
-              {rules.map((rule) => (
+              {scopedRules.map((rule) => (
                 <div
                   key={rule.id}
                   className={`flex items-stretch gap-1 rounded-lg transition-colors ${
@@ -486,6 +524,6 @@ export default function RulesPage() {
         icon="🗑️"
         danger
       />
-    </Shell>
-  );
+    </>
+    );
 }

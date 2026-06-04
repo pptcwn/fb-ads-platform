@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { alertsApi } from '@/lib/api-client';
-import Shell from '@/components/Shell';
 import PageLayout from '@/components/layout/PageLayout';
 import {
   Settings,
@@ -233,12 +232,10 @@ export default function NotificationsPage() {
   };
 
   if (loading) return (
-    <Shell>
-      <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">Loading notifications...</p>
       </div>
-    </Shell>
-  );
+    );
 
   const tabButtons = (
     <div className="flex gap-2 flex-wrap">
@@ -272,8 +269,7 @@ export default function NotificationsPage() {
   );
 
   return (
-    <Shell>
-      <div className="p-6">
+    <div className="p-6">
         <PageLayout
           title="การแจ้งเตือน"
           subtitle={alerts.unreadCount > 0 ? `${alerts.unreadCount} ยังไม่อ่าน` : undefined}
@@ -603,6 +599,5 @@ export default function NotificationsPage() {
           )}
         </PageLayout>
       </div>
-    </Shell>
-  );
+    );
 }

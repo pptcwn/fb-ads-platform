@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import {
   accountsApi,
   creativesApi,
@@ -8,7 +8,9 @@ import {
   type CreativeItem,
   type FbPageItem,
 } from '@/lib/api-client';
-import Shell from '@/components/Shell';
+import { useCampaigns } from '@/hooks/use-campaigns';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import PageLayout from '@/components/layout/PageLayout';
 import Modal from '@/components/Modal';
 import { Sparkles, Download, Image, Video, FileText, Copy, Camera, Megaphone, Pencil, Palette, RefreshCw } from 'lucide-react';
@@ -47,6 +49,8 @@ function imageSrc(url: string | null | undefined) {
 }
 
 export default function CreativesPage() {
+  const { selectedAccountId, selectedAccount, isRestricted } = useSelectedAdAccount();
+  const { data: campaignAccounts = [] } = useCampaigns();
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
@@ -86,7 +90,25 @@ export default function CreativesPage() {
   const [fbPublishAccountId, setFbPublishAccountId] = useState('');
   const [fbPublishing, setFbPublishing] = useState(false);
 
-  const selectedCreative = selectedId ? creatives.find((c) => c.id === selectedId) : null;
+  const accountCampaignIds = useMemo(() => {
+    const acct = campaignAccounts.find((a) => a.id === selectedAccountId);
+    return new Set((acct?.campaigns ?? []).map((c) => c.id));
+  }, [campaignAccounts, selectedAccountId]);
+
+  const scopedCreatives = useMemo(() => {
+    if (!selectedAccountId) return [];
+    return creatives.filter((c) =>
+      c.campaigns.some((link) => accountCampaignIds.has(link.campaign.id)),
+    );
+  }, [creatives, selectedAccountId, accountCampaignIds]);
+
+  useEffect(() => {
+    if (selectedId && !scopedCreatives.some((c) => c.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [scopedCreatives, selectedId]);
+
+  const selectedCreative = selectedId ? scopedCreatives.find((c) => c.id === selectedId) : null;
   const showDetailMobile = selectedId != null;
 
   // ─── Helpers ───
@@ -100,6 +122,10 @@ export default function CreativesPage() {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    if (selectedAccountId) setFbPublishAccountId(selectedAccountId);
+  }, [selectedAccountId]);
 
   const loadPages = useCallback(async () => {
     try {
@@ -282,12 +308,10 @@ export default function CreativesPage() {
   const [showPostModal, setShowPostModal] = useState<string | null>(null);
 
   if (loading) return (
-    <Shell>
-      <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">กำลังโหลด...</p>
       </div>
-    </Shell>
-  );
+    );
 
   const tabSwitcher = (
     <div className="flex gap-1 bg-surface-50 rounded-lg border border-surface-200/50 p-1">
@@ -307,11 +331,18 @@ export default function CreativesPage() {
   );
 
   return (
-    <Shell>
-      <div className="p-6">
+    <div className="p-6">
         <PageLayout
           title="ครีเอทีฟ"
-          subtitle={tab === 'creatives' ? `${creatives.length} รายการ` : 'นำเข้าโพสต์จาก Facebook Page'}
+          subtitle={
+            tab === 'creatives'
+              ? selectedAccount
+                ? `${scopedCreatives.length} รายการ · ${selectedAccount.name}`
+                : `${scopedCreatives.length} รายการ`
+              : selectedAccount
+                ? `นำเข้าโพสต์ · ${selectedAccount.name}`
+                : 'นำเข้าโพสต์จาก Facebook Page'
+          }
           actions={
             tab === 'creatives' ? (
               <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary btn-sm">
@@ -325,6 +356,10 @@ export default function CreativesPage() {
           }
         >
           <div className="mb-4">{tabSwitcher}</div>
+
+          {isRestricted && selectedAccount && tab === 'creatives' && (
+            <AccountRestrictionBanner account={selectedAccount} />
+          )}
 
           {msg && (
             <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.includes('✅') ? 'msg-success' : 'msg-error'}`}>
@@ -410,14 +445,14 @@ export default function CreativesPage() {
                   showDetailMobile ? 'hidden lg:block' : 'block'
                 }`}
               >
-                {creatives.length === 0 ? (
+                {scopedCreatives.length === 0 ? (
                   <div className="text-center py-8 text-ink-300">
                     <p className="text-sm">ยังไม่มีครีเอทีฟ</p>
                     <p className="text-xs mt-1">สร้างใหม่หรือนำเข้าจากเพจ</p>
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    {creatives.map((c) => {
+                    {scopedCreatives.map((c) => {
                       const src = imageSrc(c.imageUrl);
                       return (
                         <button
@@ -728,6 +763,5 @@ export default function CreativesPage() {
           </div>
         </Modal>
       </div>
-    </Shell>
-  );
+    );
 }

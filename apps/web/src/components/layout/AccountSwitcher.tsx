@@ -1,11 +1,11 @@
 'use client';
 
 import { ChevronDown, Layers } from 'lucide-react';
-import { useAdAccounts } from '@/hooks/use-accounts';
-import { useAccountContext, type AccountSelection } from '@/contexts/account-context';
+import { useAccountContext } from '@/contexts/account-context';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -17,12 +17,13 @@ import {
   statusBadgeClass,
   type AdAccountCapabilities,
 } from '@/lib/ad-account-utils';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
 
 export default function AccountSwitcher() {
-  const { data: accounts = [], isLoading } = useAdAccounts();
-  const { selectedAccountId, setSelectedAccountId } = useAccountContext();
+  const { accounts, isLoading, selectedAccount, setSelectedAccountId } = useSelectedAdAccount();
+  const { selectedAccountId: rawId } = useAccountContext();
 
-  const label = useMemoLabel(selectedAccountId, accounts, isLoading);
+  const label = useMemoLabel(selectedAccount, accounts, isLoading, rawId);
   const { usable, restricted } = partitionAccounts(accounts);
 
   return (
@@ -36,41 +37,35 @@ export default function AccountSwitcher() {
         <ChevronDown className="w-4 h-4 shrink-0 text-ink-200" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-[260px] max-h-[min(70vh,420px)] overflow-y-auto">
-        <DropdownMenuItem
-          onSelect={() => setSelectedAccountId('all')}
-          className={selectedAccountId === 'all' ? 'bg-surface-200' : ''}
-        >
-          <span className="font-medium">ทุกบัญชี</span>
-        </DropdownMenuItem>
-
         {usable.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
+          <DropdownMenuGroup>
             <DropdownMenuLabel className="text-xs text-ink-200">ใช้งานได้</DropdownMenuLabel>
             {usable.map((acc) => (
               <AccountMenuItem
                 key={acc.id}
                 acc={acc}
-                selected={selectedAccountId === acc.id}
+                selected={rawId === acc.id}
                 onSelect={() => setSelectedAccountId(acc.id)}
               />
             ))}
-          </>
+          </DropdownMenuGroup>
         )}
 
         {restricted.length > 0 && (
           <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-ink-200">จำกัด / ปิดใช้งาน</DropdownMenuLabel>
-            {restricted.map((acc) => (
-              <AccountMenuItem
-                key={acc.id}
-                acc={acc}
-                selected={selectedAccountId === acc.id}
-                onSelect={() => setSelectedAccountId(acc.id)}
-                restricted
-              />
-            ))}
+            {usable.length > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-xs text-ink-200">จำกัด / ปิดใช้งาน</DropdownMenuLabel>
+              {restricted.map((acc) => (
+                <AccountMenuItem
+                  key={acc.id}
+                  acc={acc}
+                  selected={rawId === acc.id}
+                  onSelect={() => setSelectedAccountId(acc.id)}
+                  restricted
+                />
+              ))}
+            </DropdownMenuGroup>
           </>
         )}
 
@@ -112,14 +107,16 @@ function AccountMenuItem({
 }
 
 function useMemoLabel(
-  selected: AccountSelection,
+  selected: AdAccountCapabilities | null,
   accounts: AdAccountCapabilities[],
   isLoading: boolean,
+  rawId: string,
 ) {
   if (isLoading) return 'กำลังโหลด…';
-  if (selected === 'all') return 'ทุกบัญชี';
-  const acc = accounts.find((a) => a.id === selected);
-  if (!acc) return 'เลือกบัญชี';
-  if (!canCreateAdsForAccount(acc)) return `${acc.name} (จำกัด)`;
-  return acc.name;
+  if (selected) {
+    if (!canCreateAdsForAccount(selected)) return `${selected.name} (จำกัด)`;
+    return selected.name;
+  }
+  if (accounts.length > 0) return 'เลือกบัญชี…';
+  return rawId ? 'บัญชีไม่พบ' : 'ยังไม่มีบัญชี';
 }

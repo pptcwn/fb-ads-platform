@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import { accountsApi, budgetSchedulesApi } from '@/lib/api-client';
 import { Timer, Pencil, Clock, RefreshCw, Trash2, Save, X } from 'lucide-react';
-import Shell from '@/components/Shell';
 import AutomationLayout from '@/components/layout/AutomationLayout';
 import { ConfirmModal } from '@/components/Modal';
 
@@ -78,9 +79,8 @@ export default function BudgetPage() {
   const [deleting, setDeleting] = useState(false);
 
   // Reference data
-  const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
-  const [filteredCampaigns, setFilteredCampaigns] = useState<CampaignOption[]>([]);
+  const { selectedAccountId, selectedAccount, canCreate, isRestricted } = useSelectedAdAccount();
 
   // Cron custom
   const [cronPreset, setCronPreset] = useState('0 * * * *');
@@ -90,13 +90,35 @@ export default function BudgetPage() {
     loadAll();
   }, []);
 
+  const scopedCampaigns = useMemo(
+    () => (selectedAccountId ? campaigns.filter((c) => c.accountId === selectedAccountId) : []),
+    [campaigns, selectedAccountId],
+  );
+
+  const scopedCampaignIds = useMemo(
+    () => new Set(scopedCampaigns.map((c) => c.id)),
+    [scopedCampaigns],
+  );
+
+  const scopedSchedules = useMemo(() => {
+    if (!selectedAccountId) return [];
+    return schedules.filter(
+      (s) =>
+        s.adAccountId === selectedAccountId ||
+        (s.campaignId != null && scopedCampaignIds.has(s.campaignId)),
+    );
+  }, [schedules, selectedAccountId, scopedCampaignIds]);
+
   useEffect(() => {
-    if (form.adAccountId) {
-      setFilteredCampaigns(campaigns.filter(c => c.accountId === form.adAccountId));
-    } else {
-      setFilteredCampaigns(campaigns);
+    if (!selectedAccountId) return;
+    setForm((f) => (f.adAccountId === selectedAccountId ? f : { ...f, adAccountId: selectedAccountId }));
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    if (selectedBudgetId && selectedBudgetId !== 'new' && !scopedSchedules.some((s) => s.id === selectedBudgetId)) {
+      setSelectedBudgetId(null);
     }
-  }, [form.adAccountId, campaigns]);
+  }, [scopedSchedules, selectedBudgetId]);
 
   const loadAll = async () => {
     try {
@@ -105,7 +127,6 @@ export default function BudgetPage() {
         accountsApi.list().catch(() => ({ data: [] })),
       ]);
       setSchedules(schedRes.data);
-      setAccounts(acctsRes.data);
 
       const allCamps: CampaignOption[] = [];
       for (const acct of acctsRes.data) {
@@ -115,7 +136,6 @@ export default function BudgetPage() {
         } catch {}
       }
       setCampaigns(allCamps);
-      setFilteredCampaigns(allCamps);
     } catch (err: any) {
       setError('Failed to load data');
     } finally {
@@ -138,7 +158,7 @@ export default function BudgetPage() {
   };
 
   const selectedBudget = selectedBudgetId && selectedBudgetId !== 'new'
-    ? schedules.find((s) => s.id === selectedBudgetId)
+    ? scopedSchedules.find((s) => s.id === selectedBudgetId)
     : null;
 
   const openNew = () => {
@@ -251,12 +271,10 @@ export default function BudgetPage() {
   };
 
   if (loading) return (
-    <Shell>
-      <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-ink-300 animate-pulse">Loading budget schedules...</p>
       </div>
-    </Shell>
-  );
+    );
 
   const budgetForm = (
     <>
@@ -293,19 +311,17 @@ export default function BudgetPage() {
         )}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-ink-300 mb-1">บัญชีโฆษณา (ไม่บังคับ)</label>
-            <select value={form.adAccountId} onChange={e => setForm({...form, adAccountId: e.target.value})}
-              className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg">
-              <option value="">ทุกบัญชี</option>
-              {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <label className="block text-xs text-ink-300 mb-1">บัญชีโฆษณา</label>
+            <p className="w-full px-3 py-2 text-sm bg-surface-100 text-ink border border-surface-200 rounded-lg">
+              {selectedAccount?.name ?? '—'}
+            </p>
           </div>
           <div>
             <label className="block text-xs text-ink-300 mb-1">แคมเปญ (ไม่บังคับ)</label>
             <select value={form.campaignId} onChange={e => setForm({...form, campaignId: e.target.value})}
               className="w-full px-3 py-2 text-sm bg-surface-50 text-ink border border-surface-200 rounded-lg">
-              <option value="">ทุกแคมเปญ</option>
-              {filteredCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="">ทุกแคมเปญในบัญชีนี้</option>
+              {scopedCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
         </div>
@@ -362,8 +378,8 @@ export default function BudgetPage() {
   );
 
   return (
-    <Shell>
-      {msg && (
+    <>
+    {msg && (
         <div className={`mb-4 ${msg.includes('✅') || msg.includes('🗑️') ? 'msg-success' : 'msg-error'}`}>
           {msg}
           <button className="float-right" onClick={() => setMsg('')}><X className="w-4 h-4" /></button>
@@ -376,19 +392,29 @@ export default function BudgetPage() {
         </div>
       )}
 
+      {isRestricted && selectedAccount && (
+        <AccountRestrictionBanner account={selectedAccount} className="mx-6 mb-4" />
+      )}
+
       <AutomationLayout
         title="งบประมาณอัตโนมัติ"
-        subtitle={schedules.length > 0 ? `${schedules.length} รายการ` : undefined}
+        subtitle={
+          selectedAccount
+            ? `${scopedSchedules.length} รายการ · ${selectedAccount.name}`
+            : scopedSchedules.length > 0 ? `${scopedSchedules.length} รายการ` : undefined
+        }
         selectedId={selectedBudgetId}
         actions={
-          <button onClick={openNew} className="btn-primary btn-sm">+ สร้างใหม่</button>
+          <button onClick={openNew} disabled={!canCreate} className="btn-primary btn-sm disabled:opacity-50">
+            + สร้างใหม่
+          </button>
         }
         list={
-          schedules.length === 0 ? (
-            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีรายการ</p>
+          scopedSchedules.length === 0 ? (
+            <p className="text-sm text-ink-300 text-center py-8">ยังไม่มีรายการในบัญชีนี้</p>
           ) : (
             <div className="space-y-1">
-              {schedules.map((s) => (
+              {scopedSchedules.map((s) => (
                 <div
                   key={s.id}
                   className={`flex items-stretch gap-1 rounded-lg transition-colors ${
@@ -463,6 +489,6 @@ export default function BudgetPage() {
         busy={deleting}
         danger
       />
-    </Shell>
-  );
+    </>
+    );
 }

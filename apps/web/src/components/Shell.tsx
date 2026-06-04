@@ -1,18 +1,10 @@
 'use client';
 
-import AppShell from './layout/AppShell';
+import type { ReactNode } from 'react';
 
-interface ShellProps {
-  children: React.ReactNode;
-  onSync?: () => void;
-  syncing?: boolean;
-}
-
-/** @deprecated Use AppShell via dashboard layout; kept for gradual migration */
-export default function Shell({ children, onSync, syncing }: ShellProps) {
-  return (
-    <AppShell onSync={onSync} syncing={syncing}>
-      {children}
-    </AppShell>
-  );
+/**
+ * @deprecated Layout is provided by `app/dashboard/layout.tsx`. Pass through children only.
+ */
+export default function Shell({ children }: { children: ReactNode }) {
+  return <>{children}</>;
 }

@@ -11,21 +11,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import api from '@/lib/api';
-import Shell from '@/components/Shell';
 import PageLayout from '@/components/layout/PageLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 import TemplatesTab from '@/components/campaigns/TemplatesTab';
-import { useAccountContext } from '@/contexts/account-context';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import Modal, { ConfirmModal } from '@/components/Modal';
 import TargetingBuilder from '@/components/TargetingBuilder';
 import { objLabel, fmtCurr, fmtPct, STATUS_COLORS } from '@/lib/utils';
 import { useCampaigns, useCreateCampaign, useDeleteCampaign, useCloneCampaign, useSaveTemplate, useBulkAction } from '@/hooks/use-campaigns';
 import { campaignsApi, templatesApi } from '@/lib/api-client';
 import { useAdSets, useToggleAdSet, useUpdateAdSetBudget } from '@/hooks/use-adsets';
-import { useAdAccounts } from '@/hooks/use-accounts';
 import { useUsableAdAccounts } from '@/hooks/use-usable-ad-accounts';
-import { canCreateAdsForAccount } from '@/lib/ad-account-utils';
 import type { AdSetItem } from '@/lib/api-client';
 
 // ─── Types ───
@@ -77,12 +75,11 @@ function Spinner() {
 function CampaignsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { selectedAccountId } = useAccountContext();
+  const { selectedAccountId, selectedAccount, isRestricted, canCreate } = useSelectedAdAccount();
   const activeTab = searchParams.get('tab') === 'templates' ? 'templates' : 'campaigns';
 
   // ─── React Query hooks ───
   const { data: accounts = [], isLoading, error: queryError, refetch } = useCampaigns();
-  const { data: allAdAccounts = [] } = useAdAccounts();
   const { usable: usableAdAccounts = [] } = useUsableAdAccounts();
   const createCampaignMutation = useCreateCampaign();
   const deleteCampaignMutation = useDeleteCampaign();
@@ -147,15 +144,7 @@ function CampaignsPageInner() {
     }
   }, [usableAdAccounts, form.adAccountId]);
 
-  const selectedRestrictedAccount = useMemo(() => {
-    if (selectedAccountId === 'all') return null;
-    const acc = allAdAccounts.find((a) => a.id === selectedAccountId);
-    if (!acc || canCreateAdsForAccount(acc)) return null;
-    return acc;
-  }, [allAdAccounts, selectedAccountId]);
-
-  const canCreateInContext =
-    usableAdAccounts.length > 0 && !selectedRestrictedAccount;
+  const canCreateInContext = canCreate && usableAdAccounts.length > 0;
 
   useEffect(() => {
     if (searchParams.get('new') === '1') router.replace('/dashboard/campaigns/create');
@@ -190,10 +179,9 @@ function CampaignsPageInner() {
   }, [searchParams]);
 
   // ─── Derived ───
-  const filteredAccounts =
-    selectedAccountId !== 'all'
-      ? accounts.filter((a) => a.id === selectedAccountId)
-      : accounts;
+  const filteredAccounts = selectedAccountId
+    ? accounts.filter((a) => a.id === selectedAccountId)
+    : [];
 
   const allCampaigns = filteredAccounts.flatMap((acct) =>
     acct.campaigns.map((camp) => ({ ...camp, _account: acct })),
@@ -464,19 +452,21 @@ function CampaignsPageInner() {
 
   if (isLoading) {
     return (
-      <Shell>
-        <div className="flex items-center justify-center py-24">
+      <div className="flex items-center justify-center py-24">
           <p className="text-ink-300 animate-pulse">Loading campaigns...</p>
         </div>
-      </Shell>
-    );
+      );
   }
 
   return (
-    <Shell>
-      <PageLayout
+    <>
+    <PageLayout
           title="แคมเปญ"
-          subtitle={`${allCampaigns.length} แคมเปญ · ${filteredAccounts.length} บัญชี`}
+          subtitle={
+            selectedAccount
+              ? `${allCampaigns.length} แคมเปญ · ${selectedAccount.name}`
+              : `${allCampaigns.length} แคมเปญ`
+          }
           actions={
             <div className="flex gap-2">
               <button onClick={() => refetch()} disabled={isLoading} className="btn-secondary btn-sm disabled:opacity-50 inline-flex items-center gap-1"><RefreshCw className="w-4 h-4" /> รีเฟรช</button>
@@ -485,7 +475,7 @@ function CampaignsPageInner() {
               ) : (
                 <span
                   className="btn-primary btn-sm inline-flex items-center gap-1 opacity-50 cursor-not-allowed"
-                  title={selectedRestrictedAccount?.restrictionMessage ?? 'ไม่มีบัญชีที่ใช้งานได้'}
+                  title={selectedAccount?.restrictionMessage ?? 'ไม่มีบัญชีที่ใช้งานได้'}
                 >
                   <Sparkles className="w-4 h-4" /> สร้างแคมเปญ
                 </span>
@@ -520,11 +510,8 @@ function CampaignsPageInner() {
         ) : (
         <>
 
-        {selectedRestrictedAccount && (
-          <div className="msg-error mb-4" role="status">
-            {selectedRestrictedAccount.restrictionMessage ||
-              `บัญชี "${selectedRestrictedAccount.name}" ถูกจำกัด — ไม่สามารถสร้างแคมเปญได้ (ดูข้อมูลได้อย่างเดียว)`}
-          </div>
+        {isRestricted && selectedAccount && (
+          <AccountRestrictionBanner account={selectedAccount} />
         )}
 
         {msg && <div className="msg-success mb-4">{msg}<button type="button" className="float-right font-bold" onClick={() => setMsg('')} aria-label="ปิดข้อความ"><X className="w-4 h-4" aria-hidden /></button></div>}
@@ -988,13 +975,13 @@ function CampaignsPageInner() {
           <button onClick={cloneCampaign} disabled={cloneCampaignMutation.isPending || !cloneName.trim()} className="btn-primary btn-sm disabled:opacity-50">{cloneCampaignMutation.isPending ? 'Cloning...' : <><Shuffle className="w-3 h-3 mr-0.5 inline" />Clone</>}</button>
         </div>
       </Modal>
-    </Shell>
-  );
+    </>
+    );
 }
 
 export default function CampaignsPage() {
   return (
-    <Suspense fallback={<Shell><div className="flex items-center justify-center py-24"><p className="text-ink-300 animate-pulse">Loading...</p></div></Shell>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-24"><p className="text-ink-300 animate-pulse">Loading...</p></div>}>
       <CampaignsPageInner />
     </Suspense>
   );

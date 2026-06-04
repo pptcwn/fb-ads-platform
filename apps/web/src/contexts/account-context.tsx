@@ -22,7 +22,7 @@ interface AccountContextValue {
 const AccountContext = createContext<AccountContextValue | null>(null);
 
 export function AccountProvider({ children }: { children: ReactNode }) {
-  const [selectedAccountId, setSelectedAccountIdState] = useState<AccountSelection>('all');
+  const [selectedAccountId, setSelectedAccountIdState] = useState<AccountSelection>('');
 
   useEffect(() => {
     try {
@@ -51,7 +51,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 }
 
 const FALLBACK: AccountContextValue = {
-  selectedAccountId: 'all',
+  selectedAccountId: '',
   setSelectedAccountId: () => {},
 };
 

@@ -3,11 +3,10 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { analyticsApi } from '@/lib/api-client';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, AreaChart, Area } from 'recharts';
-import Shell from '@/components/Shell';
 import PageLayout from '@/components/layout/PageLayout';
 import { objLabel, fmtCurr, fmtNum, daysAgo } from '@/lib/utils';
-import { useAdAccounts } from '@/hooks/use-accounts';
-import { useAccountContext } from '@/contexts/account-context';
+import { useSelectedAdAccount } from '@/hooks/use-selected-ad-account';
+import AccountRestrictionBanner from '@/components/layout/AccountRestrictionBanner';
 import { TrendingUp, DollarSign, Eye, Trophy, Building2, Calendar } from 'lucide-react';
 
 // ─── Types ───
@@ -46,14 +45,10 @@ export default function AnalyticsPage() {
   const [sortBy, setSortBy] = useState('spend');
   const [granularity, setGranularity] = useState('day');
 
-  const { data: adAccounts = [] } = useAdAccounts();
-  const { selectedAccountId, setSelectedAccountId } = useAccountContext();
+  const { selectedAccountId, selectedAccount, isRestricted } = useSelectedAdAccount();
 
-  const trendAccountId = selectedAccountId === 'all' ? undefined : selectedAccountId;
-  const selectedAccountName = useMemo(() => {
-    if (selectedAccountId === 'all') return null;
-    return adAccounts.find(a => a.id === selectedAccountId)?.name ?? null;
-  }, [adAccounts, selectedAccountId]);
+  const trendAccountId = selectedAccountId ?? undefined;
+  const selectedAccountName = selectedAccount?.name ?? null;
 
   const fetchData = useCallback(async () => {
     const from = daysAgo(range);
@@ -85,39 +80,34 @@ export default function AnalyticsPage() {
   }, [sortBy, range]);
 
   const filteredCampaigns = useMemo(() => {
-    if (!selectedAccountName) return campaigns;
-    return campaigns.filter(c => c.accountName === selectedAccountName);
+    if (!selectedAccountName) return [];
+    return campaigns.filter((c) => c.accountName === selectedAccountName);
   }, [campaigns, selectedAccountName]);
 
   const filteredAccounts = useMemo(() => {
-    if (selectedAccountId === 'all') return accounts;
-    return accounts.filter(a => a.id === selectedAccountId);
+    if (!selectedAccountId) return [];
+    return accounts.filter((a) => a.id === selectedAccountId);
   }, [accounts, selectedAccountId]);
 
   if (loading) return (
-    <Shell>
-      <div className="flex items-center justify-center py-24">
+    <div className="flex items-center justify-center py-24">
         <p className="text-ink-300 text-lg animate-pulse">Loading analytics...</p>
       </div>
-    </Shell>
-  );
+    );
 
   if (!overview?.connected) return (
-    <Shell>
-      <div className="flex items-center justify-center py-24">
+    <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <p className="text-ink text-lg mb-2">Connect your Facebook account first</p>
           <a href="/dashboard" className="text-accent hover:text-accent/80">← Back to Dashboard</a>
         </div>
       </div>
-    </Shell>
-  );
+    );
 
   const o = overview;
 
   return (
-    <Shell>
-      <div className="px-6 py-6">
+    <div className="px-6 py-6">
         <PageLayout title="Analytics">
           {/* Filter bar */}
           <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg border border-surface-300 bg-surface-50/50">
@@ -139,24 +129,16 @@ export default function AnalyticsPage() {
                 </button>
               ))}
             </div>
-            <div className="w-px h-6 bg-surface-300 hidden sm:block" aria-hidden />
-            <label className="text-xs text-ink-300">บัญชีโฆษณา</label>
-            <select
-              value={selectedAccountId}
-              onChange={e => setSelectedAccountId(e.target.value as typeof selectedAccountId)}
-              className="text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink px-3 py-1.5 min-w-[180px]"
-            >
-              <option value="all">ทุกบัญชี</option>
-              {adAccounts.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-            {selectedAccountId !== 'all' && (
-              <span className="text-xs text-ink-300">
-                กราฟตามบัญชีที่เลือก · ตารางกรองตามบัญชี
+            {selectedAccountName && (
+              <span className="text-sm font-medium text-ink truncate max-w-[240px]">
+                บัญชี: {selectedAccountName}
               </span>
             )}
           </div>
+
+          {isRestricted && selectedAccount && (
+            <AccountRestrictionBanner account={selectedAccount} className="mt-4" />
+          )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -418,6 +400,5 @@ export default function AnalyticsPage() {
         </div>
         </PageLayout>
       </div>
-    </Shell>
-  );
+    );
 }

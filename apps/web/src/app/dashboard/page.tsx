@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import Link from 'next/link';
-import Shell from '@/components/Shell';
 import PageLayout from '@/components/layout/PageLayout';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import Skeleton from '@/components/Skeleton';
@@ -145,8 +144,7 @@ export default function DashboardPage() {
 
   // ─── Loading skeleton ───
   if (fbLoading) return (
-    <Shell>
-      <PageLayout title="ภาพรวม">
+    <PageLayout title="ภาพรวม">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="card p-4 space-y-2">
@@ -156,8 +154,7 @@ export default function DashboardPage() {
         </div>
         <Skeleton variant="card" count={6} />
       </PageLayout>
-    </Shell>
-  );
+    );
 
   const checklist = [
     { done: !!fbStatus?.connected, label: 'เชื่อมต่อ Meta', href: '/dashboard' },
@@ -170,8 +167,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <Shell onSync={fbStatus?.connected ? handleSync : undefined} syncing={triggerSync.isPending}>
-      <PageLayout title="ภาพรวม" subtitle="สถานะบัญชีและ KPI หลัก">
+    <PageLayout title="ภาพรวม" subtitle="สถานะบัญชีและ KPI หลัก">
         <ConnectionBanner connected={!!fbStatus?.connected} />
 
         <div className="card p-4 mb-6">
@@ -435,6 +431,5 @@ export default function DashboardPage() {
           </div>
         )}
       </PageLayout>
-    </Shell>
-  );
+    );
 }
