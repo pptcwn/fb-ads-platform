@@ -110,18 +110,34 @@ export default function RulesPage() {
   };
 
   const saveRule = async () => {
+    if (!selectedAccountId) {
+      setMsg('❌ กรุณาเลือกบัญชีโฆษณาที่แถบด้านบนก่อนสร้างกฎ');
+      return;
+    }
+    if (!canCreate) {
+      setMsg(`❌ ${selectedAccount?.restrictionMessage ?? 'บัญชีนี้ไม่สามารถสร้างกฎได้'}`);
+      return;
+    }
+    if (!form.name.trim()) {
+      setMsg('❌ กรุณากรอกชื่อกฎ');
+      return;
+    }
+    if (form.actions.length === 0) {
+      setMsg('❌ กรุณาเลือก Action อย่างน้อย 1 รายการ');
+      return;
+    }
     try {
       const dto: any = {
-        name: form.name,
+        name: form.name.trim(),
         description: form.description || undefined,
         scope: form.scope,
         conditions: form.conditions,
         logic: form.logic,
         actions: form.actions,
         cooldownMinutes: form.cooldownMinutes,
+        adAccountId: selectedAccountId,
       };
       if (form.campaignId) dto.campaignId = form.campaignId;
-      if (form.adAccountId) dto.adAccountId = form.adAccountId;
 
       if (editId) {
         await rulesApi.update(editId, dto);
@@ -196,7 +212,9 @@ export default function RulesPage() {
       name: '', description: '', scope: 'CAMPAIGN',
       conditions: [{ metric: 'CTR', operator: 'LT', value: 1 }],
       logic: 'ALL', actions: ['NOTIFY'],
-      cooldownMinutes: 60, campaignId: '', adAccountId: '',
+      cooldownMinutes: 60,
+      campaignId: '',
+      adAccountId: selectedAccountId ?? '',
     });
   };
 
@@ -373,7 +391,12 @@ export default function RulesPage() {
             </div>
 
       <div className="flex gap-2 mt-4">
-        <button onClick={saveRule} className="btn-primary btn-sm inline-flex items-center gap-1">
+        <button
+          onClick={saveRule}
+          disabled={!selectedAccountId || !canCreate}
+          className="btn-primary btn-sm inline-flex items-center gap-1 disabled:opacity-50"
+          title={!selectedAccountId ? 'เลือกบัญชีโฆษณาก่อน' : !canCreate ? selectedAccount?.restrictionMessage ?? undefined : undefined}
+        >
           {editId ? <><Save className="w-4 h-4" /> บันทึก</> : <><Save className="w-4 h-4" /> สร้างกฎ</>}
         </button>
         {selectedRule && (
@@ -507,7 +530,13 @@ export default function RulesPage() {
             <div className="flex flex-col items-center justify-center min-h-[320px] text-center text-ink-300">
               <Zap className="w-10 h-10 mb-3 text-ink-200" />
               <p>เลือกรายการจากด้านซ้าย</p>
-              <button onClick={openNewRule} className="btn-primary btn-sm mt-4">+ สร้างใหม่</button>
+              <button
+                onClick={openNewRule}
+                disabled={!canCreate}
+                className="btn-primary btn-sm mt-4 disabled:opacity-50"
+              >
+                + สร้างใหม่
+              </button>
             </div>
           )
         }
