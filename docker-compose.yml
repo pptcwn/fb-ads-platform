@@ -56,6 +56,12 @@ services:
       dockerfile: apps/web/Dockerfile.dev 
     restart: unless-stopped
     env_file: .env
+    environment:
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+      # Next rewrites /api/* to the API container on the compose network
+      API_INTERNAL_URL: http://api:4000
+      WATCHPACK_POLLING: "true"
     volumes:
       - .:/app
       - /app/node_modules
@@ -65,6 +71,12 @@ services:
       - "3001:3000"
     depends_on:
       - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 180s
 
 volumes:
   pgdata:

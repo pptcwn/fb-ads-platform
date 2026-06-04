@@ -1,5 +1,7 @@
 FROM node:20-alpine AS base
 
+RUN apk add --no-cache wget
+
 RUN corepack enable && corepack prepare pnpm@9.1.0 --activate
 
 WORKDIR /app
@@ -16,4 +18,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["pnpm", "--filter", "web", "dev"]
+CMD ["pnpm", "--filter", "web", "exec", "next", "dev", "-H", "0.0.0.0", "-p", "3000"]
