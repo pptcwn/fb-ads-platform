@@ -42,16 +42,40 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -i ~/.ssh/deploy_key root@${{ secrets.VPS_HOST }} << 'EOF'
-            set -e
+            set -euo pipefail
             cd /root/fb-ads-platform
+
+            DEPLOY_OK=0
+            # If deploy fails after we touch containers, bring the stack back (prevents 502)
+            restore_on_failure() {
+              local code=$?
+              if [ "$DEPLOY_OK" -eq 1 ] || [ "$code" -eq 0 ]; then
+                exit "$code"
+              fi
+              echo "=== DEPLOY FAILED (exit $code) — restoring stack ==="
+              docker compose up -d postgres redis api web --remove-orphans 2>&1 || true
+              for i in 1 2 3 4 5 6; do
+                if curl -sf http://127.0.0.1:3001/ >/dev/null 2>&1; then
+                  echo "Restore: web responding on :3001"
+                  break
+                fi
+                sleep 10
+              done
+              docker compose ps -a || true
+              exit "$code"
+            }
+            trap restore_on_failure EXIT
+
             git fetch origin main
-            # VPS must match repo exactly — discard stale local edits from dev mounts
             git reset --hard origin/main
-            echo "=== Disk before cleanup ==="
+
+            echo "=== Pre-deploy health (site should stay up during build) ==="
+            curl -sf -o /dev/null http://127.0.0.1:3001/ && echo "Web OK before deploy" || echo "Web down before deploy (will start after up)"
+
+            echo "=== Disk before cleanup (no compose down — avoids 502 window) ==="
             df -h /
-            docker compose down --remove-orphans 2>/dev/null || true
             docker volume prune -f 2>/dev/null || true
-            docker system prune -af
+            docker image prune -af 2>/dev/null || true
             docker builder prune -af 2>/dev/null || true
             echo "=== Disk after cleanup ==="
             df -h /
@@ -60,13 +84,21 @@ jobs:
               echo "ERROR: Need at least 5GB free on / (have ${AVAIL}G). Prune images/volumes manually."
               exit 1
             fi
+
+            # Build while old containers still serve traffic (if running)
             docker compose build api web
-            # Seed named node_modules volumes (safe to re-run; required on first deploy after volume migration)
+
+            # Seed named node_modules volumes (idempotent)
             docker compose run --rm --no-deps -e CI=true api sh -c 'pnpm install --frozen-lockfile'
             docker compose run --rm --no-deps -e CI=true web sh -c 'pnpm install --frozen-lockfile'
-            docker compose up -d --force-recreate
+
+            # Rolling recreate: keep postgres/redis up; only replace api + web
+            docker compose up -d postgres redis
+            docker compose up -d --force-recreate api web
+
             docker compose exec -T api sh -c 'cd apps/api && npx prisma migrate deploy'
             docker compose ps
+
             echo "Waiting for API health..."
             API_OK=0
             for i in $(seq 1 30); do
@@ -82,6 +114,7 @@ jobs:
               docker compose logs api --tail 80
               exit 1
             fi
+
             echo "Waiting for Web (Next dev may take several minutes on first compile)..."
             WEB_OK=0
             for i in $(seq 1 36); do
@@ -98,4 +131,7 @@ jobs:
               docker compose ps -a
               exit 1
             fi
+
+            echo "=== Post-deploy: web + api healthy ==="
+            DEPLOY_OK=1
           EOF
