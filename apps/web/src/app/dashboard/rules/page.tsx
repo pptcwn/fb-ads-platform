@@ -73,7 +73,10 @@ export default function RulesPage() {
 
   // Campaigns / accounts for dropdowns
   const [campaigns, setCampaigns] = useState<{ id: string; name: string; accountId: string }[]>([]);
-  const { selectedAccountId, selectedAccount, canCreate, isRestricted } = useSelectedAdAccount();
+  const { selectedAccountId, selectedAccount, isRestricted } = useSelectedAdAccount();
+  /** Rules are saved in our DB — not gated on Meta campaign-creation (canCreateAds). */
+  const canManageRules =
+    !!selectedAccountId && selectedAccount != null && selectedAccount.status !== 'BANNED';
   const [showLogs, setShowLogs] = useState<string | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -114,8 +117,8 @@ export default function RulesPage() {
       setMsg('❌ กรุณาเลือกบัญชีโฆษณาที่แถบด้านบนก่อนสร้างกฎ');
       return;
     }
-    if (!canCreate) {
-      setMsg(`❌ ${selectedAccount?.restrictionMessage ?? 'บัญชีนี้ไม่สามารถสร้างกฎได้'}`);
+    if (!canManageRules) {
+      setMsg('❌ กรุณาเลือกบัญชีโฆษณาที่ใช้งานได้ (ไม่ใช่บัญชีที่ปิดถาวร)');
       return;
     }
     if (!form.name.trim()) {
@@ -248,6 +251,8 @@ export default function RulesPage() {
     return rules.filter((r) => {
       if (r.adAccount?.id) return r.adAccount.id === selectedAccountId;
       if (r.campaign?.id) return scopedCampaignIds.has(r.campaign.id);
+      // Legacy rows saved without adAccountId still belong to this user
+      if (!r.adAccount?.id && !r.campaign?.id) return true;
       return false;
     });
   }, [rules, selectedAccountId, scopedCampaignIds]);
@@ -392,10 +397,11 @@ export default function RulesPage() {
 
       <div className="flex gap-2 mt-4">
         <button
+          type="button"
           onClick={saveRule}
-          disabled={!selectedAccountId || !canCreate}
+          disabled={!canManageRules || !form.name.trim()}
           className="btn-primary btn-sm inline-flex items-center gap-1 disabled:opacity-50"
-          title={!selectedAccountId ? 'เลือกบัญชีโฆษณาก่อน' : !canCreate ? selectedAccount?.restrictionMessage ?? undefined : undefined}
+          title={!canManageRules ? 'เลือกบัญชีโฆษณาก่อน' : !form.name.trim() ? 'กรอกชื่อกฎก่อน' : undefined}
         >
           {editId ? <><Save className="w-4 h-4" /> บันทึก</> : <><Save className="w-4 h-4" /> สร้างกฎ</>}
         </button>
@@ -415,7 +421,12 @@ export default function RulesPage() {
       {error && <div className="msg-error mb-4">{error}<button className="float-right" onClick={() => setError('')}><X className="w-4 h-4" /></button></div>}
 
       {isRestricted && selectedAccount && (
-        <AccountRestrictionBanner account={selectedAccount} className="mx-6 mb-4" />
+        <div className="mx-6 mb-4 space-y-2">
+          <AccountRestrictionBanner account={selectedAccount} />
+          <p className="text-xs text-ink-300 px-1">
+            สร้างและแก้ไขกฎอัตโนมัติในระบบได้ — การ Pause / ปรับงบที่ส่งไป Meta อาจไม่ทำงานจนกว่าบัญชีจะกลับมาใช้งานได้
+          </p>
+        </div>
       )}
 
       <AutomationLayout
@@ -428,9 +439,11 @@ export default function RulesPage() {
         selectedId={selectedRuleId}
         actions={
           <button
+            type="button"
             onClick={openNewRule}
-            disabled={!canCreate}
+            disabled={!canManageRules}
             className="btn-primary btn-sm inline-flex items-center gap-1 disabled:opacity-50"
+            title={!canManageRules ? 'เลือกบัญชีโฆษณาก่อน' : undefined}
           >
             + สร้างใหม่
           </button>
@@ -531,8 +544,9 @@ export default function RulesPage() {
               <Zap className="w-10 h-10 mb-3 text-ink-200" />
               <p>เลือกรายการจากด้านซ้าย</p>
               <button
+                type="button"
                 onClick={openNewRule}
-                disabled={!canCreate}
+                disabled={!canManageRules}
                 className="btn-primary btn-sm mt-4 disabled:opacity-50"
               >
                 + สร้างใหม่
