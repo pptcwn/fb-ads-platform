@@ -59,6 +59,7 @@ export default function RulesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [msg, setMsg] = useState('');
 
   // Form state
@@ -151,6 +152,7 @@ export default function RulesPage() {
         setMsg('✅ Rule created!');
         await loadAll();
         const rule = created as Rule;
+        setIsCreating(false);
         setEditId(rule.id);
         setSelectedRuleId(rule.id);
         setForm({
@@ -186,13 +188,20 @@ export default function RulesPage() {
       await rulesApi.remove(deleteConfirm.id);
       setMsg('🗑️ Rule deleted');
       setDeleteConfirm(null);
-      if (deleteConfirm.id === selectedRuleId) setSelectedRuleId(null);
+      if (deleteConfirm.id === selectedRuleId) closeEditor();
       loadAll();
     } catch {}
     setDeleting(false);
   };
 
+  const closeEditor = () => {
+    setIsCreating(false);
+    setSelectedRuleId(null);
+    setEditId(null);
+  };
+
   const selectRule = (rule: Rule) => {
+    setIsCreating(false);
     setForm({
       name: rule.name,
       description: rule.description || '',
@@ -209,9 +218,10 @@ export default function RulesPage() {
   };
 
   const openNewRule = () => {
-    resetForm();
+    setIsCreating(true);
     setEditId(null);
-    setSelectedRuleId('new');
+    setSelectedRuleId(null);
+    resetForm();
   };
 
   const viewLogs = async (ruleId: string) => {
@@ -277,14 +287,16 @@ export default function RulesPage() {
   }, [selectedAccountId]);
 
   useEffect(() => {
-    if (!selectedRuleId || selectedRuleId === 'new') return;
+    if (!selectedRuleId) return;
     if (!scopedRules.some((r) => r.id === selectedRuleId)) {
       setSelectedRuleId(null);
       setEditId(null);
     }
   }, [scopedRules, selectedRuleId]);
 
-  const selectedRule = selectedRuleId && selectedRuleId !== 'new'
+  const showEditor = isCreating || selectedRuleId != null;
+
+  const selectedRule = selectedRuleId
     ? scopedRules.find((r) => r.id === selectedRuleId)
     : null;
 
@@ -452,7 +464,8 @@ export default function RulesPage() {
             ? `${scopedRules.length} กฎ · ${selectedAccount.name}`
             : scopedRules.length > 0 ? `${scopedRules.length} กฎ` : undefined
         }
-        selectedId={selectedRuleId}
+        selectedId={showEditor ? (selectedRuleId ?? '__create__') : null}
+        stackOnMobile={isCreating}
         actions={
           <button
             type="button"
@@ -504,11 +517,11 @@ export default function RulesPage() {
           )
         }
         detail={
-          selectedRuleId ? (
+          showEditor ? (
             <>
               <button
                 type="button"
-                onClick={() => setSelectedRuleId(null)}
+                onClick={closeEditor}
                 className="lg:hidden text-sm text-brand mb-4 inline-flex items-center gap-1"
               >
                 ← กลับ

@@ -9,8 +9,10 @@ interface AutomationLayoutProps {
   list: ReactNode;
   detail: ReactNode;
   actions?: ReactNode;
-  /** When set, mobile shows detail full-screen; list hidden until cleared */
+  /** When set, mobile shows detail; list hidden until cleared unless stackOnMobile */
   selectedId?: string | null;
+  /** Keep list visible below lg while detail is open (e.g. create form) */
+  stackOnMobile?: boolean;
 }
 
 export default function AutomationLayout({
@@ -20,15 +22,17 @@ export default function AutomationLayout({
   detail,
   actions,
   selectedId = null,
+  stackOnMobile = false,
 }: AutomationLayoutProps) {
   const showDetailMobile = selectedId != null;
+  const hideListOnMobile = showDetailMobile && !stackOnMobile;
 
   return (
     <PageLayout title={title} subtitle={subtitle} actions={actions}>
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(240px,320px)_1fr] gap-6 min-h-[480px]">
         <div
           className={`card p-3 overflow-y-auto max-h-[70vh] lg:max-h-none ${
-            showDetailMobile ? 'hidden lg:block' : 'block'
+            hideListOnMobile ? 'hidden lg:block' : 'block'
           }`}
         >
           {list}
