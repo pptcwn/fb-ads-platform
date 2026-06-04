@@ -2,7 +2,6 @@
 # PR-12: เหลือเฉพาะบรรทัด comment (#) — ไม่มี path
 
 # --- dashboard pages (12) ---
-src/app/dashboard/page.tsx
 src/app/dashboard/campaigns/page.tsx
 src/app/dashboard/campaigns/create/page.tsx
 src/app/dashboard/creatives/page.tsx

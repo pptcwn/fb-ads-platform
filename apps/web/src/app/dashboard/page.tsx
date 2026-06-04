@@ -6,8 +6,13 @@ import Link from 'next/link';
 import PageLayout from '@/components/layout/PageLayout';
 import ConnectionBanner from '@/components/ui/ConnectionBanner';
 import Skeleton from '@/components/Skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { statusBadgeVariants } from '@/components/ui/StatusBadge';
 import { toast } from '@/lib/toast';
-import { fmtCurr, fmtNum } from '@/lib/utils';
+import { cn, fmtCurr, fmtNum } from '@/lib/utils';
 import { RefreshCw, BarChart3, Link as LinkIcon, Sparkles, ClipboardList, TrendingUp, Flame, SkipForward } from 'lucide-react';
 import { useFbStatus, useFbAuthUrl, useFbDisconnect, useSyncStatus, useTriggerSync, useInsights, useSyncInsights, useDashboardSummary, useWarmupStatus, useWarmupActions } from '@/hooks/use-dashboard';
 import { useAdAccounts } from '@/hooks/use-accounts';
@@ -19,6 +24,16 @@ import { useRegisterDashboardSync } from '@/contexts/dashboard-sync-context';
 
 interface InsightRow { id: string; date: string; impressions: number; clicks: number; spend: number; conversions: number; ctr: number; cpc: number; cpm?: number; reach?: number; frequency?: number; cpa?: number; roas?: number }
 interface ChartData { date: string; spend: number; impressions: number; clicks: number; ctr: number }
+
+function syncAlertClassName(msg: string) {
+  if (msg.includes('✅')) {
+    return 'mb-4 border-success-border bg-success-muted text-success';
+  }
+  if (msg.includes('❌')) {
+    return 'mb-4 border-danger-border bg-danger-muted text-danger';
+  }
+  return 'mb-4 border-brand-border bg-brand-muted text-brand';
+}
 
 export default function DashboardPage() {
   // ─── Queries ───
@@ -151,9 +166,11 @@ export default function DashboardPage() {
     <PageLayout title="ภาพรวม">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card p-4 space-y-2">
-              <Skeleton variant="text" count={2} />
-            </div>
+            <Card key={i} size="sm">
+              <CardContent className="space-y-2 pt-4">
+                <Skeleton variant="text" count={2} />
+              </CardContent>
+            </Card>
           ))}
         </div>
         <Skeleton variant="card" count={6} />
@@ -174,21 +191,28 @@ export default function DashboardPage() {
     <PageLayout title="ภาพรวม" subtitle="สถานะบัญชีและ KPI หลัก">
         <ConnectionBanner connected={!!fbStatus?.connected} />
 
-        <div className="card p-4 mb-6">
-          <h2 className="text-sm font-semibold text-ink mb-3">เริ่มต้นใช้งาน</h2>
-          <ol className="space-y-2">
-            {checklist.map((item, i) => (
-              <li key={i} className="flex items-center gap-3 text-sm">
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${item.done ? 'bg-success-muted text-success' : 'bg-surface-200 text-ink-300'}`}>
-                  {item.done ? '✓' : i + 1}
-                </span>
-                <Link href={item.href} className={item.done ? 'text-ink-200 line-through' : 'text-ink hover:text-brand'}>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </div>
+        <Card className="mb-6">
+          <CardHeader className="pb-0">
+            <CardTitle className="text-sm font-semibold text-ink">เริ่มต้นใช้งาน</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="space-y-2">
+              {checklist.map((item, i) => (
+                <li key={i} className="flex items-center gap-3 text-sm">
+                  <span className={cn(
+                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                    item.done ? 'bg-success-muted text-success' : 'bg-surface-200 text-ink-300',
+                  )}>
+                    {item.done ? '✓' : i + 1}
+                  </span>
+                  <Link href={item.href} className={item.done ? 'text-ink-200 line-through' : 'text-ink hover:text-brand'}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
 
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           {fbStatus?.connected && (
@@ -196,53 +220,66 @@ export default function DashboardPage() {
               <span className="text-xs text-ink-300 bg-surface-100 border border-surface-300 rounded-lg px-2.5 py-1">
                 Auto-sync: campaigns ~15m · insights yesterday ~1h · 30d ~6h · UI ~1–2m
               </span>
-              <button onClick={handleSync} disabled={triggerSync.isPending}
-                className="btn-secondary btn-sm">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleSync}
+                disabled={triggerSync.isPending}
+              >
                 {triggerSync.isPending ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync now</>}
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => handleSyncInsights(insightAccountId ?? undefined)}
                 disabled={syncInsightsMutation.isPending}
-                className="btn-ghost btn-sm"
               >
                 {syncInsightsMutation.isPending ? 'Loading...' : <><BarChart3 className="w-4 h-4" /> Sync insights</>}
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
         {syncMsg && (
-          <div className={`mb-4 ${syncMsg.includes('✅') ? 'msg-success' : syncMsg.includes('❌') ? 'msg-error' : 'msg-info'}`}>
-            {syncMsg}
-          </div>
+          <Alert className={syncAlertClassName(syncMsg)}>
+            <AlertDescription>{syncMsg}</AlertDescription>
+          </Alert>
         )}
 
         {/* FB Connection */}
-        <div className="card p-5 mb-6">
-          <h3 className="text-sm font-semibold mb-4 text-ink">Facebook Connection</h3>
-          {fbStatus?.connected ? (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-brand/10 text-brand">
-                {fbStatus.data?.facebookName?.charAt(0) || '?'}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-ink">Facebook Connection</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {fbStatus?.connected ? (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-brand/10 text-brand">
+                  {fbStatus.data?.facebookName?.charAt(0) || '?'}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-ink">{fbStatus.data?.facebookName}</p>
+                  <p className="text-xs text-ink-200">{fbStatus.data?.facebookEmail || 'No email'}</p>
+                </div>
+                <Badge variant="outline" className={statusBadgeVariants({ tone: 'success' })}>
+                  Connected
+                </Badge>
+                <Button type="button" variant="ghost" size="sm" className="text-danger" onClick={handleDisconnect}>
+                  Disconnect
+                </Button>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-ink">{fbStatus.data?.facebookName}</p>
-                <p className="text-xs text-ink-200">{fbStatus.data?.facebookEmail || 'No email'}</p>
+            ) : (
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-ink-200">Connect Facebook to manage ad accounts.</p>
+                <Button type="button" size="sm" onClick={connectFacebook}>
+                  <LinkIcon className="w-4 h-4" aria-hidden /> เชื่อมต่อ Meta
+                </Button>
               </div>
-              <span className="badge-success">Connected</span>
-              <button onClick={handleDisconnect} className="btn-ghost btn-sm text-danger">
-                Disconnect
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-ink-200">Connect Facebook to manage ad accounts.</p>
-              <button onClick={connectFacebook} className="btn-primary btn-sm">
-                <LinkIcon className="w-4 h-4" aria-hidden /> เชื่อมต่อ Meta
-              </button>
-            </div>
-          )}
-        </div>
+            )}
+          </CardContent>
+        </Card>
 
         {fbStatus?.connected && (
           <>
@@ -258,10 +295,12 @@ export default function DashboardPage() {
                   { label: 'Active', value: summary.activeCampaigns.toString() },
                   { label: 'Total Spend', value: `$${fmtNum(summary.totalSpend)}` },
                 ].map(s => (
-                  <div key={s.label} className="card p-5">
-                    <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>{s.label}</p>
-                    <p className="text-2xl font-bold mt-1 text-ink">{s.value}</p>
-                  </div>
+                  <Card key={s.label}>
+                    <CardContent>
+                      <p className="text-xs text-ink-200 uppercase tracking-wider" style={{ letterSpacing: '0.05em' }}>{s.label}</p>
+                      <p className="text-2xl font-bold mt-1 text-ink">{s.value}</p>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
@@ -269,49 +308,66 @@ export default function DashboardPage() {
             {/* Quick Actions */}
             <div className="flex gap-3 mb-6 flex-wrap">
               {usableAccounts.length > 0 ? (
-                <Link href="/dashboard/campaigns/create" className="btn-primary btn-sm inline-flex items-center gap-1">
+                <Button render={<Link href="/dashboard/campaigns/create" />} size="sm" nativeButton={false}>
                   <Sparkles className="w-4 h-4" /> สร้างแคมเปญ
-                </Link>
+                </Button>
               ) : (
-                <span
-                  className="btn-primary btn-sm inline-flex items-center gap-1 opacity-50 cursor-not-allowed"
+                <Button
+                  size="sm"
+                  disabled
                   title="ไม่มีบัญชีที่ใช้งานได้ — แก้บัญชีในส่วนบัญชีต้องแก้ไขด้านบน"
                 >
                   <Sparkles className="w-4 h-4" /> สร้างแคมเปญ
-                </span>
+                </Button>
               )}
-              <a href="/dashboard/campaigns" className="btn-secondary btn-sm">
+              <Button
+                render={<Link href="/dashboard/campaigns" />}
+                variant="secondary"
+                size="sm"
+                nativeButton={false}
+              >
                 <ClipboardList className="w-4 h-4" /> View Campaigns
-              </a>
-              <button onClick={handleSync} disabled={triggerSync.isPending}
-                className="btn-secondary btn-sm disabled:opacity-50">
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleSync}
+                disabled={triggerSync.isPending}
+              >
                 {triggerSync.isPending ? 'Syncing...' : <><RefreshCw className="w-4 h-4" /> Sync Now</>}
-              </button>
+              </Button>
             </div>
 
             {/* Sync Status */}
             {syncStatus && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="card p-5">
-                  <p className="text-xs text-ink-100 uppercase tracking-wider">Ad Sets</p>
-                  <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.adsets}</p>
-                </div>
-                <div className="card p-5">
-                  <p className="text-xs text-ink-100 uppercase tracking-wider">Ads</p>
-                  <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.ads}</p>
-                </div>
+                <Card>
+                  <CardContent>
+                    <p className="text-xs text-ink-100 uppercase tracking-wider">Ad Sets</p>
+                    <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.adsets}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent>
+                    <p className="text-xs text-ink-100 uppercase tracking-wider">Ads</p>
+                    <p className="text-3xl font-bold mt-1 text-ink">{syncStatus.ads}</p>
+                  </CardContent>
+                </Card>
                 {syncStatus.lastSync && (
-                  <div className="card p-5 col-span-2">
-                    <p className="text-xs text-ink-100 uppercase tracking-wider">Last Sync</p>
-                    <p className="text-lg font-bold mt-1 text-ink">
-                      {new Date(syncStatus.lastSync).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
-                    {(syncStatus as { lastSyncSource?: string }).lastSyncSource && (
-                      <p className="text-[10px] text-ink-300 mt-0.5">
-                        source: {(syncStatus as { lastSyncSource?: string }).lastSyncSource}
+                  <Card className="col-span-2">
+                    <CardContent>
+                      <p className="text-xs text-ink-100 uppercase tracking-wider">Last Sync</p>
+                      <p className="text-lg font-bold mt-1 text-ink">
+                        {new Date(syncStatus.lastSync).toLocaleString('th', { dateStyle: 'medium', timeStyle: 'short' })}
                       </p>
-                    )}
-                  </div>
+                      {(syncStatus as { lastSyncSource?: string }).lastSyncSource && (
+                        <p className="text-[10px] text-ink-300 mt-0.5">
+                          source: {(syncStatus as { lastSyncSource?: string }).lastSyncSource}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             )}
@@ -345,7 +401,8 @@ export default function DashboardPage() {
               </div>
             )}
             {insights.length > 0 && (
-              <div className="card p-6 mb-6">
+              <Card className="mb-6">
+                <CardContent className="pt-6">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                   <h3 className="text-sm font-semibold text-ink"><TrendingUp className="w-4 h-4 inline" /> Performance (last {insightDays} days)</h3>
                   <div className="grid grid-cols-4 gap-6 text-center text-sm">
@@ -383,22 +440,31 @@ export default function DashboardPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Warmup Section */}
-            <div className="card mb-6">
-              <div className="px-5 py-3.5 flex items-center justify-between border-b border-surface-300">
-                <h3 className="text-sm font-semibold text-ink"><Flame className="w-4 h-4 inline" /> Account Warmup</h3>
+            <Card className="mb-6 gap-0 py-0">
+              <CardHeader className="flex-row items-center justify-between border-b border-surface-300 py-3.5">
+                <CardTitle className="text-sm font-semibold text-ink">
+                  <Flame className="w-4 h-4 inline" /> Account Warmup
+                </CardTitle>
                 <div className="flex gap-2">
                   {warmups.length > 0 && (
-                    <button onClick={handleWarmupTick} disabled={warmupActions.tick.isPending}
-                      className="badge-info cursor-pointer disabled:opacity-50">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className={cn(statusBadgeVariants({ tone: 'info' }), 'cursor-pointer')}
+                      onClick={handleWarmupTick}
+                      disabled={warmupActions.tick.isPending}
+                    >
                       <SkipForward className="w-4 h-4" /> Advance Day (Manual)
-                    </button>
+                    </Button>
                   )}
                 </div>
-              </div>
+              </CardHeader>
               {warmups.length === 0 ? (
                 <div className="px-5 py-6 text-center text-ink-200 text-sm">
                   No accounts warming up. Start a warmup on any ad account to gradually scale budget over 7 days.
@@ -412,10 +478,16 @@ export default function DashboardPage() {
                           <p className="text-sm font-medium text-ink">{w.name}</p>
                           <p className="text-xs text-ink-200 mt-0.5">Day {w.day}/{w.totalDays} · ${w.currentBudget}/day → Target ${w.targetBudget}/day</p>
                         </div>
-                        <button onClick={() => handleStopWarmup(w.id)} disabled={warmupActions.stop.isPending}
-                          className="btn-ghost btn-xs text-danger">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="xs"
+                          className="text-danger"
+                          onClick={() => handleStopWarmup(w.id)}
+                          disabled={warmupActions.stop.isPending}
+                        >
                           Stop Warmup
-                        </button>
+                        </Button>
                       </div>
                       <div className="w-full rounded-full h-2 bg-surface-300">
                         <div className="h-2 rounded-full transition-all duration-500"
@@ -425,14 +497,16 @@ export default function DashboardPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </Card>
           </>
         )}
         {!fbStatus?.connected && (
-          <div className="msg-info">
-            <p className="text-sm font-medium">Getting Started</p>
-            <p className="text-xs mt-1">Connect your Facebook account above to start managing ads.</p>
-          </div>
+          <Alert className="border-brand-border bg-brand-muted text-brand">
+            <AlertTitle>Getting Started</AlertTitle>
+            <AlertDescription>
+              Connect your Facebook account above to start managing ads.
+            </AlertDescription>
+          </Alert>
         )}
       </PageLayout>
     );
