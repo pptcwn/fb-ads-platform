@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import Link from 'next/link';
 import Shell from '@/components/Shell';
@@ -12,6 +12,8 @@ import { fmtCurr, fmtNum } from '@/lib/utils';
 import { RefreshCw, BarChart3, Link as LinkIcon, Sparkles, ClipboardList, TrendingUp, Flame, SkipForward } from 'lucide-react';
 import { useFbStatus, useFbAuthUrl, useFbDisconnect, useSyncStatus, useTriggerSync, useInsights, useSyncInsights, useDashboardSummary, useWarmupStatus, useWarmupActions } from '@/hooks/use-dashboard';
 import { useAdAccounts } from '@/hooks/use-accounts';
+import { partitionAccounts } from '@/lib/ad-account-utils';
+import RestrictedAccountsPanel, { UsableAccountsSummary } from '@/components/dashboard/RestrictedAccountsPanel';
 
 // ─── Types ───
 
@@ -50,11 +52,16 @@ export default function DashboardPage() {
   const [insightDays, setInsightDays] = useState(7);
   const { data: insights = [] } = useInsights(insightAccountId, insightDays);
 
+  const { usable: usableAccounts, restricted: restrictedAccounts } = useMemo(
+    () => partitionAccounts(accounts),
+    [accounts],
+  );
+
   useEffect(() => {
-    if (!insightAccountId && accounts.length > 0) {
-      setInsightAccountId(accounts[0].id);
-    }
-  }, [accounts, insightAccountId]);
+    if (insightAccountId) return;
+    const pick = usableAccounts[0] ?? accounts[0];
+    if (pick) setInsightAccountId(pick.id);
+  }, [accounts, usableAccounts, insightAccountId]);
 
   // ─── UI state ───
   const [syncMsg, setSyncMsg] = useState('');
@@ -155,7 +162,11 @@ export default function DashboardPage() {
   const checklist = [
     { done: !!fbStatus?.connected, label: 'เชื่อมต่อ Meta', href: '/dashboard' },
     { done: (summary?.totalCampaigns ?? 0) > 0, label: 'ซิงค์แคมเปญ', href: '/dashboard' },
-    { done: (summary?.totalCampaigns ?? 0) > 0, label: 'สร้างแคมเปญแรก', href: '/dashboard/campaigns/create' },
+    {
+      done: (summary?.totalCampaigns ?? 0) > 0,
+      label: 'สร้างแคมเปญแรก',
+      href: usableAccounts.length > 0 ? '/dashboard/campaigns/create' : '/dashboard/campaigns',
+    },
   ];
 
   return (
@@ -235,6 +246,9 @@ export default function DashboardPage() {
 
         {fbStatus?.connected && (
           <>
+            <RestrictedAccountsPanel accounts={restrictedAccounts} />
+            <UsableAccountsSummary count={usableAccounts.length} />
+
             {/* Summary Stats */}
             {summary && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -253,10 +267,19 @@ export default function DashboardPage() {
             )}
 
             {/* Quick Actions */}
-            <div className="flex gap-3 mb-6">
-              <a href="/dashboard/campaigns?new=1" className="btn-primary btn-sm">
-                <Sparkles className="w-4 h-4" /> New Campaign
-              </a>
+            <div className="flex gap-3 mb-6 flex-wrap">
+              {usableAccounts.length > 0 ? (
+                <Link href="/dashboard/campaigns/create" className="btn-primary btn-sm inline-flex items-center gap-1">
+                  <Sparkles className="w-4 h-4" /> สร้างแคมเปญ
+                </Link>
+              ) : (
+                <span
+                  className="btn-primary btn-sm inline-flex items-center gap-1 opacity-50 cursor-not-allowed"
+                  title="ไม่มีบัญชีที่ใช้งานได้ — แก้บัญชีในส่วนบัญชีต้องแก้ไขด้านบน"
+                >
+                  <Sparkles className="w-4 h-4" /> สร้างแคมเปญ
+                </span>
+              )}
               <a href="/dashboard/campaigns" className="btn-secondary btn-sm">
                 <ClipboardList className="w-4 h-4" /> View Campaigns
               </a>
@@ -302,8 +325,11 @@ export default function DashboardPage() {
                   onChange={e => setInsightAccountId(e.target.value || null)}
                   className="text-sm rounded-lg border border-surface-300 bg-surface-100 text-ink px-3 py-1.5"
                 >
-                  {accounts.map(a => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                      {!a.canCreateAds && a.canCreateAds !== undefined ? ' (จำกัด)' : ''}
+                    </option>
                   ))}
                 </select>
                 <label className="text-xs text-ink-300">Days</label>

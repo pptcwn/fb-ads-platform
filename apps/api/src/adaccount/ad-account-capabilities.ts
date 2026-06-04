@@ -1,17 +1,38 @@
 import { AccountStatus } from '@prisma/client';
 
-/** Meta Ad Account disable_reason (subset — extend as needed). */
+/**
+ * Meta Ad Account disable_reason — see Marketing API Ad Account reference.
+ * @see https://developers.facebook.com/docs/marketing-api/reference/ad-account/
+ */
 const DISABLE_REASON_TH: Record<number, string> = {
   0: '',
-  1: 'นโยบายโฆษณา / ความสมบูรณ์ของบัญชี',
+  1: 'นโยบายโฆษณา / ความสมบูรณ์ของบัญชี (Ads Integrity)',
   2: 'ความเสี่ยงด้านการชำระเงิน',
-  3: 'ค่าใช้จ่ายค้างชำระ',
-  4: 'การละเมิดนโยบายโฆษณา',
-  5: 'บัญชีไม่ได้ใช้งาน',
-  6: 'บัญชีถูกปิดชั่วคราว',
-  7: 'บัญชีถูกปิดถาวร',
-  8: 'บัญชีถูกปิดการใช้งาน',
-  9: 'บัญชีถูกปิดการใช้งานโดย Meta',
+  3: 'ตั๋ว/reseller ไม่ได้ใช้งาน',
+  4: 'บัญชีไม่ได้ใช้งาน',
+  5: 'บัญชีร่ม (Umbrella) ถูกจำกัด',
+  6: 'ความสมบูรณ์ทางธุรกิจ (Business Integrity)',
+  7: 'ข้อมูลธุรกิจไม่ตรง / การแสดงตัวตน',
+  8: 'ฟีเจอร์โฆษณาถูกปิด (AOBA)',
+  9: 'ความสมบูรณ์ทางธุรกิจ (RAR)',
+  10: 'การละเมิดนโยบายโฆษณา',
+  11: 'บัญชีถูกระงับชั่วคราว',
+  12: 'การชำระเงินล้มเหลว',
+  13: 'เกินวงเงินหรือ spend cap',
+  14: 'บัญชีรอการตรวจสอบ',
+  15: 'บัญชีถูกปิดโดย Meta',
+};
+
+/** Meta account_status code labels (for support / Overview). */
+const ACCOUNT_STATUS_CODE_TH: Record<number, string> = {
+  1: 'ใช้งานได้ (Active)',
+  2: 'ปิดใช้งาน (Disabled)',
+  3: 'ค้างชำระ (Unsettled)',
+  7: 'รอตรวจความเสี่ยง',
+  8: 'รอชำระเงิน',
+  9: 'ช่วง Grace period',
+  100: 'รอปิดบัญชี',
+  101: 'ปิดแล้ว (Closed)',
 };
 
 const STATUS_TH: Record<AccountStatus, string> = {
@@ -64,7 +85,16 @@ export function getStatusLabelTh(status: AccountStatus): string {
 
 export function getDisableReasonTh(code: number | null | undefined): string | null {
   if (code == null || code === 0) return null;
-  return DISABLE_REASON_TH[code] ?? `รหัสจำกัด (${code})`;
+  return DISABLE_REASON_TH[code] ?? `รหัสจำกัด disable_reason=${code}`;
+}
+
+export function getAccountStatusCodeTh(code: number | null | undefined): string | null {
+  if (code == null) return null;
+  return ACCOUNT_STATUS_CODE_TH[code] ?? `สถานะ Meta #${code}`;
+}
+
+export function isRestrictedAdAccountStatus(status: AccountStatus): boolean {
+  return !canCreateAds(status);
 }
 
 export function buildRestrictionMessage(

@@ -3,7 +3,7 @@
 | ฟิลด์ | ค่า |
 |--------|-----|
 | **วันที่** | 2026-06-04 |
-| **สถานะ** | Implemented (Hybrid C) — 2026-06-04 |
+| **สถานะ** | Implemented (Hybrid C + PR-5 Overview) — 2026-06-04 |
 | **ขอบเขต** | `apps/api` + `apps/web` |
 | **อ้างอิง** | Meta Ad Account `account_status`, `disable_reason` |
 
@@ -253,7 +253,7 @@ sequenceDiagram
 | **PR-2** | API guards | `assertAdAccountCanCreateAds`; ขยาย `GET /api/adaccounts`; create/clone/upload guard | PR-1 |
 | **PR-3** | Web UX | AccountSwitcher กลุ่ม+badge; create/select กรอง; ปุ่มสร้าง disable; context reset | PR-2 |
 | **PR-4** | Campaigns hub | กรอง/แสดง banner บัญชีจำกัด; bulk create ปิดเมื่อ selection มีบัญชีจำกัด | PR-3 |
-| **PR-5** *(optional)* | Overview + i18n | การ์ด “บัญชีต้องแก้ไข”; ตาราง `disable_reason` ครบ | PR-1 |
+| **PR-5** | Overview + i18n | การ์ด “บัญชีต้องแก้ไข”; ตาราง `disable_reason` ขยาย; สรุปบัญชีใช้งานได้ | ✅ Done |
 
 **ลำดับแนะนำ:** PR-1 → PR-2 → PR-3 (ขั้นต่ำใช้งานได้) → PR-4
 

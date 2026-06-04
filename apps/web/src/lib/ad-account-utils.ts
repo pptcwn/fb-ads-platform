@@ -29,6 +29,12 @@ export function partitionAccounts<T extends AdAccountCapabilities>(accounts: T[]
   return { usable, restricted };
 }
 
+export function filterRestrictedAccounts<T extends AdAccountCapabilities>(accounts: T[]): T[] {
+  return accounts.filter((a) => !canCreateAdsForAccount(a));
+}
+
+export const META_BUSINESS_SETTINGS_URL = 'https://business.facebook.com/settings';
+
 export function statusBadgeClass(status: AdAccountStatus): string {
   switch (status) {
     case 'ACTIVE':
