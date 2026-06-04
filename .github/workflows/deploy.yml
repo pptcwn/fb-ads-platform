@@ -50,6 +50,7 @@ jobs:
             echo "=== Disk before cleanup ==="
             df -h /
             docker compose down --remove-orphans 2>/dev/null || true
+            docker volume prune -f 2>/dev/null || true
             docker system prune -af
             docker builder prune -af 2>/dev/null || true
             echo "=== Disk after cleanup ==="
@@ -60,6 +61,9 @@ jobs:
               exit 1
             fi
             docker compose build api web
+            # Seed named node_modules volumes (safe to re-run; required on first deploy after volume migration)
+            docker compose run --rm --no-deps -e CI=true api sh -c 'pnpm install --frozen-lockfile'
+            docker compose run --rm --no-deps -e CI=true web sh -c 'pnpm install --frozen-lockfile'
             docker compose up -d --force-recreate
             docker compose exec -T api sh -c 'cd apps/api && npx prisma migrate deploy'
             docker compose ps
