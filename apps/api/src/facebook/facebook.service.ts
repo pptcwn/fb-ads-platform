@@ -14,7 +14,13 @@ import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptToken, decryptToken } from '../common/encryption.util';
 import { readFileSync } from 'fs';
-import { FB_GRAPH_BASE_URL, actPath, fbAdAccountActId, fbOAuthDialogBaseUrl } from '../common/facebook-api.config';
+import {
+  FB_GRAPH_BASE_URL,
+  actPath,
+  fbAdAccountActId,
+  fbOAuthDialogBaseUrl,
+  normalizeBidStrategy,
+} from '../common/facebook-api.config';
 import { setupFacebookRateLimitInterceptors } from '../common/facebook-rate-limit';
 import { AxiosResponse } from 'axios';
 
@@ -400,7 +406,7 @@ export class FacebookService implements OnModuleInit {
         access_token: accessToken,
       };
       if (bidAmount) params.bid_amount = Math.round(bidAmount * 100);
-      if (bidStrategy) params.bid_strategy = bidStrategy;
+      params.bid_strategy = normalizeBidStrategy(bidStrategy);
       const { data } = await firstValueFrom(
         this.http.post<{ id: string }>(`${this.baseUrl}/${actPath(adAccountId)}/adsets`, params, {
           headers: { 'Content-Type': 'application/json' },

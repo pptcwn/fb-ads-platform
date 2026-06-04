@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { fbAdAccountActId } from '../common/facebook-api.config';
+import { DEFAULT_FB_BID_STRATEGY, fbAdAccountActId } from '../common/facebook-api.config';
 import { PrismaService } from '../prisma/prisma.service';
 import { FacebookService } from '../facebook/facebook.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -104,7 +104,7 @@ export class CampaignsService {
           targeting,
           'ACTIVE',
           accessToken,
-          'LOWEST_COST_NO_BID', // explicitly set bid strategy without bid cap
+          DEFAULT_FB_BID_STRATEGY,
         );
 
         const savedAdSet = await this.prisma.adSet.create({
@@ -527,7 +527,7 @@ export class CampaignsService {
           adset.targeting || { geo_locations: { countries: ['TH'] } },
           'PAUSED',
           accessToken,
-          adset.bidStrategy || 'LOWEST_COST_NO_BID',
+          adset.bidStrategy || DEFAULT_FB_BID_STRATEGY,
         );
 
         const savedAdSet = await this.prisma.adSet.create({
