@@ -17,7 +17,7 @@ const TYPE_LABELS_TH: Record<string, string> = { CUSTOM: 'กำหนดเอ�
 const STATUS_COLORS: Record<string, string> = {
   READY: 'badge-success',
   IS_EXCLUDED: 'badge-danger',
-  IS_HOUSEHOLD: 'bg-accent-muted text-accent border border-accent-border',
+  IS_HOUSEHOLD: 'bg-brand-muted text-brand border border-brand-border',
   IS_LOOKALIKE: 'bg-purple-50 text-purple-700 border border-purple-200',
 };
 
@@ -263,7 +263,7 @@ export default function AudiencesPage() {
                       type="button"
                       onClick={() => setSelectedId(a.id)}
                       className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedId === a.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100 border border-transparent'
+                        selectedId === a.id ? 'bg-brand-muted border border-brand-border' : 'hover:bg-surface-100 border border-transparent'
                       }`}
                     >
                       <div className="flex items-start gap-2 min-w-0">
@@ -273,7 +273,7 @@ export default function AudiencesPage() {
                           <p className="text-[10px] text-ink-300 truncate">{a.accountName}</p>
                           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             <span className="badge-ink text-[10px]">{TYPE_LABELS_TH[a.type] || a.type}</span>
-                            <span className="text-xs font-semibold text-accent">{fmtNum(a.approximateCount)}</span>
+                            <span className="text-xs font-semibold text-brand">{fmtNum(a.approximateCount)}</span>
                             <span className={`badge-ink text-[10px] ${STATUS_COLORS[a.status] || 'badge-ink'}`}>{a.status}</span>
                           </div>
                         </div>
@@ -295,7 +295,7 @@ export default function AudiencesPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedId(null)}
-                    className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+                    className="lg:hidden text-sm text-brand mb-4 inline-flex items-center gap-1"
                   >
                     ← กลับ
                   </button>
@@ -316,7 +316,7 @@ export default function AudiencesPage() {
                   </div>
 
                   <div className="flex items-baseline gap-2 mb-4">
-                    <span className="text-3xl font-bold text-accent">{fmtNum(selectedAudience.approximateCount)}</span>
+                    <span className="text-3xl font-bold text-brand">{fmtNum(selectedAudience.approximateCount)}</span>
                     <span className="text-sm text-ink-300">คน</span>
                   </div>
 

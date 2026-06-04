@@ -88,7 +88,7 @@ export function UsableAccountsSummary({ count, className = '' }: UsableAccountsS
     <div className={`card p-4 mb-6 border border-success-border/40 bg-success-muted/20 ${className}`}>
       <p className="text-sm text-ink">
         <span className="font-semibold text-success">{count}</span> บัญชีพร้อมสร้างแคมเปญ
-        <Link href="/dashboard/campaigns/create" className="text-accent hover:underline ml-2">
+        <Link href="/dashboard/campaigns/create" className="text-brand hover:underline ml-2">
           สร้างแคมเปญ →
         </Link>
       </p>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import Link from 'next/link';
 import PageLayout from '@/components/layout/PageLayout';
@@ -13,6 +13,7 @@ import { useFbStatus, useFbAuthUrl, useFbDisconnect, useSyncStatus, useTriggerSy
 import { useAdAccounts } from '@/hooks/use-accounts';
 import { partitionAccounts } from '@/lib/ad-account-utils';
 import RestrictedAccountsPanel, { UsableAccountsSummary } from '@/components/dashboard/RestrictedAccountsPanel';
+import { useRegisterDashboardSync } from '@/contexts/dashboard-sync-context';
 
 // ─── Types ───
 
@@ -66,7 +67,7 @@ export default function DashboardPage() {
   const [syncMsg, setSyncMsg] = useState('');
 
   // ─── Actions ───
-  const handleSync = async () => {
+  const handleSync = useCallback(async () => {
     setSyncMsg('');
     try {
       const data = await triggerSync.mutateAsync();
@@ -74,7 +75,12 @@ export default function DashboardPage() {
     } catch (err: any) {
       setSyncMsg(`❌ Sync failed: ${err?.response?.data?.message || err.message}`);
     }
-  };
+  }, [triggerSync]);
+
+  useRegisterDashboardSync({
+    onSync: fbStatus?.connected ? handleSync : undefined,
+    syncing: triggerSync.isPending,
+  });
 
   const handleSyncInsights = async (accountId?: string) => {
     setSyncMsg('');
@@ -178,7 +184,7 @@ export default function DashboardPage() {
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${item.done ? 'bg-success-muted text-success' : 'bg-surface-200 text-ink-300'}`}>
                   {item.done ? '✓' : i + 1}
                 </span>
-                <Link href={item.href} className={item.done ? 'text-ink-200 line-through' : 'text-ink hover:text-accent'}>
+                <Link href={item.href} className={item.done ? 'text-ink-200 line-through' : 'text-ink hover:text-brand'}>
                   {item.label}
                 </Link>
               </li>
@@ -218,7 +224,7 @@ export default function DashboardPage() {
           <h3 className="text-sm font-semibold mb-4 text-ink">Facebook Connection</h3>
           {fbStatus?.connected ? (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-accent/10 text-accent">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-brand/10 text-brand">
                 {fbStatus.data?.facebookName?.charAt(0) || '?'}
               </div>
               <div className="flex-1">

@@ -71,9 +71,9 @@ export default function Sidebar() {
     <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col bg-surface-50 border-r border-surface-300" role="navigation" aria-label="Main navigation">
       {/* Brand */}
       <div className="px-5 py-4 border-b border-surface-300">
-        <Link href="/dashboard" className="flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-accent rounded-lg" aria-label="FB Ads Platform home">
+        <Link href="/dashboard" className="flex items-center gap-2.5 group focus:outline-none focus:ring-2 focus:ring-brand rounded-lg" aria-label="FB Ads Platform home">
           <span
-            className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-white text-xs font-bold transition-transform group-hover:scale-105"
+            className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center text-white text-xs font-bold transition-transform group-hover:scale-105"
             style={{ letterSpacing: '-0.02em' }}
           >F</span>
           <span className="font-semibold text-sm text-ink" style={{ letterSpacing: '-0.02em' }}>FB Ads</span>
@@ -95,7 +95,7 @@ export default function Sidebar() {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent ${
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand ${
                     active
                       ? 'text-ink font-medium bg-surface-200'
                       : 'text-ink-100 hover:text-ink hover:bg-surface-100'
@@ -120,7 +120,7 @@ export default function Sidebar() {
             } catch { /* ignore */ }
             window.location.href = '/';
           }}
-          className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-ink-100 hover:text-danger transition-all hover:bg-danger-muted cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent"
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-ink-100 hover:text-danger transition-all hover:bg-danger-muted cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand"
           style={{ letterSpacing: '-0.01em' }}
           aria-label="Sign out"
         >

@@ -1,0 +1,22 @@
+# Legacy UI allowlist — ลบหนึ่งบรรทัดเมื่อไฟล์ migrate ครบ (legacy grep = 0 ในไฟล์)
+# PR-12: เหลือเฉพาะบรรทัด comment (#) — ไม่มี path
+
+# --- dashboard pages (12) ---
+src/app/dashboard/page.tsx
+src/app/dashboard/campaigns/page.tsx
+src/app/dashboard/campaigns/create/page.tsx
+src/app/dashboard/creatives/page.tsx
+src/app/dashboard/audiences/page.tsx
+src/app/dashboard/budget/page.tsx
+src/app/dashboard/schedules/page.tsx
+src/app/dashboard/rules/page.tsx
+src/app/dashboard/analytics/page.tsx
+src/app/dashboard/notifications/page.tsx
+src/app/dashboard/abtest/page.tsx
+src/app/dashboard/approvals/page.tsx
+
+# --- shared / layout ---
+src/components/layout/AutomationLayout.tsx
+src/components/TargetingBuilder.tsx
+src/components/campaigns/TemplatesTab.tsx
+src/components/ui/ConnectionBanner.tsx

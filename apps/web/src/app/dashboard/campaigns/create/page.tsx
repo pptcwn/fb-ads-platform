@@ -229,7 +229,7 @@ export default function CreateCampaignPage() {
                       type="button"
                       onClick={() => setForm({ ...form, objective: obj.key })}
                       className={`text-left p-3 rounded-xl border-2 transition-all ${
-                        form.objective === obj.key ? 'border-accent bg-accent-muted' : 'border-surface-300'
+                        form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300'
                       }`}
                     >
                       <p className="font-semibold text-sm text-ink">{obj.label}</p>

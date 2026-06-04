@@ -49,7 +49,7 @@ const ACTIONS = [
   { key: 'INCREASE_BUDGET_50', label: <span className="inline-flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +50% Budget</span>, color: 'bg-success-muted text-success border border-success-border' },
   { key: 'DECREASE_BUDGET_10', label: <span className="inline-flex items-center gap-1"><TrendingDown className="w-3 h-3" /> -10% Budget</span>, color: 'badge-warning' },
   { key: 'DECREASE_BUDGET_20', label: <span className="inline-flex items-center gap-1"><TrendingDown className="w-3 h-3" /> -20% Budget</span>, color: 'badge-warning' },
-  { key: 'NOTIFY', label: <span className="inline-flex items-center gap-1"><Bell className="w-3 h-3" /> Notify</span>, color: 'bg-accent-muted text-accent border border-accent-border' },
+  { key: 'NOTIFY', label: <span className="inline-flex items-center gap-1"><Bell className="w-3 h-3" /> Notify</span>, color: 'bg-brand-muted text-brand border border-brand-border' },
 ];
 
 const SCOPE_LABELS: Record<string, string> = { CAMPAIGN: 'Campaign', ADSET: 'AdSet', AD: 'Ad', ACCOUNT: 'Account' };
@@ -321,7 +321,7 @@ export default function RulesPage() {
                   </div>
                 ))}
               </div>
-              <button onClick={addCondition} className="mt-2 text-sm text-accent hover:text-accent/80">+ Add condition</button>
+              <button onClick={addCondition} className="mt-2 text-sm text-brand hover:text-brand/80">+ Add condition</button>
               <div className="mt-2 flex gap-4 text-sm text-ink">
                 <label className="flex items-center gap-1">
                   <input type="radio" name="logic" checked={form.logic === 'ALL'} onChange={() => setForm({...form, logic: 'ALL'})} />
@@ -348,7 +348,7 @@ export default function RulesPage() {
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
                       form.actions.includes(a.key)
-                        ? 'bg-accent-muted text-accent border-accent-border'
+                        ? 'bg-brand-muted text-brand border-brand-border'
                         : 'bg-white text-ink-300 border-surface-200 hover:border-ink-100'
                     }`}>
                     {a.label}
@@ -421,7 +421,7 @@ export default function RulesPage() {
                 <div
                   key={rule.id}
                   className={`flex items-stretch gap-1 rounded-lg transition-colors ${
-                    selectedRuleId === rule.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100'
+                    selectedRuleId === rule.id ? 'bg-brand-muted border border-brand-border' : 'hover:bg-surface-100'
                   }`}
                 >
                   <button
@@ -457,7 +457,7 @@ export default function RulesPage() {
               <button
                 type="button"
                 onClick={() => setSelectedRuleId(null)}
-                className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+                className="lg:hidden text-sm text-brand mb-4 inline-flex items-center gap-1"
               >
                 ← กลับ
               </button>
@@ -466,7 +466,7 @@ export default function RulesPage() {
                 <div className="mt-6 pt-4 border-t border-surface-300 space-y-3">
                   <div className="flex flex-wrap gap-1.5">
                     {(selectedRule.conditions as RuleCondition[]).map((c, i) => (
-                      <span key={i} className="px-2 py-1 bg-accent-muted text-accent text-xs rounded-md">
+                      <span key={i} className="px-2 py-1 bg-brand-muted text-brand text-xs rounded-md">
                         {metricLabel(c.metric)} {operatorLabel(c.operator)} {c.value}
                       </span>
                     ))}
@@ -478,7 +478,7 @@ export default function RulesPage() {
                       <span className="inline-flex items-center gap-1"><Target className="w-3 h-3" /> {selectedRule.campaign.name}</span>
                     )}
                   </div>
-                  <button onClick={() => viewLogs(selectedRule.id)} className="text-xs text-accent hover:text-accent/80">
+                  <button onClick={() => viewLogs(selectedRule.id)} className="text-xs text-brand hover:text-brand/80">
                     {showLogs === selectedRule.id ? 'ซ่อนล็อก' : 'ดูล็อก'}
                   </button>
                   {showLogs === selectedRule.id && (

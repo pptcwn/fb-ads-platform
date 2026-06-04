@@ -487,7 +487,7 @@ function CampaignsPageInner() {
         <div className="flex gap-1 border-b border-surface-300 mb-6" role="tablist" aria-label="แท็บแคมเปญ">
           <Link
             href="/dashboard/campaigns"
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'campaigns' ? 'border-accent text-ink' : 'border-transparent text-ink-200 hover:text-ink'}`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'campaigns' ? 'border-brand text-ink' : 'border-transparent text-ink-200 hover:text-ink'}`}
             role="tab"
             aria-selected={activeTab === 'campaigns'}
             aria-current={activeTab === 'campaigns' ? 'page' : undefined}
@@ -496,7 +496,7 @@ function CampaignsPageInner() {
           </Link>
           <Link
             href="/dashboard/campaigns?tab=templates"
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'templates' ? 'border-accent text-ink' : 'border-transparent text-ink-200 hover:text-ink'}`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === 'templates' ? 'border-brand text-ink' : 'border-transparent text-ink-200 hover:text-ink'}`}
             role="tab"
             aria-selected={activeTab === 'templates'}
             aria-current={activeTab === 'templates' ? 'page' : undefined}
@@ -524,7 +524,7 @@ function CampaignsPageInner() {
               <button onClick={() => setConfirmAction({ type: 'pause', ids: checkedIds })} disabled={bulkActionMutation.isPending} className="btn bg-warning-muted text-warning border border-warning-border hover:bg-warning/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Pause className="w-4 h-4" /> Pause</button>
               <button onClick={() => setConfirmAction({ type: 'resume', ids: checkedIds })} disabled={bulkActionMutation.isPending} className="btn bg-success-muted text-success border border-success-border hover:bg-success/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Play className="w-4 h-4" /> Resume</button>
               <button onClick={() => setConfirmAction({ type: 'delete', ids: checkedIds })} disabled={bulkActionMutation.isPending} className="btn bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 text-sm font-medium disabled:opacity-50 px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Trash2 className="w-4 h-4" /> Delete</button>
-              <button onClick={exportCsv} className="btn bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 text-sm font-medium px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Download className="w-4 h-4" /> CSV</button>
+              <button onClick={exportCsv} className="btn bg-brand-muted text-brand border border-brand-border hover:bg-brand/20 text-sm font-medium px-4 py-1.5 rounded-lg inline-flex items-center gap-1"><Download className="w-4 h-4" /> CSV</button>
             </div>
           </div>
         )}
@@ -563,7 +563,7 @@ function CampaignsPageInner() {
                     acct.campaigns.map((camp) => {
                       const isChecked = checked.has(camp.id);
                       return (
-                        <tr key={camp.id} className={`hover:bg-surface-200/30 transition-colors border-b border-surface-300 ${isChecked ? 'bg-accent-muted/30' : ''}`}>
+                        <tr key={camp.id} className={`hover:bg-surface-200/30 transition-colors border-b border-surface-300 ${isChecked ? 'bg-brand-muted/30' : ''}`}>
                           <td className="px-3 py-3"><input type="checkbox" checked={isChecked} onChange={() => toggleCheck(camp.id)} className="rounded border-ink-200 bg-surface-200" /></td>
                           <td className="px-3 py-3"><span className="font-medium text-ink">{camp.name}</span></td>
                           <td className="px-3 py-3 text-ink-200 text-xs">{acct.name}</td>
@@ -573,9 +573,9 @@ function CampaignsPageInner() {
                           <td className="px-3 py-3 text-right text-sm text-ink">{camp.spent ? fmtCurr(camp.spent, acct.currency) : '-'}</td>
                           <td className="px-3 py-3 text-center">
                             <div className="flex items-center justify-center gap-1 flex-wrap">
-                              <button onClick={() => openAdSets(camp.id, camp.name, acct.currency)} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20"><Package className="w-3 h-3 mr-0.5 inline" />Ad Sets</button>
-                              <button onClick={() => { setCloneModal({ id: camp.id, name: camp.name, type: 'campaign' }); setCloneName(`Copy of ${camp.name}`); }} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20"><Shuffle className="w-3 h-3 mr-0.5 inline" />Clone</button>
-                              <button type="button" onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: camp.status === 'ACTIVE' ? 'pause' : 'resume', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-accent-muted text-accent hover:bg-accent/20" aria-label={camp.status === 'ACTIVE' ? `หยุด ${camp.name}` : `เปิด ${camp.name}`}>{camp.status === 'ACTIVE' ? <Pause className="w-3 h-3" aria-hidden /> : <Play className="w-3 h-3" aria-hidden />}</button>
+                              <button onClick={() => openAdSets(camp.id, camp.name, acct.currency)} className="text-xs px-2 py-1 rounded font-medium bg-brand-muted text-brand hover:bg-brand/20"><Package className="w-3 h-3 mr-0.5 inline" />Ad Sets</button>
+                              <button onClick={() => { setCloneModal({ id: camp.id, name: camp.name, type: 'campaign' }); setCloneName(`Copy of ${camp.name}`); }} className="text-xs px-2 py-1 rounded font-medium bg-brand-muted text-brand hover:bg-brand/20"><Shuffle className="w-3 h-3 mr-0.5 inline" />Clone</button>
+                              <button type="button" onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: camp.status === 'ACTIVE' ? 'pause' : 'resume', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-brand-muted text-brand hover:bg-brand/20" aria-label={camp.status === 'ACTIVE' ? `หยุด ${camp.name}` : `เปิด ${camp.name}`}>{camp.status === 'ACTIVE' ? <Pause className="w-3 h-3" aria-hidden /> : <Play className="w-3 h-3" aria-hidden />}</button>
                               <button type="button" onClick={() => openSaveTemplate({ source: 'row', label: camp.name, objective: camp.objective, dailyBudget: Number(camp.dailyBudget || 0) })} className="text-xs px-2 py-1 rounded font-medium bg-success-muted text-success hover:bg-success/20" aria-label={`บันทึก ${camp.name} เป็นเทมเพลต`}><Save className="w-3 h-3" aria-hidden /></button>
                               <button type="button" onClick={() => { setChecked(new Set([camp.id])); setConfirmAction({ type: 'delete', ids: [camp.id] }); }} className="text-xs px-2 py-1 rounded font-medium bg-danger-muted text-danger hover:bg-danger/20" aria-label={`ลบ ${camp.name}`}><Trash2 className="w-3 h-3" aria-hidden /></button>
                             </div>
@@ -647,7 +647,7 @@ function CampaignsPageInner() {
 
             <div className="px-4 py-3 bg-surface-200/50 text-xs text-ink-300 flex items-center justify-between border-t border-surface-300">
               <span>แสดง {allCampaigns.length} แคมเปญ จาก {filteredAccounts.length} บัญชี</span>
-              <button onClick={exportCsv} className="text-accent hover:text-accent/80 font-medium"><Download className="w-3.5 h-3.5 mr-1 inline" />Export CSV</button>
+              <button onClick={exportCsv} className="text-brand hover:text-brand/80 font-medium"><Download className="w-3.5 h-3.5 mr-1 inline" />Export CSV</button>
             </div>
           </div>
         )}
@@ -677,15 +677,15 @@ function CampaignsPageInner() {
               {drawerMsg && <div className="msg-success mb-4">{drawerMsg}</div>}
 
               <div className="flex items-center gap-1 bg-surface-200 p-1 rounded-lg mb-6 w-fit">
-                <button onClick={() => setDrawerMode('wizard')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${drawerMode === 'wizard' ? 'bg-surface-100 text-accent' : 'text-ink-200 hover:text-ink'}`}><ClipboardList className="w-3.5 h-3.5 mr-0.5 inline" />Wizard</button>
-                <button onClick={() => setDrawerMode('quick')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${drawerMode === 'quick' ? 'bg-surface-100 text-accent' : 'text-ink-200 hover:text-ink'}`}><Sparkles className="w-3.5 h-3.5 mr-0.5 inline" />Quick</button>
+                <button onClick={() => setDrawerMode('wizard')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${drawerMode === 'wizard' ? 'bg-surface-100 text-brand' : 'text-ink-200 hover:text-ink'}`}><ClipboardList className="w-3.5 h-3.5 mr-0.5 inline" />Wizard</button>
+                <button onClick={() => setDrawerMode('quick')} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${drawerMode === 'quick' ? 'bg-surface-100 text-brand' : 'text-ink-200 hover:text-ink'}`}><Sparkles className="w-3.5 h-3.5 mr-0.5 inline" />Quick</button>
               </div>
 
               {drawerMode === 'quick' && (
                 <div>
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {OBJECTIVES.map(obj => (
-                      <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-accent bg-accent-muted' : 'border-surface-300 hover:border-surface-400'}`}>
+                      <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300 hover:border-surface-400'}`}>
                         <p className="font-semibold text-ink text-sm">{obj.label}</p>
                         <p className="text-xs text-ink-200 mt-0.5">{obj.desc}</p>
                       </button>
@@ -704,7 +704,7 @@ function CampaignsPageInner() {
                     </div>
                   </div>
                   <div className="card p-4 mb-4">
-                    <h3 className="text-xs font-semibold text-accent uppercase tracking-wide mb-2 flex items-center gap-1"><BarChart3 className="w-3 h-3" />Budget Preview</h3>
+                    <h3 className="text-xs font-semibold text-brand uppercase tracking-wide mb-2 flex items-center gap-1"><BarChart3 className="w-3 h-3" />Budget Preview</h3>
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div><p className="text-ink-200 text-xs">Daily Spend</p><p className="font-bold text-ink">฿{budgetPreview.dailySpend.toLocaleString()}</p></div>
                       <div><p className="text-ink-200 text-xs">Est. Daily Reach</p><p className="font-bold text-ink">{budgetPreview.estimatedDailyReach.toLocaleString()}</p></div>
@@ -729,10 +729,10 @@ function CampaignsPageInner() {
                       return (
                         <div key={item.step} className="flex items-center flex-1">
                           <div className="flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${isComplete ? 'bg-success text-white' : isActive ? 'bg-accent text-white ring-4 ring-accent-muted' : 'bg-surface-200 text-ink-200'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${isComplete ? 'bg-success text-white' : isActive ? 'bg-brand text-white ring-4 ring-brand-muted' : 'bg-surface-200 text-ink-200'}`}>
                               {isComplete ? (<span>✓</span>) : (<Icon className="w-4 h-4" />)}
                             </div>
-                            <span className={`text-xs mt-1 font-medium ${isActive ? 'text-accent' : isComplete ? 'text-success' : 'text-ink-200'}`}>{item.label}</span>
+                            <span className={`text-xs mt-1 font-medium ${isActive ? 'text-brand' : isComplete ? 'text-success' : 'text-ink-200'}`}>{item.label}</span>
                           </div>
                           {i < 2 && <div className={`flex-1 h-0.5 mx-2 mt-[-1rem] ${isComplete ? 'bg-success' : 'bg-surface-300'}`} />}
                         </div>
@@ -745,7 +745,7 @@ function CampaignsPageInner() {
                       <h3 className="text-sm font-semibold text-ink mb-3">Choose Objective</h3>
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         {OBJECTIVES.map(obj => (
-                          <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-accent bg-accent-muted' : 'border-surface-300 hover:border-surface-400'}`}>
+                          <button key={obj.key} onClick={() => setForm({ ...form, objective: obj.key })} className={`text-left p-3 rounded-xl border-2 transition-all ${form.objective === obj.key ? 'border-brand bg-brand-muted' : 'border-surface-300 hover:border-surface-400'}`}>
                             <p className="font-semibold text-ink text-sm">{obj.label}</p>
                             <p className="text-xs text-ink-200 mt-0.5">{obj.desc}</p>
                           </button>
@@ -771,7 +771,7 @@ function CampaignsPageInner() {
                         </div>
                       </div>
                       <div className="card p-4 mb-4">
-                        <h3 className="text-xs font-semibold text-accent uppercase tracking-wide mb-2 flex items-center gap-1"><BarChart3 className="w-3 h-3" />Budget Preview</h3>
+                        <h3 className="text-xs font-semibold text-brand uppercase tracking-wide mb-2 flex items-center gap-1"><BarChart3 className="w-3 h-3" />Budget Preview</h3>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div><p className="text-ink-200 text-xs">Daily Spend</p><p className="font-bold text-ink">฿{budgetPreview.dailySpend.toLocaleString()}</p></div>
                           <div><p className="text-ink-200 text-xs">Est. Reach</p><p className="font-bold text-ink">{budgetPreview.estimatedDailyReach.toLocaleString()}</p></div>
@@ -940,7 +940,7 @@ function CampaignsPageInner() {
                     <button onClick={() => setEditBudget(null)} className="btn-secondary btn-xs">Cancel</button>
                   </div>
                 ) : (
-                  <button onClick={() => setEditBudget({ id: as.id, name: as.name, budget: as.dailyBudget })} className="text-xs px-2 py-1 rounded bg-accent-muted text-accent hover:bg-accent/20"><Pencil className="w-3 h-3 mr-0.5 inline" />Edit Budget</button>
+                  <button onClick={() => setEditBudget({ id: as.id, name: as.name, budget: as.dailyBudget })} className="text-xs px-2 py-1 rounded bg-brand-muted text-brand hover:bg-brand/20"><Pencil className="w-3 h-3 mr-0.5 inline" />Edit Budget</button>
                 )}
               </div>
             </div>

@@ -8,11 +8,7 @@ import SidebarNav from './SidebarNav';
 import TopBar from './TopBar';
 import AccountSelectionSync from './AccountSelectionSync';
 
-interface AppShellProps {
-  children: React.ReactNode;
-}
-
-export default function AppShell({ children }: AppShellProps) {
+export function DashboardChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isCreateFlow = pathname.startsWith('/dashboard/campaigns/create');
 
@@ -23,15 +19,17 @@ export default function AppShell({ children }: AppShellProps) {
         <SidebarNav />
         <div className="flex-1 flex flex-col min-w-0 lg:pl-0">
           {!isCreateFlow && <TopBar />}
-          <div className="flex-1 overflow-x-hidden">
+          <main id="main-content" className="flex-1 overflow-x-hidden">
             <ErrorBoundary>
               <AnimatePresence mode="sync" initial={false}>
                 <PageTransition key={pathname}>
-                  <div className="px-4 sm:px-6 py-6 max-w-[1600px] mx-auto w-full">{children}</div>
+                  <div className="legacy-surface px-4 sm:px-6 py-6 max-w-[1600px] mx-auto w-full">
+                    {children}
+                  </div>
                 </PageTransition>
               </AnimatePresence>
             </ErrorBoundary>
-          </div>
+          </main>
         </div>
       </div>
     </>

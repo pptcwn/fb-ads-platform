@@ -36,7 +36,7 @@ interface AccountOption {
 const ACTION_COLORS: Record<string, string> = {
   PAUSE: 'badge-danger',
   RESUME: 'bg-success-muted text-success border border-success-border',
-  SET_BUDGET: 'bg-accent-muted text-accent border border-accent-border',
+  SET_BUDGET: 'bg-brand-muted text-brand border border-brand-border',
   ADJUST_PERCENT: 'badge-warning',
 };
 
@@ -418,7 +418,7 @@ export default function BudgetPage() {
                 <div
                   key={s.id}
                   className={`flex items-stretch gap-1 rounded-lg transition-colors ${
-                    selectedBudgetId === s.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100'
+                    selectedBudgetId === s.id ? 'bg-brand-muted border border-brand-border' : 'hover:bg-surface-100'
                   }`}
                 >
                   <button type="button" onClick={() => selectBudget(s)} className="flex-1 text-left p-3 min-w-0">
@@ -454,7 +454,7 @@ export default function BudgetPage() {
               <button
                 type="button"
                 onClick={() => setSelectedBudgetId(null)}
-                className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+                className="lg:hidden text-sm text-brand mb-4 inline-flex items-center gap-1"
               >
                 ← กลับ
               </button>

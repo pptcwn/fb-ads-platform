@@ -1,8 +1,11 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
+
 import EmptyState from '@/components/EmptyState';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface DataTableProps {
   children: ReactNode;
@@ -28,9 +31,11 @@ export function DataTable({
   }
 
   return (
-    <div className={cn('card overflow-hidden', className)}>
-      <div className="overflow-x-auto">{children}</div>
-    </div>
+    <Card className={cn('gap-0 overflow-hidden py-0', className)}>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">{children}</div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -54,12 +59,12 @@ export function BulkActionBar({
   if (count === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-3 mb-4 rounded-lg bg-accent-muted border border-accent-border">
-      <span className="text-sm font-medium text-accent">เลือก {count} รายการ</span>
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3 mb-4 rounded-lg bg-brand-muted border border-brand-border">
+      <span className="text-sm font-medium text-brand">เลือก {count} รายการ</span>
       <div className="flex flex-wrap gap-2">{children}</div>
-      <button type="button" onClick={onClear} className="btn-ghost btn-sm ml-auto">
+      <Button type="button" variant="ghost" size="sm" onClick={onClear} className="ml-auto">
         ยกเลิก
-      </button>
+      </Button>
     </div>
   );
 }

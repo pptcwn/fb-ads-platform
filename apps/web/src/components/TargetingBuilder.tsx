@@ -76,7 +76,7 @@ function SectionCard({ title, icon, children, defaultOpen = false }: {
 
 function TagPill({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-accent-muted text-accent border border-accent-border">
+    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-brand-muted text-brand border border-brand-border">
       {label}
       <button onClick={onRemove} className="hover:text-danger transition-colors"><X className="w-4 h-4" /></button>
     </span>
@@ -252,7 +252,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
                     update({ genders: next.length === 2 ? undefined : next.length === 0 ? [1, 2] : next });
                   }}
                   className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    active ? 'bg-accent-muted text-accent border border-accent-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
+                    active ? 'bg-brand-muted text-brand border border-brand-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
                   }`}
                 >
                   {g.label}
@@ -299,7 +299,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
                   <span className="text-ink-300 ml-1.5">· {loc.type}</span>
                   {loc.countryCode && <span className="text-ink-300 ml-1">({loc.countryCode})</span>}
                 </span>
-                <span className="opacity-0 group-hover:opacity-100 text-accent text-[10px]">+ Add</span>
+                <span className="opacity-0 group-hover:opacity-100 text-brand text-[10px]">+ Add</span>
               </button>
             ))}
           </div>
@@ -338,7 +338,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
                     <span className="text-ink-300 ml-2">({fmtNum(item.audienceSize)})</span>
                   )}
                 </span>
-                <span className="opacity-0 group-hover:opacity-100 text-accent text-[10px]">
+                <span className="opacity-0 group-hover:opacity-100 text-brand text-[10px]">
                   {(value.interests || []).some(i => i.id === item.id) ? 'Added' : '+ Add'}
                 </span>
               </button>
@@ -408,7 +408,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
                       update({ publisher_platforms: next.length === 0 ? undefined : next });
                     }}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-colors ${
-                      active ? 'bg-accent-muted text-accent border border-accent-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
+                      active ? 'bg-brand-muted text-brand border border-brand-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
                     }`}
                   >
                     {p.replace('_', ' ')}
@@ -431,7 +431,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
                       update({ facebook_positions: next.length === 0 ? undefined : next });
                     }}
                     className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors ${
-                      active ? 'bg-accent-muted text-accent border border-accent-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
+                      active ? 'bg-brand-muted text-brand border border-brand-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
                     }`}
                   >
                     {pos.label}
@@ -454,7 +454,7 @@ export default function TargetingBuilder({ value, onChange, adAccountId }: Props
                       update({ device_platforms: next.length === 0 ? undefined : next });
                     }}
                     className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-colors ${
-                      active ? 'bg-accent-muted text-accent border border-accent-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
+                      active ? 'bg-brand-muted text-brand border border-brand-border' : 'bg-surface-100 text-ink-200 border border-surface-300 hover:border-surface-400'
                     }`}
                   >
                     {d}

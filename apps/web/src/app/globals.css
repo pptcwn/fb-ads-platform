@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.cdnfonts.com/css/geist');
-@import url('https://fonts.cdnfonts.com/css/geist-mono');
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -18,13 +16,13 @@
   --ink: #f5f5f5;
   --ink-secondary: #b0b0b0;
   --ink-muted: #808080;
-  --accent: #0070f3;
+  /* legacy brand token — deprecated; use --primary / tailwind brand.* */
   --success: #22c55e;
   --warning: #f59e0b;
   --danger: #ef4444;
   --meta: #a78bfa;
   --estimate: #38bdf8;
-  --budget-preview: #737373;
+  --budget-preview: #a3a3a3;
 }
 
 * { box-sizing: border-box; }
@@ -45,33 +43,67 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
 
 @layer base {
-  /* ─── Input / Select / Textarea ─── */
-  input, select, textarea {
+  /* ─── Input / Select / Textarea (legacy surfaces only) ─── */
+  .legacy-surface input,
+  .legacy-surface select,
+  .legacy-surface textarea,
+  .login-page input,
+  .login-page select,
+  .login-page textarea,
+  .register-page input,
+  .register-page select,
+  .register-page textarea {
     @apply bg-surface-100 rounded-lg px-3 py-2 text-sm text-ink placeholder:text-ink-200 transition-all duration-150;
     box-shadow: var(--border-shadow);
     font-feature-settings: 'liga' 1;
   }
-  input:focus, select:focus, textarea:focus {
+  .legacy-surface input:focus,
+  .legacy-surface select:focus,
+  .legacy-surface textarea:focus,
+  .login-page input:focus,
+  .login-page select:focus,
+  .login-page textarea:focus,
+  .register-page input:focus,
+  .register-page select:focus,
+  .register-page textarea:focus {
     @apply outline-none;
     box-shadow: 0px 0px 0px 2px rgba(0,112,243,0.3);
   }
-  input:disabled, select:disabled, textarea:disabled {
+  .legacy-surface input:disabled,
+  .legacy-surface select:disabled,
+  .legacy-surface textarea:disabled,
+  .login-page input:disabled,
+  .login-page select:disabled,
+  .login-page textarea:disabled,
+  .register-page input:disabled,
+  .register-page select:disabled,
+  .register-page textarea:disabled {
     @apply opacity-50 cursor-not-allowed;
   }
 
-  /* ─── Tables ─── */
-  table { @apply w-full text-sm; }
-  th {
+  /* ─── Tables (legacy surfaces only) ─── */
+  .legacy-surface table,
+  .login-page table,
+  .register-page table { @apply w-full text-sm; }
+  .legacy-surface th,
+  .login-page th,
+  .register-page th {
     @apply text-left font-medium text-ink-100 px-4 py-3 text-xs uppercase tracking-wider;
   }
-  td {
+  .legacy-surface td,
+  .login-page td,
+  .register-page td {
     @apply px-4 py-3 text-ink-50;
     box-shadow: 0px -1px 0px 0px rgba(255,255,255,0.03);
   }
-  tr:first-child td {
+  .legacy-surface tr:first-child td,
+  .login-page tr:first-child td,
+  .register-page tr:first-child td {
     box-shadow: none;
   }
-  tr:hover td {
+  .legacy-surface tr:hover td,
+  .login-page tr:hover td,
+  .register-page tr:hover td {
     @apply bg-surface-200 transition-colors;
   }
 
@@ -110,7 +142,7 @@ body {
     box-shadow: 0px 0px 0px 1px rgba(255,255,255,0.08);
   }
   .badge-info {
-    @apply badge text-accent;
+    @apply badge text-brand;
     background: rgba(0, 112, 243, 0.08);
     box-shadow: 0px 0px 0px 1px rgba(0, 112, 243, 0.2);
   }
@@ -133,14 +165,14 @@ body {
     letter-spacing: -0.01em;
   }
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-blue-600 active:scale-95;
+    @apply btn bg-brand text-white hover:bg-blue-600 active:scale-95;
     box-shadow: 0px 0px 0px 1px rgba(0,112,243,0.3);
   }
   .btn-primary:hover {
     box-shadow: 0px 0px 0px 1px rgba(0,112,243,0.4);
   }
   .btn-primary:focus-visible {
-    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-black;
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-black;
   }
   .btn-secondary {
     @apply btn text-ink;
@@ -196,14 +228,14 @@ body {
     box-shadow: 0px 0px 0px 1px rgba(239, 68, 68, 0.2);
   }
   .msg-info {
-    @apply px-4 py-3 rounded-lg text-sm text-accent;
+    @apply px-4 py-3 rounded-lg text-sm text-brand;
     background: rgba(0, 112, 243, 0.08);
     box-shadow: 0px 0px 0px 1px rgba(0, 112, 243, 0.2);
   }
 
   /* ─── Focus Visibility (Accessibility) ─── */
   a:focus-visible {
-    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-black;
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-black;
   }
   button:focus-visible {
     @apply outline-none;
@@ -222,6 +254,7 @@ body {
     --secondary-foreground: #f5f5f5;
     --muted: #1a1a1a;
     --muted-foreground: #b0b0b0;
+    --accent: #1a1a1a;
     --accent-foreground: #f5f5f5;
     --destructive: #ef4444;
     --destructive-foreground: #ffffff;

@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
     <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <p className="text-ink text-lg mb-2">Connect your Facebook account first</p>
-          <a href="/dashboard" className="text-accent hover:text-accent/80">← Back to Dashboard</a>
+          <a href="/dashboard" className="text-brand hover:text-brand/80">← Back to Dashboard</a>
         </div>
       </div>
     );
@@ -143,13 +143,13 @@ export default function AnalyticsPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
-            { label: 'Total Spend', value: fmtCurr(o.summary.totalSpend), color: 'text-accent' },
-            { label: 'Impressions', value: fmtNum(o.summary.totalImpressions), color: 'text-accent' },
-            { label: 'Clicks', value: fmtNum(o.summary.totalClicks), color: 'text-accent' },
+            { label: 'Total Spend', value: fmtCurr(o.summary.totalSpend), color: 'text-brand' },
+            { label: 'Impressions', value: fmtNum(o.summary.totalImpressions), color: 'text-brand' },
+            { label: 'Clicks', value: fmtNum(o.summary.totalClicks), color: 'text-brand' },
             { label: 'CTR', value: `${o.rates.ctr}%`, color: 'text-success' },
-            { label: 'CPC', value: fmtCurr(o.rates.cpc), color: 'text-accent' },
+            { label: 'CPC', value: fmtCurr(o.rates.cpc), color: 'text-brand' },
             { label: 'Conversions', value: fmtNum(o.summary.totalConversions), color: 'text-success' },
-            { label: 'ROAS', value: `${o.rates.roas}x`, color: 'text-accent' },
+            { label: 'ROAS', value: `${o.rates.roas}x`, color: 'text-brand' },
           ].map((card, i) => (
             <div key={i} className="stat-card">
               <p className="label">{card.label}</p>
@@ -167,16 +167,16 @@ export default function AnalyticsPage() {
               <span className="text-xs text-ink-300 mb-0.5">/ {fmtCurr(o.budget.totalMonthly)}</span>
             </div>
             <div className="w-full bg-ink-200 rounded-full h-2">
-              <div className="bg-accent h-2 rounded-full transition-all" style={{ width: `${Math.min(o.budget.usagePercent, 100)}%` }} />
+              <div className="bg-brand h-2 rounded-full transition-all" style={{ width: `${Math.min(o.budget.usagePercent, 100)}%` }} />
             </div>
             <p className="text-xs text-ink-300 mt-1">{o.budget.usagePercent}% used</p>
           </div>
           <div className="card p-4">
             <p className="text-xs text-ink-300 mb-2">Campaigns</p>
-            <p className="text-2xl font-bold text-accent">{o.summary.activeCampaigns}</p>
+            <p className="text-2xl font-bold text-brand">{o.summary.activeCampaigns}</p>
             <p className="text-xs text-ink-300">Active of {o.summary.totalCampaigns} total</p>
             <div className="w-full bg-ink-200 rounded-full h-2 mt-1">
-              <div className="bg-accent h-2 rounded-full" style={{ width: `${o.summary.totalCampaigns > 0 ? (o.summary.activeCampaigns / o.summary.totalCampaigns) * 100 : 0}%` }} />
+              <div className="bg-brand h-2 rounded-full" style={{ width: `${o.summary.totalCampaigns > 0 ? (o.summary.activeCampaigns / o.summary.totalCampaigns) * 100 : 0}%` }} />
             </div>
           </div>
           <div className="card p-4">
@@ -342,13 +342,13 @@ export default function AnalyticsPage() {
                       <p className="text-ink-300">{objLabel(c.objective)} · {c.status}</p>
                     </td>
                     <td className="px-3 py-2 text-ink-200">{c.accountName}</td>
-                    <td className="px-3 py-2 text-right text-accent font-mono">{fmtCurr(c.totalSpend)}</td>
+                    <td className="px-3 py-2 text-right text-brand font-mono">{fmtCurr(c.totalSpend)}</td>
                     <td className="px-3 py-2 text-right text-ink font-mono">{fmtNum(c.impressions)}</td>
                     <td className="px-3 py-2 text-right text-ink font-mono">{fmtNum(c.clicks)}</td>
                     <td className="px-3 py-2 text-right text-success font-mono">{c.ctr}%</td>
-                    <td className="px-3 py-2 text-right text-accent font-mono">{fmtCurr(c.cpc)}</td>
+                    <td className="px-3 py-2 text-right text-brand font-mono">{fmtCurr(c.cpc)}</td>
                     <td className="px-3 py-2 text-right text-ink font-mono">{fmtNum(c.conversions)}</td>
-                    <td className="px-3 py-2 text-right text-accent font-mono">{c.roas.toFixed(1)}x</td>
+                    <td className="px-3 py-2 text-right text-brand font-mono">{c.roas.toFixed(1)}x</td>
                   </tr>
                 ))}
                 {filteredCampaigns.length === 0 && (

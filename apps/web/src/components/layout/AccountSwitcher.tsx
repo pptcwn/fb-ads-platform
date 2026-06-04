@@ -29,7 +29,7 @@ export default function AccountSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="inline-flex items-center gap-2 max-w-[220px] sm:max-w-[280px] px-3 py-2 rounded-lg text-sm text-ink bg-surface-100 hover:bg-surface-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="inline-flex items-center gap-2 max-w-[220px] sm:max-w-[280px] px-3 py-2 rounded-lg text-sm text-ink bg-surface-100 hover:bg-surface-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         aria-label="เลือกบัญชีโฆษณา"
       >
         <Layers className="w-4 h-4 shrink-0 text-ink-100" aria-hidden />

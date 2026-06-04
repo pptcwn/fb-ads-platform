@@ -31,8 +31,8 @@ export default function Stepper({ steps, currentStep, className }: StepperProps)
               <span
                 className={cn(
                   'flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs font-semibold border transition-colors',
-                  complete && 'bg-accent text-white border-accent',
-                  current && 'bg-accent-muted text-accent border-accent-border',
+                  complete && 'bg-brand text-white border-brand',
+                  current && 'bg-brand-muted text-brand border-brand-border',
                   !complete && !current && 'bg-surface-100 text-ink-300 border-surface-300',
                 )}
               >

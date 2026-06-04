@@ -35,7 +35,7 @@ export default function AccountRestrictionBanner({
           href={META_BUSINESS_SETTINGS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-accent hover:underline"
+          className="text-xs text-brand hover:underline"
         >
           เปิด Meta Business Settings →
         </a>

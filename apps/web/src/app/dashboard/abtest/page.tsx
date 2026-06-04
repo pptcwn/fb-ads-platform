@@ -238,7 +238,7 @@ export default function AbTestPage() {
                         className="btn-xs bg-success-muted text-success border border-success-border hover:bg-success/20 font-medium"><Play className="w-4 h-4" aria-hidden /> เปิดทั้งหมด</button>
                     )}
                     <button type="button" onClick={() => loadVariants(test.id)}
-                      className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"><RefreshCw className="w-4 h-4" aria-hidden /> รีเฟรช</button>
+                      className="btn-xs bg-brand-muted text-brand border border-brand-border hover:bg-brand/20 font-medium"><RefreshCw className="w-4 h-4" aria-hidden /> รีเฟรช</button>
                     <button type="button" onClick={() => setDeleteConfirm({ type: 'test', id: test.id, name: test.name })}
                       className="btn-xs bg-surface-100 text-ink-300 hover:bg-danger-muted hover:text-danger font-medium" aria-label={`ลบทดสอบ ${test.name}`}><Trash2 className="w-4 h-4" aria-hidden /></button>
                   </div>
@@ -285,7 +285,7 @@ export default function AbTestPage() {
                                     {v.status === 'ACTIVE' ? <Pause className="w-4 h-4" aria-hidden /> : <Play className="w-4 h-4" aria-hidden />}
                                   </button>
                                   <button type="button" onClick={() => openEdit(v)}
-                                    className="btn-xs bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium" aria-label={`แก้ไข ${v.name}`}><Pencil className="w-4 h-4" aria-hidden /></button>
+                                    className="btn-xs bg-brand-muted text-brand border border-brand-border hover:bg-brand/20 font-medium" aria-label={`แก้ไข ${v.name}`}><Pencil className="w-4 h-4" aria-hidden /></button>
                                   <button type="button" onClick={() => setDeleteConfirm({ type: 'variant', id: v.id, name: v.name })}
                                     className="btn-xs bg-danger-muted text-danger border border-danger-border hover:bg-danger/20 font-medium" aria-label={`ลบ variant ${v.name}`}><Trash2 className="w-4 h-4" aria-hidden /></button>
                                 </div>
@@ -326,7 +326,7 @@ export default function AbTestPage() {
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs font-medium text-ink">Variants (at least 2)</label>
             {variants.length < 5 && (
-              <button onClick={addVariant} className="text-xs text-accent hover:text-accent/80">+ Add Variant</button>
+              <button onClick={addVariant} className="text-xs text-brand hover:text-brand/80">+ Add Variant</button>
             )}
           </div>
           <div className="space-y-2">

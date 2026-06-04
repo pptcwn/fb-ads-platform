@@ -317,13 +317,13 @@ export default function CreativesPage() {
     <div className="flex gap-1 bg-surface-50 rounded-lg border border-surface-200/50 p-1">
       <button onClick={() => setTab('creatives')}
         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-          tab === 'creatives' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
+          tab === 'creatives' ? 'bg-brand text-white' : 'text-ink-300 hover:text-ink'
         }`}>
         <Sparkles className="w-4 h-4 inline mr-1" /> ครีเอทีฟของฉัน
       </button>
       <button onClick={() => setTab('import')}
         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-          tab === 'import' ? 'bg-accent text-white' : 'text-ink-300 hover:text-ink'
+          tab === 'import' ? 'bg-brand text-white' : 'text-ink-300 hover:text-ink'
         }`}>
         <Download className="w-4 h-4 inline mr-1" /> นำเข้าจากเพจ
       </button>
@@ -377,7 +377,7 @@ export default function CreativesPage() {
                   <p className="text-ink-300 mb-3">ไม่พบ Facebook Page</p>
                   <p className="text-sm text-ink-300">ตรวจสอบสิทธิ์เพจในแอป Facebook และเชื่อมต่อบัญชีใหม่</p>
                   <a href="/dashboard"
-                    className="inline-block mt-4 text-sm text-accent hover:text-accent underline">
+                    className="inline-block mt-4 text-sm text-brand hover:text-brand underline">
                     เชื่อมต่อ Facebook อีกครั้ง →
                   </a>
                 </div>
@@ -419,11 +419,11 @@ export default function CreativesPage() {
                               })}
                               {' · '}
                               <a href={post.permalinkUrl} target="_blank" rel="noopener noreferrer"
-                                className="text-accent hover:underline">ดูบน FB</a>
+                                className="text-brand hover:underline">ดูบน FB</a>
                             </p>
                             <button onClick={() => importPost(selectedPage, post)}
                               disabled={importing === post.postId}
-                              className="w-full text-sm bg-accent text-white px-3 py-2 rounded-lg hover:bg-accent/90 disabled:opacity-50">
+                              className="w-full text-sm bg-brand text-white px-3 py-2 rounded-lg hover:bg-brand/90 disabled:opacity-50">
                               {importing === post.postId ? 'กำลังนำเข้า...' : <><Download className="w-4 h-4 inline" /> นำเข้าเป็นครีเอทีฟ</>}
                             </button>
                           </div>
@@ -460,7 +460,7 @@ export default function CreativesPage() {
                           type="button"
                           onClick={() => setSelectedId(c.id)}
                           className={`w-full text-left p-2 rounded-lg transition-colors flex gap-2 ${
-                            selectedId === c.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100 border border-transparent'
+                            selectedId === c.id ? 'bg-brand-muted border border-brand-border' : 'hover:bg-surface-100 border border-transparent'
                           }`}
                         >
                           <div className="w-12 h-12 shrink-0 rounded bg-surface-100 overflow-hidden flex items-center justify-center">
@@ -501,7 +501,7 @@ export default function CreativesPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedId(null)}
-                      className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+                      className="lg:hidden text-sm text-brand mb-4 inline-flex items-center gap-1"
                     >
                       ← กลับ
                     </button>
@@ -554,7 +554,7 @@ export default function CreativesPage() {
                     {selectedCreative.linkUrl && (
                       <div className="mb-3">
                         <p className="text-xs text-ink-300 mb-1">Link</p>
-                        <a href={selectedCreative.linkUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-accent hover:underline break-all">
+                        <a href={selectedCreative.linkUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-brand hover:underline break-all">
                           {selectedCreative.linkUrl}
                         </a>
                       </div>

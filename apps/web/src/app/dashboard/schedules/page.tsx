@@ -277,7 +277,7 @@ export default function SchedulesPage() {
                 <button key={i} type="button" onClick={() => toggleDay(i)}
                   className={`px-2 py-1.5 rounded text-[10px] font-medium transition-colors ${
                     form.daysOfWeek.includes(i)
-                      ? 'bg-accent text-white'
+                      ? 'bg-brand text-white'
                       : 'bg-surface-50 text-ink-300 border border-surface-200'
                   }`}>{day}</button>
               ))}
@@ -347,7 +347,7 @@ export default function SchedulesPage() {
                 <div
                   key={s.id}
                   className={`flex items-stretch gap-1 rounded-lg transition-colors ${
-                    selectedScheduleId === s.id ? 'bg-accent-muted border border-accent-border' : 'hover:bg-surface-100'
+                    selectedScheduleId === s.id ? 'bg-brand-muted border border-brand-border' : 'hover:bg-surface-100'
                   } ${!s.enabled ? 'opacity-60' : ''}`}
                 >
                   <button type="button" onClick={() => selectSchedule(s)} className="flex-1 text-left p-3 min-w-0">
@@ -375,7 +375,7 @@ export default function SchedulesPage() {
               <button
                 type="button"
                 onClick={() => setSelectedScheduleId(null)}
-                className="lg:hidden text-sm text-accent mb-4 inline-flex items-center gap-1"
+                className="lg:hidden text-sm text-brand mb-4 inline-flex items-center gap-1"
               >
                 ← กลับ
               </button>

@@ -27,7 +27,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-4">
+    <main id="main-content" className="register-page min-h-screen flex items-center justify-center bg-surface p-4">
       <div className="w-full max-w-sm">
         <div className="card p-8">
           <h1 className="text-2xl font-semibold mb-2 text-center text-ink">Create Account</h1>
@@ -77,12 +77,12 @@ export default function RegisterPage() {
           </form>
           <p className="text-center mt-5 text-xs text-ink-100">
             Already have an account?{' '}
-            <a href="/" className="text-accent hover:text-blue-500 font-medium transition-colors">
+            <a href="/" className="text-brand hover:text-blue-500 font-medium transition-colors">
               Sign In
             </a>
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

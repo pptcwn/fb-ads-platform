@@ -12,8 +12,8 @@ const config: Config = {
         border: 'var(--border)',
       },
       fontFamily: {
-        sans: ['Geist', 'system-ui', 'sans-serif'],
-        mono: ['Geist Mono', 'SF Mono', 'monospace'],
+        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'SF Mono', 'monospace'],
       },
       fontSize: {
         'display': ['48px', { lineHeight: '1.00', letterSpacing: '-0.05em', fontWeight: '600' }],
@@ -42,7 +42,7 @@ const config: Config = {
           200: '#808080',         // placeholder - darker gray
           300: '#606060',         // disabled - muted gray
         },
-        accent: {
+        brand: {
           DEFAULT: '#0070f3',     // Vercel blue (minimal use)
           hover: '#0060df',
           muted: 'rgba(0, 112, 243, 0.08)',
@@ -84,7 +84,7 @@ const config: Config = {
       boxShadow: {
         'border': '0px 0px 0px 1px rgba(255,255,255,0.06)',
         'border-light': '0px 0px 0px 1px rgba(255,255,255,0.03)',
-        'border-accent': '0px 0px 0px 1px rgba(0,112,243,0.2)',
+        'border-brand': '0px 0px 0px 1px rgba(0,112,243,0.2)',
         'card': '0px 0px 0px 1px rgba(255,255,255,0.06)',
         'card-hover': '0px 0px 0px 1px rgba(255,255,255,0.10), 0px 2px 4px rgba(0,0,0,0.5)',
         'elevated': '0px 0px 0px 1px rgba(255,255,255,0.06), 0px 4px 12px rgba(0,0,0,0.4)',

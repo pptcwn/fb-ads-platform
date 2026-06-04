@@ -30,10 +30,10 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-4">
+    <div className="login-page min-h-screen flex items-center justify-center bg-surface p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <div className="w-12 h-12 rounded-lg bg-accent flex items-center justify-center mx-auto mb-4 transition-transform hover:scale-105">
+          <div className="w-12 h-12 rounded-lg bg-brand flex items-center justify-center mx-auto mb-4 transition-transform hover:scale-105">
             <span className="text-white text-lg font-bold">F</span>
           </div>
           <h1 className="text-2xl font-semibold text-ink">FB Ads Platform</h1>
@@ -88,7 +88,7 @@ function LoginForm() {
 
         <p className="text-center mt-6 text-xs text-ink-100">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-accent hover:text-blue-500 font-medium transition-colors">
+          <Link href="/register" className="text-brand hover:text-blue-500 font-medium transition-colors">
             Register
           </Link>
         </p>
@@ -99,8 +99,10 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-ink-300">Loading...</div>}>
-      <LoginForm />
-    </Suspense>
+    <main id="main-content">
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-ink-300">Loading...</div>}>
+        <LoginForm />
+      </Suspense>
+    </main>
   );
 }

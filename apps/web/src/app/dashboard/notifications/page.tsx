@@ -81,13 +81,13 @@ function MetricIcon({ metric, className = 'w-3.5 h-3.5' }: { metric: string; cla
 const SEVERITY_STYLES: Record<string, string> = {
   CRITICAL: 'border-l-4 border-danger bg-danger-muted',
   WARNING: 'border-l-4 border-warning bg-warning-muted',
-  INFO: 'border-l-4 border-accent bg-accent-muted',
+  INFO: 'border-l-4 border-brand bg-brand-muted',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
   BUDGET: 'bg-warning-muted text-warning border border-warning-border',
   PERFORMANCE: 'bg-surface-100 text-ink border border-surface-200',
-  CAMPAIGN: 'bg-accent-muted text-accent border border-accent-border',
+  CAMPAIGN: 'bg-brand-muted text-brand border border-brand-border',
   TOKEN: 'badge-danger',
   AB_TEST: 'bg-success-muted text-success border border-success-border',
   SYNC: 'badge-ink',
@@ -253,7 +253,7 @@ export default function NotificationsPage() {
       >
         <ClipboardList className="w-4 h-4" /> ประวัติ
         {alerts.unreadCount > 0 && (
-          <span className="ml-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-accent text-white font-medium">
+          <span className="ml-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-brand text-white font-medium">
             {alerts.unreadCount}
           </span>
         )}
@@ -290,7 +290,7 @@ export default function NotificationsPage() {
                       <Download className="w-4 h-4" /> Add Defaults
                     </button>
                     <button onClick={() => setShowForm(!showForm)}
-                      className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium">
+                      className="btn-sm bg-brand-muted text-brand border border-brand-border hover:bg-brand/20 font-medium">
                       + New Config
                     </button>
                   </div>
@@ -404,7 +404,7 @@ export default function NotificationsPage() {
                   <button
                     type="button"
                     onClick={() => markRead()}
-                    className="btn-sm bg-accent-muted text-accent border border-accent-border hover:bg-accent/20 font-medium"
+                    className="btn-sm bg-brand-muted text-brand border border-brand-border hover:bg-brand/20 font-medium"
                   >
                     อ่านทั้งหมด
                   </button>
@@ -431,7 +431,7 @@ export default function NotificationsPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               {!alert.isRead && (
                                 <span
-                                  className="w-2 h-2 shrink-0 bg-accent rounded-full"
+                                  className="w-2 h-2 shrink-0 bg-brand rounded-full"
                                   title="ยังไม่อ่าน"
                                   aria-hidden
                                 />
@@ -444,7 +444,7 @@ export default function NotificationsPage() {
                               </span>
                               <span className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${
                                 alert.severity === 'CRITICAL' ? 'badge-danger' :
-                                alert.severity === 'WARNING' ? 'badge-warning' : 'bg-accent-muted text-accent border border-accent-border'
+                                alert.severity === 'WARNING' ? 'badge-warning' : 'bg-brand-muted text-brand border border-brand-border'
                               }`}>
                                 {alert.severity}
                               </span>
@@ -459,7 +459,7 @@ export default function NotificationsPage() {
                               <button
                                 type="button"
                                 onClick={() => markRead(alert.id)}
-                                className="btn-xs text-accent hover:text-accent/80"
+                                className="btn-xs text-brand hover:text-brand/80"
                               >
                                 อ่านแล้ว
                               </button>
@@ -512,14 +512,14 @@ export default function NotificationsPage() {
                       </button>
                     </div>
 
-                    <div className="bg-accent-muted border border-accent-border rounded-lg px-4 py-3">
-                      <p className="text-sm font-medium text-accent inline-flex items-center gap-1">
+                    <div className="bg-brand-muted border border-brand-border rounded-lg px-4 py-3">
+                      <p className="text-sm font-medium text-brand inline-flex items-center gap-1">
                         <FileText className="w-4 h-4" /> How to set up:
                       </p>
-                      <ol className="text-xs text-accent/80 mt-2 list-decimal list-inside space-y-1">
+                      <ol className="text-xs text-brand/80 mt-2 list-decimal list-inside space-y-1">
                         <li>Create a bot at <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="underline">@BotFather</a> on Telegram</li>
                         <li>Get your Bot Token from BotFather</li>
-                        <li>Find your Chat ID — send a message to your bot, then visit <code className="bg-accent-muted px-1 rounded">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code></li>
+                        <li>Find your Chat ID — send a message to your bot, then visit <code className="bg-brand-muted px-1 rounded">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code></li>
                         <li>Enter new Bot Token + Chat ID below to overwrite</li>
                       </ol>
                     </div>
@@ -553,17 +553,17 @@ export default function NotificationsPage() {
                       <p className="text-xs text-warning/80 mt-1">Enter your Bot Token and Chat ID to receive alerts on Telegram.</p>
                     </div>
 
-                    <div className="bg-accent-muted border border-accent-border rounded-lg px-4 py-3">
-                      <p className="text-sm font-medium text-accent inline-flex items-center gap-1">
+                    <div className="bg-brand-muted border border-brand-border rounded-lg px-4 py-3">
+                      <p className="text-sm font-medium text-brand inline-flex items-center gap-1">
                         <FileText className="w-4 h-4" /> How to get started:
                       </p>
-                      <ol className="text-xs text-accent/80 mt-2 list-decimal list-inside space-y-2">
+                      <ol className="text-xs text-brand/80 mt-2 list-decimal list-inside space-y-2">
                         <li>Open Telegram and search for <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="underline font-medium">@BotFather</a></li>
-                        <li>Send <code className="bg-accent-muted px-1 rounded">/newbot</code> and follow the prompts</li>
-                        <li>Copy the Bot Token (looks like <code className="bg-accent-muted px-1 rounded">123456:ABC-DEF...</code>)</li>
-                        <li>Start a chat with your new bot and send <code className="bg-accent-muted px-1 rounded">/start</code></li>
-                        <li>Find your Chat ID: visit <code className="bg-accent-muted px-1 rounded break-all">https://api.telegram.org/bot/TOKEN/getUpdates</code> in browser</li>
-                        <li>Look for <code className="bg-accent-muted px-1 rounded">chat -&gt; id: YOUR_CHAT_ID</code> in the response</li>
+                        <li>Send <code className="bg-brand-muted px-1 rounded">/newbot</code> and follow the prompts</li>
+                        <li>Copy the Bot Token (looks like <code className="bg-brand-muted px-1 rounded">123456:ABC-DEF...</code>)</li>
+                        <li>Start a chat with your new bot and send <code className="bg-brand-muted px-1 rounded">/start</code></li>
+                        <li>Find your Chat ID: visit <code className="bg-brand-muted px-1 rounded break-all">https://api.telegram.org/bot/TOKEN/getUpdates</code> in browser</li>
+                        <li>Look for <code className="bg-brand-muted px-1 rounded">chat -&gt; id: YOUR_CHAT_ID</code> in the response</li>
                       </ol>
                     </div>
 

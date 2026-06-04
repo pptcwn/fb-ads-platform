@@ -97,7 +97,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href, item.exact, active)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent ${
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand ${
                   active
                     ? 'text-ink font-medium bg-surface-200'
                     : 'text-ink-100 hover:text-ink hover:bg-surface-100'
@@ -135,7 +135,7 @@ export default function SidebarNav() {
     <>
       <button
         type="button"
-        className="lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-accent text-white shadow-elevated flex items-center justify-center"
+        className="lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-full bg-brand text-white shadow-elevated flex items-center justify-center"
         onClick={() => setMobileOpen(true)}
         aria-label="เปิดเมนู"
       >
@@ -159,7 +159,7 @@ export default function SidebarNav() {
       >
         <div className="px-5 py-4 border-b border-surface-300 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2.5 group" aria-label="FB Ads Platform">
-            <span className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-white text-xs font-bold">
+            <span className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center text-white text-xs font-bold">
               F
             </span>
             <span className="font-semibold text-sm text-ink">FB Ads</span>

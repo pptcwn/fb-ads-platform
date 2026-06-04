@@ -1,16 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Bell, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import AccountSwitcher from './AccountSwitcher';
-import { useFbStatus, useTriggerSync } from '@/hooks/use-dashboard';
+import { useDashboardSync } from '@/contexts/dashboard-sync-context';
 
 export default function TopBar() {
-  const pathname = usePathname();
-  const { data: fbStatus } = useFbStatus();
-  const triggerSync = useTriggerSync();
-  const showOverviewSync = pathname === '/dashboard' && !!fbStatus?.connected;
+  const { onSync, syncing } = useDashboardSync();
 
   return (
     <header
@@ -19,21 +16,22 @@ export default function TopBar() {
     >
       <AccountSwitcher />
       <div className="flex items-center gap-2">
-        {showOverviewSync && (
-          <button
+        {onSync && (
+          <Button
             type="button"
-            onClick={() => triggerSync.mutate()}
-            disabled={triggerSync.isPending}
-            className="btn-secondary btn-sm"
+            variant="secondary"
+            size="sm"
+            onClick={() => void onSync()}
+            disabled={syncing}
             aria-label="ซิงค์ข้อมูลจาก Meta"
           >
-            <RefreshCw className={`w-4 h-4 ${triggerSync.isPending ? 'animate-spin' : ''}`} aria-hidden />
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden />
             <span className="hidden sm:inline">ซิงค์</span>
-          </button>
+          </Button>
         )}
         <Link
           href="/dashboard/notifications"
-          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-100 hover:text-ink hover:bg-surface-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-100 hover:text-ink hover:bg-surface-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           aria-label="การแจ้งเตือน"
         >
           <Bell className="w-4 h-4" aria-hidden />
